@@ -1,0 +1,9 @@
+{
+  "appId": "com.bezoove.asbo",
+  "appName": "ASBO: Life on Tag",
+  "webDir": "www",
+  "backgroundColor": "#0b0d12",
+  "android": {
+    "allowMixedContent": false
+  }
+}

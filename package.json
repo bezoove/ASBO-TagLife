@@ -1,0 +1,17 @@
+{
+  "name": "asbo-taglife",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Capacitor Android wrapper for ASBO: Life on Tag",
+  "scripts": {
+    "sync-game": "node scripts/sync-game.js",
+    "sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "7.6.10",
+    "@capacitor/core": "7.6.10"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.6.10"
+  }
+}

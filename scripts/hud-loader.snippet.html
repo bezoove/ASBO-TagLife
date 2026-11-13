@@ -1,0 +1,4 @@
+<!--asbo-hud-loader--><script>(function(){try{var on=/[?&]hud=1(&|$)/.test(location.search)||localStorage.getItem('asbo_hud')==='1';
+// Hidden toggle for phones: tap the top-left corner 7 times within 4 s to flip the HUD (reloads the page).
+var n=0,t0=0;addEventListener('pointerdown',function(e){if(e.clientX>60||e.clientY>60){n=0;return}var now=Date.now();if(now-t0>4000)n=0;if(!n)t0=now;if(++n>=7){n=0;try{localStorage.setItem('asbo_hud',on?'0':'1')}catch(x){}location.reload()}},true);
+if(on){var s=document.createElement('script');s.src='perf-hud.js';s.async=true;document.body.appendChild(s)}}catch(e){}})();</script><!--/asbo-hud-loader-->
