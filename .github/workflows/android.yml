@@ -18,7 +18,8 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-      - uses: android-actions/setup-android@v3
+      - name: Accept Android SDK licences
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - run: npm ci
       - run: npx cap sync android
       - name: Build debug APK
@@ -49,7 +50,8 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-      - uses: android-actions/setup-android@v3
+      - name: Accept Android SDK licences
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - run: npm ci
       - run: npx cap sync android
       - name: Check keystore secret
