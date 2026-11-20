@@ -54,10 +54,11 @@ namespace ASBO.Slice
 
         public AudioSource Play3D(AudioClip clip, Vector3 pos, float vol = 1f, float pitch = 1f, float maxDist = 70f, float minDist = 3f)
         {
-            if (clip == null) return null;
+            if (clip == null || this == null || pool == null || pool.Count == 0) return null;
             AudioSource best = null;
-            foreach (var s in pool) if (!s.isPlaying) { best = s; break; }
-            if (best == null) { float old = 1e9f; foreach (var s in pool) { float rem = s.clip.length - s.time; if (rem < old) { old = rem; best = s; } } }
+            foreach (var s in pool) if (s != null && !s.isPlaying) { best = s; break; }
+            if (best == null) { float old = 1e9f; foreach (var s in pool) { if (s == null) continue; float rem = (s.clip != null ? s.clip.length : 0f) - s.time; if (rem < old) { old = rem; best = s; } } }
+            if (best == null) return null;
             best.transform.position = pos; best.clip = clip; best.volume = vol; best.pitch = pitch;
             best.minDistance = minDist; best.maxDistance = maxDist; best.Play();
             return best;

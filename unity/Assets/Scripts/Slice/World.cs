@@ -16,7 +16,7 @@ namespace ASBO.Slice
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
         {
-            if (inst != null) return;
+            if (inst != null || FindFirstObjectByType<World>() != null) return;
             var g = new GameObject("ASBO_Slice"); inst = g.AddComponent<World>();
             DontDestroyOnLoad(g);
         }
@@ -25,7 +25,8 @@ namespace ASBO.Slice
 
         void Rebuild()
         {
-            if (Root != null) Destroy(Root.gameObject);
+            foreach (var go in GameObject.FindObjectsByType<Transform>(FindObjectsSortMode.None)) if (go != null && go.parent == null && go.name == "SliceWorld") DestroyImmediate(go.gameObject);
+            Root = null;
             Gore.Reset(); Ambulance.ResetAll(); Person.All.Clear();
             Root = new GameObject("SliceWorld").transform;
             var sun = FindFirstObjectByType<Light>();
