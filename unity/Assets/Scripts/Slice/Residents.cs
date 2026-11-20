@@ -53,11 +53,29 @@ namespace ASBO.Slice
             var look = Look(h.pl.arch, idx, r);
             Vector3 at = h.root.TransformPoint(h.MainRoomLocal()) + new Vector3(((float)r.NextDouble() - 0.5f), 0, ((float)r.NextDouble() - 0.5f));
             Nav.Snap(at, out at, 2f);
-            var person = World.MakePerson(at, look.shirt, look.trousers, h.pl.arch + "@" + h.pl.name);
+            var person = World.MakePerson(at, look.shirt, look.trousers, h.pl.arch + "@" + h.pl.name, false, ModelFor(h.pl.arch, idx));
             person.agentDriven = true;
             var res = person.gameObject.AddComponent<Resident>();
             res.home = h; res.arch = h.pl.arch; res.wait = 1f + (float)r.NextDouble() * 4f;
             return res;
+        }
+
+        static string ModelFor(string arch, int idx)
+        {
+            switch (arch)
+            {
+                case "colonel": return idx == 0 ? "m_old_jacket_bald" : "f_old_skirt_bun";
+                case "widow": return "f_old_jacket_bun";
+                case "barrister": return idx == 0 ? "m_fit_jacket_short" : "f_slim_shirt_long";
+                case "banker": return idx == 0 ? "m_heavy_shirt_bald" : "f_curvy_skirt_bob";
+                case "horsey": return idx == 0 ? "f_slim_shirt_long" : "m_heavy_jacket_short";
+                case "gentry": return idx == 0 ? "m_old_shirt_bald" : "f_old_jacket_bun";
+                case "surgeon": return idx == 0 ? "m_young_shirt_short" : "f_young_skirt_bob";
+                case "author": return idx == 0 ? "m_fit_tee_short" : "f_young_tee_long";
+                case "gallery": return idx == 0 ? "f_slim_dress_bob" : "m_young_tee_short";
+                case "antiques": return idx == 0 ? "m_heavy_jacket_short" : "f_curvy_jacket_bun";
+                default: return null;
+            }
         }
 
         struct LookS { public Color shirt, trousers; }
@@ -99,7 +117,7 @@ namespace ASBO.Slice
 
         void Update()
         {
-            if (p == null || ag == null) return;
+            if (p == null || ag == null || home == null || home.root == null) return;
             if (p.state != Person.State.Walking) { if (ag.enabled) ag.enabled = false; enabled = false; return; }
             if (!ag.isOnNavMesh) return;
             float v = ag.velocity.magnitude;
@@ -125,9 +143,16 @@ namespace ASBO.Slice
                     Vector3 d = o.transform.position - transform.position; d.y = 0;
                     if (d.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(d);
                     GameAudio.I.PlayVoice("resident", transform.position + Vector3.up * 1.6f);
+                    StartCoroutine(TalkFor(4f + Random.value * 3f)); o.StartCoroutine(o.TalkFor(4f + Random.value * 3f));
                     return;
                 }
             }
+        }
+
+        public System.Collections.IEnumerator TalkFor(float t)
+        {
+            if (p == null) yield break;
+            p.SetTalk(true); yield return new WaitForSeconds(t); if (p != null) p.SetTalk(false);
         }
 
         void Next()

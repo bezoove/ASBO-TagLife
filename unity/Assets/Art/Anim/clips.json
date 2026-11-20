@@ -1,0 +1,13 @@
+{"clips":[
+ {"file":"idle_wait","name":"Idle","first":150,"last":870,"loop":true,"inPlace":true,"speed":0},
+ {"file":"walk_slow","name":"WalkSlow","first":84,"last":258,"loop":true,"inPlace":false,"speed":1.0},
+ {"file":"walk","name":"Walk","first":66,"last":197,"loop":true,"inPlace":false,"speed":1.49},
+ {"file":"walk_brisk","name":"WalkBrisk","first":48,"last":153,"loop":true,"inPlace":false,"speed":2.12},
+ {"file":"jog","name":"Jog","first":39,"last":135,"loop":true,"inPlace":false,"speed":3.07},
+ {"file":"run","name":"Run","first":39,"last":129,"loop":true,"inPlace":false,"speed":3.93},
+ {"file":"talk","name":"Talk","first":1143,"last":1863,"loop":true,"inPlace":true,"speed":0},
+ {"file":"wave","name":"Wave","first":1023,"last":1383,"loop":true,"inPlace":true,"speed":0},
+ {"file":"jump","name":"Jump","first":176,"last":336,"loop":false,"inPlace":false,"speed":0},
+ {"file":"kneel","name":"Kneel","first":220,"last":460,"loop":true,"inPlace":true,"speed":0},
+ {"file":"stumble","name":"Stumble","first":20,"last":300,"loop":false,"inPlace":false,"speed":0}
+]}

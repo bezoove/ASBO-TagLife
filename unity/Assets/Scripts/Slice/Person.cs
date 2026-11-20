@@ -6,8 +6,10 @@ using UnityEngine;
 namespace ASBO.Slice
 {
     /// <summary>
-    /// Procedural humanoid: jointed primitive body with walk/kneel animation, and a physics ragdoll
-    /// (CharacterJoints) switched on when struck by a vehicle. Severe impacts dismember; only unimportant people can die.
+    /// A person built on Unity's Humanoid animation system: imported rigged character (LOD0-2) + shared
+    /// Animator Controller (mocap locomotion blend tree, talk/wave/kneel/jump). On a car strike the Animator
+    /// hands over to a physics ragdoll built from the humanoid bones (Unity Ragdoll-Wizard style).
+    /// Only unimportant people can die; severe impacts can sever limbs.
     /// </summary>
     public class Person : MonoBehaviour
     {
@@ -19,101 +21,108 @@ namespace ASBO.Slice
         public State state = State.Walking;
         public bool dead, injured;
         public string label = "Person";
+        public string model; public Color skinTone = Color.white, hairColor = new Color(0.25f, 0.17f, 0.1f); public bool male = true;
         public event Action<Person> Settled;
         public static readonly List<Person> All = new List<Person>();
         public static Person LastHit;
 
-        Transform pelvis, torso, head, uArmL, uArmR, lArmL, lArmR, uLegL, uLegR, lLegL, lLegR;
+        public Animator anim;
+        GameObject body; SkinnedMeshRenderer[] smrs;
         class Bone { public Transform t; public Rigidbody rb; public Collider col; public Bone parent; public bool severed; }
         readonly List<Bone> bones = new List<Bone>();
         readonly Dictionary<Transform, Bone> byT = new Dictionary<Transform, Bone>();
         CapsuleCollider trigger; Rigidbody rootRb;
-        float phase, amp, targetAmp, kneel, kneelTarget; int wp; bool stepped;
-        float hitTime, calmTimer; float lastStepSign;
-        static Material skin, shoe;
+        float animSpeed, wantSpeed, stepT, hitTime, calmTimer; bool moved; int wp;
+        static RuntimeAnimatorController ctrl;
+        Transform hips;
 
         public void Init()
         {
-            if (skin == null) { skin = Gfx.Mat(new Color(0.85f, 0.65f, 0.52f), null, 0.2f); shoe = Gfx.Mat(new Color(0.08f, 0.06f, 0.05f), null, 0.3f); }
             Build();
             All.Add(this);
         }
         void OnDestroy() { All.Remove(this); }
 
-        Bone AddBone(Transform t, Bone parent, float mass, Collider c)
-        {
-            var rb = t.gameObject.AddComponent<Rigidbody>();
-            rb.mass = mass; rb.isKinematic = true; rb.linearDamping = 0.15f; rb.angularDamping = 0.9f;
-            rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
-            c.enabled = false;
-            var b = new Bone { t = t, rb = rb, col = c, parent = parent };
-            bones.Add(b); byT[t] = b; return b;
-        }
-
-        Transform Pivot(string n, Transform parent, Vector3 lp) { var g = new GameObject(n).transform; g.SetParent(parent, false); g.localPosition = lp; return g; }
-
-        CapsuleCollider Limb(Transform piv, Vector3 center, float r, float h, Material m, string vis = "Mesh")
-        {
-            var g = Gfx.Prim(PrimitiveType.Capsule, piv, center, new Vector3(r * 2f, h / 2f, r * 2f), m, vis, false);
-            var c = piv.gameObject.AddComponent<CapsuleCollider>();
-            c.center = center; c.radius = r; c.height = h; c.direction = 1;
-            return c;
-        }
-
+        // ---------------------------------------------------------------- build
         void Build()
         {
-            var shirtM = Gfx.Mat(shirt, null, 0.1f);
-            var trM = Gfx.Mat(trousers, null, 0.1f);
-            pelvis = Pivot("Pelvis", transform, new Vector3(0, 0.96f, 0));
-            var pb = AddBone(pelvis, null, 10f, Limb(pelvis, new Vector3(0, 0.02f, 0), 0.16f, 0.32f, trM));
-            torso = Pivot("Torso", pelvis, new Vector3(0, 0.12f, 0));
-            var tb = AddBone(torso, pb, 14f, Limb(torso, new Vector3(0, 0.27f, 0), 0.19f, 0.62f, shirtM));
-            head = Pivot("Head", torso, new Vector3(0, 0.6f, 0));
-            var hc = head.gameObject.AddComponent<SphereCollider>(); hc.center = new Vector3(0, 0.12f, 0); hc.radius = 0.11f;
-            Gfx.Prim(PrimitiveType.Sphere, head, new Vector3(0, 0.12f, 0), Vector3.one * 0.24f, skin, "Head", false);
-            AddBone(head, tb, 5f, hc);
-            uArmL = Arm("ArmL", -0.25f, shirtM, tb, out lArmL);
-            uArmR = Arm("ArmR", 0.25f, shirtM, tb, out lArmR);
-            uLegL = Leg("LegL", -0.1f, trM, pb, out lLegL);
-            uLegR = Leg("LegR", 0.1f, trM, pb, out lLegR);
-
+            ChooseModel();
+            var prefab = Resources.Load<GameObject>("Characters/" + model) ?? Resources.Load<GameObject>("Characters/m_young_tee_short");
+            body = Instantiate(prefab, transform);
+            body.name = "Body"; body.transform.localPosition = Vector3.zero; body.transform.localRotation = Quaternion.identity;
+            anim = body.GetComponent<Animator>(); if (anim == null) anim = body.AddComponent<Animator>();
+            if (ctrl == null) ctrl = Resources.Load<RuntimeAnimatorController>("Anim/Humanoid");
+            anim.runtimeAnimatorController = ctrl;
+            anim.applyRootMotion = false;
+            anim.cullingMode = isPlayer ? AnimatorCullingMode.AlwaysAnimate : AnimatorCullingMode.CullUpdateTransforms;
+            anim.SetFloat("Variant", UnityEngine.Random.value);
+            if (ctrl != null) anim.Play("Locomotion", 0, UnityEngine.Random.value);
+            hips = anim.isHuman ? anim.GetBoneTransform(HumanBodyBones.Hips) : body.transform;
+            smrs = body.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            bool stubble = male && (GetInstanceID() & 3) != 0;
+            foreach (var r in smrs)
+            {
+                var ms = r.sharedMaterials;
+                for (int i = 0; i < ms.Length; i++)
+                {
+                    string n = ms[i] != null ? ms[i].name.ToLowerInvariant() : "";
+                    if (n.StartsWith("skin")) ms[i] = CharModel.Skin(male, stubble, skinTone);
+                    else if (n.StartsWith("hair")) ms[i] = CharModel.Hair(hairColor);
+                    else if (n.StartsWith("top")) ms[i] = CharModel.Cloth(shirt);
+                    else if (n.StartsWith("bottom")) ms[i] = CharModel.Cloth(trousers);
+                    else if (n.StartsWith("shoe")) ms[i] = CharModel.Shoes(isParamedic ? new Color(0.05f, 0.05f, 0.05f) : new Color(0.13f, 0.09f, 0.06f));
+                    else if (n.StartsWith("eye")) ms[i] = CharModel.Eyes();
+                    else if (n.StartsWith("lash")) ms[i] = CharModel.Lashes();
+                }
+                r.sharedMaterials = ms;
+                r.updateWhenOffscreen = false;
+            }
             if (!isPlayer)
             {
                 trigger = gameObject.AddComponent<CapsuleCollider>();
-                trigger.isTrigger = true; trigger.center = new Vector3(0, 0.9f, 0); trigger.radius = 0.35f; trigger.height = 1.8f;
+                trigger.isTrigger = true; trigger.center = new Vector3(0, 0.9f, 0); trigger.radius = 0.33f; trigger.height = 1.8f;
                 rootRb = gameObject.AddComponent<Rigidbody>(); rootRb.isKinematic = true;
             }
         }
 
-        Transform Arm(string n, float x, Material m, Bone parent, out Transform lower)
+        void ChooseModel()
         {
-            var up = Pivot(n, torso, new Vector3(x, 0.5f, 0));
-            var ub = AddBone(up, parent, 2f, Limb(up, new Vector3(0, -0.15f, 0), 0.055f, 0.32f, m));
-            lower = Pivot(n + "Lower", up, new Vector3(0, -0.3f, 0));
-            AddBone(lower, ub, 1.5f, Limb(lower, new Vector3(0, -0.15f, 0), 0.05f, 0.3f, skin));
-            return up;
+            int h = Mathf.Abs(GetInstanceID() * 7919 + (int)(transform.position.x * 13f));
+            if (string.IsNullOrEmpty(model))
+            {
+                if (isPlayer) model = "m_young_tee_short";
+                else if (isParamedic || label == "Paramedic") model = (h % 3 == 0) ? "f_curvy_jacket_bun" : "m_fit_jacket_short";
+                else { bool f = (h % 2) == 0; var list = f ? CharModel.Female : CharModel.Male; model = list[(h / 2) % list.Length]; }
+            }
+            male = model.StartsWith("m_");
+            if (skinTone == Color.white && !isPlayer)
+            {
+                int t = (h / 7) % 10;
+                skinTone = t < 6 ? new Color(1f, 0.97f, 0.95f) : t < 8 ? new Color(0.86f, 0.74f, 0.64f) : t < 9 ? new Color(0.66f, 0.52f, 0.42f) : new Color(0.45f, 0.34f, 0.27f);
+            }
+            if (model.Contains("old")) hairColor = (h % 2 == 0) ? new Color(0.72f, 0.7f, 0.68f) : new Color(0.88f, 0.87f, 0.85f);
+            else
+            {
+                Color[] hc = { new Color(0.22f, 0.15f, 0.09f), new Color(0.1f, 0.08f, 0.06f), new Color(0.62f, 0.48f, 0.28f), new Color(0.42f, 0.2f, 0.1f), new Color(0.32f, 0.22f, 0.14f) };
+                hairColor = hc[(h / 3) % hc.Length];
+                if (skinTone.r < 0.7f) hairColor = new Color(0.07f, 0.06f, 0.05f);
+            }
         }
 
-        Transform Leg(string n, float x, Material m, Bone parent, out Transform lower)
-        {
-            var up = Pivot(n, pelvis, new Vector3(x, -0.05f, 0));
-            var ub = AddBone(up, parent, 7f, Limb(up, new Vector3(0, -0.22f, 0), 0.08f, 0.46f, m));
-            lower = Pivot(n + "Lower", up, new Vector3(0, -0.44f, 0));
-            AddBone(lower, ub, 4f, Limb(lower, new Vector3(0, -0.22f, 0), 0.065f, 0.44f, m));
-            Gfx.Box(lower, new Vector3(0, -0.45f, 0.06f), new Vector3(0.12f, 0.08f, 0.26f), shoe, 0, "Shoe", false);
-            return up;
-        }
-
-        // ---------------- locomotion ----------------
-        public void Animate(float spd) { targetAmp = Mathf.Clamp01(spd / 1.4f); phase += spd * Time.deltaTime * 4.2f; stepped = true; }
-        public void SetKneel(bool k) { kneelTarget = k ? 1f : 0f; }
+        // ---------------------------------------------------------------- locomotion
+        /// <summary>Tell the animator how fast we're moving (m/s). The blend tree thresholds are the clips' real speeds.</summary>
+        public void Animate(float spd) { wantSpeed = spd; moved = true; }
+        public void SetKneel(bool k) { if (anim != null && anim.enabled) anim.SetBool("Kneel", k); }
+        public void SetTalk(bool t) { if (anim != null && anim.enabled) anim.SetBool("Talk", t); }
+        public void SetWave(bool w) { if (anim != null && anim.enabled) anim.SetBool("Wave", w); }
+        public void Jump() { if (anim != null && anim.enabled) anim.SetTrigger("Jump"); }
 
         public void Step(Vector3 target, float spd)
         {
             Vector3 d = target - transform.position; d.y = 0;
             if (d.sqrMagnitude < 0.0004f) return;
             Vector3 dir = d.normalized;
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 8f * Time.deltaTime);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir), 360f * Time.deltaTime);
             transform.position += dir * Mathf.Min(spd * Time.deltaTime, d.magnitude);
             Animate(spd);
         }
@@ -131,44 +140,25 @@ namespace ASBO.Slice
 
         void LateUpdate()
         {
-            if (state == State.Walking)
+            if (state != State.Walking || anim == null) return;
+            if (!moved) wantSpeed = 0f;
+            animSpeed = Mathf.MoveTowards(animSpeed, wantSpeed, 9f * Time.deltaTime);
+            anim.SetFloat("Speed", animSpeed);
+            moved = false;
+            // footsteps at the gait's cadence
+            if (animSpeed > 0.3f && GameAudio.I != null)
             {
-                if (!stepped) targetAmp = 0f;
-                amp = Mathf.Lerp(amp, targetAmp, 8f * Time.deltaTime);
-                kneel = Mathf.Lerp(kneel, kneelTarget, 5f * Time.deltaTime);
-                float s = Mathf.Sin(phase), c = Mathf.Cos(phase);
-                if (amp > 0.3f && GameAudio.I != null && Mathf.Sign(s) != lastStepSign)
+                stepT += Time.deltaTime * (1.15f + 0.42f * animSpeed);
+                if (stepT >= 1f)
                 {
-                    lastStepSign = Mathf.Sign(s);
+                    stepT -= 1f;
                     var cam = Camera.main;
                     if (cam != null && (cam.transform.position - transform.position).sqrMagnitude < 28f * 28f) GameAudio.I.Footstep(transform.position, isPlayer);
                 }
-                float swing = 32f * amp;
-                Quaternion walkUL = Quaternion.Euler(s * swing, 0, 0), walkUR = Quaternion.Euler(-s * swing, 0, 0);
-                Quaternion walkLL = Quaternion.Euler(Mathf.Max(0f, -c) * 38f * amp, 0, 0), walkLR = Quaternion.Euler(Mathf.Max(0f, c) * 38f * amp, 0, 0);
-                uLegL.localRotation = Quaternion.Slerp(walkUL, Quaternion.Euler(-80f, 0, 0), kneel);
-                uLegR.localRotation = Quaternion.Slerp(walkUR, Quaternion.Euler(-15f, 0, 0), kneel);
-                lLegL.localRotation = Quaternion.Slerp(walkLL, Quaternion.Euler(165f, 0, 0), kneel);
-                lLegR.localRotation = Quaternion.Slerp(walkLR, Quaternion.Euler(95f, 0, 0), kneel);
-                uArmL.localRotation = Quaternion.Euler(-s * 24f * amp - 35f * kneel, 0, 0);
-                uArmR.localRotation = Quaternion.Euler(s * 24f * amp - 35f * kneel, 0, 0);
-                lArmL.localRotation = Quaternion.Euler(-10f - 30f * amp * Mathf.Max(0, s), 0, 0);
-                lArmR.localRotation = Quaternion.Euler(-10f - 30f * amp * Mathf.Max(0, -s), 0, 0);
-                torso.localRotation = Quaternion.Euler(25f * kneel, 0, 0);
-                pelvis.localPosition = new Vector3(0, 0.96f - 0.43f * kneel + Mathf.Abs(c) * 0.025f * amp, 0);
-                stepped = false;
-            }
-            else if (state == State.Ragdoll)
-            {
-                hitTime += Time.deltaTime;
-                float v = 0f;
-                foreach (var b in bones) if (!b.severed) v = Mathf.Max(v, b.rb.linearVelocity.magnitude);
-                calmTimer = v < 0.25f ? calmTimer + Time.deltaTime : 0f;
-                if ((calmTimer > 1.2f && hitTime > 1.5f) || hitTime > 12f) Settle();
             }
         }
 
-        // ---------------- being hit ----------------
+        // ---------------------------------------------------------------- ragdoll
         void OnTriggerEnter(Collider other)
         {
             if (isPlayer || state != State.Walking) return;
@@ -176,32 +166,91 @@ namespace ASBO.Slice
             if (car == null) return;
             float sp = car.Speed;
             if (sp < 1.5f) return;
-            Vector3 v = car.Velocity;
-            Hit(v, other.ClosestPoint(transform.position + Vector3.up), sp);
+            Hit(car.Velocity, other.ClosestPoint(transform.position + Vector3.up), sp);
+        }
+
+        Bone AddBone(Transform t, Bone parent, float mass, Collider c)
+        {
+            var rb = t.gameObject.AddComponent<Rigidbody>();
+            rb.mass = mass; rb.linearDamping = 0.1f; rb.angularDamping = 0.8f; rb.interpolation = RigidbodyInterpolation.Interpolate;
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            var b = new Bone { t = t, rb = rb, col = c, parent = parent };
+            bones.Add(b); byT[t] = b; return b;
+        }
+
+        static CapsuleCollider CapTo(Transform t, Vector3 endWorld, float r, float extra)
+        {
+            Vector3 e = t.InverseTransformPoint(endWorld);
+            var c = t.gameObject.AddComponent<CapsuleCollider>();
+            float ax = Mathf.Abs(e.x), ay = Mathf.Abs(e.y), az = Mathf.Abs(e.z);
+            c.direction = ax > ay && ax > az ? 0 : ay > az ? 1 : 2;
+            float len = e.magnitude;
+            c.center = e * 0.5f * (1f + extra / Mathf.Max(len, 0.01f));
+            c.height = len + extra; c.radius = r;
+            return c;
+        }
+
+        void Joint(Bone b, Vector3 twistWorld, Vector3 swingWorld, float lo, float hi, float s1, float s2)
+        {
+            var j = b.t.gameObject.AddComponent<CharacterJoint>();
+            j.connectedBody = b.parent.rb; j.enableProjection = true; j.enablePreprocessing = false;
+            j.axis = b.t.InverseTransformDirection(twistWorld); j.swingAxis = b.t.InverseTransformDirection(swingWorld);
+            j.lowTwistLimit = new SoftJointLimit { limit = lo }; j.highTwistLimit = new SoftJointLimit { limit = hi };
+            j.swing1Limit = new SoftJointLimit { limit = s1 }; j.swing2Limit = new SoftJointLimit { limit = s2 };
+        }
+
+        void BuildRagdoll()
+        {
+            if (!anim.isHuman) return;
+            Transform B(HumanBodyBones hb) => anim.GetBoneTransform(hb);
+            Vector3 right = transform.right, fwd = transform.forward, up = Vector3.up;
+            var spine = B(HumanBodyBones.Spine); var chest = B(HumanBodyBones.Chest) ?? spine; var neck = B(HumanBodyBones.Neck); var head = B(HumanBodyBones.Head);
+            var pel = AddBone(hips, null, 11f, AddSphere(hips, Vector3.Lerp(hips.position, spine.position, 0.3f), 0.14f));
+            var sp = AddBone(spine, pel, 14f, CapTo(spine, neck.position, 0.15f, 0.06f));
+            Joint(sp, right, fwd, -20, 25, 12, 12);
+            var hd = AddBone(head, sp, 5f, AddSphere(head, head.position + up * 0.1f + fwd * 0.02f, 0.11f));
+            Joint(hd, right, fwd, -40, 30, 30, 30);
+            foreach (var side in new[] { 0, 1 })
+            {
+                var ua = B(side == 0 ? HumanBodyBones.LeftUpperArm : HumanBodyBones.RightUpperArm);
+                var la = B(side == 0 ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm);
+                var hand = B(side == 0 ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand);
+                var ul = B(side == 0 ? HumanBodyBones.LeftUpperLeg : HumanBodyBones.RightUpperLeg);
+                var ll = B(side == 0 ? HumanBodyBones.LeftLowerLeg : HumanBodyBones.RightLowerLeg);
+                var foot = B(side == 0 ? HumanBodyBones.LeftFoot : HumanBodyBones.RightFoot);
+                float sgn = side == 0 ? -1f : 1f;
+                var bua = AddBone(ua, sp, 2.2f, CapTo(ua, la.position, 0.05f, 0.04f));
+                Joint(bua, (la.position - ua.position).normalized, fwd, -70, 70, 60, 40);
+                var bla = AddBone(la, bua, 1.6f, CapTo(la, hand.position + (hand.position - la.position).normalized * 0.12f, 0.045f, 0f));
+                Joint(bla, up * sgn, fwd, -100, 2, 5, 5);
+                var bul = AddBone(ul, pel, 7f, CapTo(ul, ll.position, 0.075f, 0.04f));
+                Joint(bul, right, fwd, -25, 95, 30, 20);
+                var bll = AddBone(ll, bul, 4f, CapTo(ll, foot.position + up * -0.06f, 0.06f, 0.04f));
+                Joint(bll, right, fwd, -120, 2, 4, 4);
+            }
+        }
+
+        static SphereCollider AddSphere(Transform t, Vector3 centerWorld, float r)
+        {
+            var c = t.gameObject.AddComponent<SphereCollider>(); c.center = t.InverseTransformPoint(centerWorld); c.radius = r / Mathf.Max(0.001f, t.lossyScale.x); return c;
         }
 
         /// <summary>Struck by something moving with velocity v. severity in m/s of closing speed.</summary>
         public void Hit(Vector3 v, Vector3 point, float severity)
         {
-            if (state != State.Walking) return;
+            if (state != State.Walking || anim == null) return;
             state = State.Ragdoll; hitTime = 0; calmTimer = 0; LastHit = this;
             label = important ? "Important person" : "Passer-by";
-            // outcome: only unimportant people die
             if (severity >= 7f && !important) dead = true; else injured = true;
-            trigger.enabled = false; rootRb.isKinematic = true;
-            foreach (var b in bones) { b.t.localRotation = Quaternion.identity; }
-            pelvis.localPosition = new Vector3(0, 0.96f, 0);
-            foreach (var b in bones) b.col.enabled = true;
-            foreach (var b in bones) if (b.parent != null) AddJoint(b);
+            var agent = GetComponent<UnityEngine.AI.NavMeshAgent>(); if (agent != null) agent.enabled = false;
+            if (trigger != null) trigger.enabled = false;
+            anim.enabled = false;
+            BuildRagdoll();
             Vector3 flat = v.normalized;
             foreach (var b in bones)
             {
-                b.rb.isKinematic = false;
-                b.rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-                float h = b.t.position.y;
-                // car pushes the low parts hard and tosses the upper body up and over the bonnet
-                Vector3 impulse = v * UnityEngine.Random.Range(0.85f, 1.05f) + Vector3.up * Mathf.Clamp(severity * 0.32f, 1f, 5f) * Mathf.Clamp01(h / 1.2f);
-                b.rb.linearVelocity = impulse;
+                float h = b.t.position.y - transform.position.y;
+                b.rb.linearVelocity = v * UnityEngine.Random.Range(0.85f, 1.05f) + Vector3.up * Mathf.Clamp(severity * 0.32f, 1f, 5f) * Mathf.Clamp01(h / 1.2f);
                 b.rb.angularVelocity = UnityEngine.Random.onUnitSphere * Mathf.Clamp(severity * 0.45f, 1f, 6f);
             }
             Gore.Burst(point, flat + Vector3.up * 0.3f, 90);
@@ -216,45 +265,89 @@ namespace ASBO.Slice
             Ambulance.Dispatch(this);
         }
 
-        void AddJoint(Bone b)
+        void FixedUpdate()
         {
-            var j = b.t.gameObject.AddComponent<CharacterJoint>();
-            j.connectedBody = b.parent.rb; j.anchor = Vector3.zero; j.enableProjection = true; j.enablePreprocessing = false;
-            string n = b.t.name; float lo = -30, hi = 30, s1 = 30, s2 = 30; Vector3 axis = Vector3.right;
-            if (n.StartsWith("Leg") && !n.Contains("Lower")) { lo = -100; hi = 30; s1 = 25; s2 = 35; }
-            else if (n.StartsWith("Leg")) { lo = -4; hi = 140; s1 = 5; s2 = 5; }
-            else if (n.StartsWith("Arm") && !n.Contains("Lower")) { lo = -120; hi = 60; s1 = 70; s2 = 60; }
-            else if (n.StartsWith("Arm")) { lo = -140; hi = 4; s1 = 5; s2 = 5; }
-            else if (n == "Head") { lo = -40; hi = 40; s1 = 30; s2 = 30; }
-            else if (n == "Torso") { lo = -30; hi = 30; s1 = 25; s2 = 25; }
-            j.axis = axis; j.swingAxis = Vector3.up;
-            j.lowTwistLimit = new SoftJointLimit { limit = lo };
-            j.highTwistLimit = new SoftJointLimit { limit = hi };
-            j.swing1Limit = new SoftJointLimit { limit = s1 };
-            j.swing2Limit = new SoftJointLimit { limit = s2 };
+            if (state != State.Ragdoll) return;
+            hitTime += Time.fixedDeltaTime;
+            float v = 0f;
+            foreach (var b in bones) if (!b.severed && b.rb != null) v = Mathf.Max(v, b.rb.linearVelocity.magnitude);
+            calmTimer = v < 0.25f ? calmTimer + Time.fixedDeltaTime : 0f;
+            if ((calmTimer > 1.2f && hitTime > 1.5f) || hitTime > 12f) Settle();
         }
 
         IEnumerator Dismember(float severity)
         {
             yield return new WaitForSeconds(0.12f);
-            if (Gore.Level == 0) yield break;
-            // lower leg or forearm comes away; heavy impacts can take a leg at the thigh
-            Transform[] cand = { lLegL, lLegR, lArmL, lArmR, uLegL };
-            Transform cut = cand[UnityEngine.Random.Range(0, severity > 12f ? cand.Length : 4)];
-            if (!byT.TryGetValue(cut, out var b) || b.severed) yield break;
+            if (Gore.Level == 0 || !anim.isHuman) yield break;
+            HumanBodyBones[] cand = { HumanBodyBones.LeftLowerLeg, HumanBodyBones.RightLowerLeg, HumanBodyBones.LeftLowerArm, HumanBodyBones.RightLowerArm, HumanBodyBones.LeftUpperLeg };
+            var cut = anim.GetBoneTransform(cand[UnityEngine.Random.Range(0, severity > 12f ? cand.Length : 4)]);
+            if (cut == null || !byT.TryGetValue(cut, out var b) || b.severed) yield break;
             b.severed = true;
             var j = cut.GetComponent<CharacterJoint>(); if (j != null) Destroy(j);
-            // stump keeps spurting from the parent bone
             var stump = b.parent.t;
-            Vector3 off = stump.InverseTransformPoint(cut.position);
-            Gore.Spurt(stump, off, 4.5f);
+            Gore.Spurt(stump, stump.InverseTransformPoint(cut.position), 4.5f);
             if (GameAudio.I != null) GameAudio.I.Gore(cut.position);
             Gore.Burst(cut.position, Vector3.up, 60);
+            SeverVisual(cut, stump);
             cut.SetParent(null, true);
             b.rb.linearVelocity += UnityEngine.Random.onUnitSphere * 2f;
-            // hide the stump end by shrinking nothing; severed limb stays as a physics prop
             foreach (var k in bones) if (k.parent == b) { var jj = k.t.GetComponent<CharacterJoint>(); if (jj != null) jj.connectedBody = b.rb; }
             Destroy(cut.gameObject, 90f);
+        }
+
+        /// <summary>Bake the severed limb (from the most detailed LOD) onto the flying part; collapse it to a stump on every LOD.</summary>
+        void SeverVisual(Transform cut, Transform stump)
+        {
+            SkinnedMeshRenderer src = null;
+            foreach (var r in smrs) if (r != null && (src == null || r.sharedMesh.vertexCount > src.sharedMesh.vertexCount)) src = r;
+            if (src == null || !src.sharedMesh.isReadable) return;
+            var bonesArr = src.bones; var sev = new HashSet<int>();
+            for (int i = 0; i < bonesArr.Length; i++) if (bonesArr[i] != null && bonesArr[i].IsChildOf(cut)) sev.Add(i);
+            if (sev.Count == 0) return;
+            var mesh = src.sharedMesh; var bw = mesh.boneWeights; var uv = mesh.uv;
+            var baked = new Mesh(); src.BakeMesh(baked, true);
+            var bv = baked.vertices; var bn = baked.normals;
+            var remap = new Dictionary<int, int>(); var V = new List<Vector3>(); var N = new List<Vector3>(); var U = new List<Vector2>();
+            var subs = new List<List<int>>(); var mats = new List<Material>();
+            for (int s = 0; s < mesh.subMeshCount; s++)
+            {
+                var tri = mesh.GetTriangles(s); var outT = new List<int>();
+                for (int k = 0; k < tri.Length; k += 3)
+                {
+                    if (!sev.Contains(bw[tri[k]].boneIndex0) || !sev.Contains(bw[tri[k + 1]].boneIndex0) || !sev.Contains(bw[tri[k + 2]].boneIndex0)) continue;
+                    for (int q = 0; q < 3; q++)
+                    {
+                        int vi = tri[k + q];
+                        if (!remap.TryGetValue(vi, out int ni))
+                        {
+                            ni = V.Count; remap[vi] = ni;
+                            V.Add(cut.InverseTransformPoint(src.transform.TransformPoint(bv[vi])));
+                            N.Add(cut.InverseTransformDirection(src.transform.TransformDirection(bn[vi])));
+                            U.Add(uv[vi]);
+                        }
+                        outT.Add(ni);
+                    }
+                }
+                if (outT.Count > 0) { subs.Add(outT); mats.Add(src.sharedMaterials[Mathf.Min(s, src.sharedMaterials.Length - 1)]); }
+            }
+            Destroy(baked);
+            if (V.Count > 0)
+            {
+                var lm = new Mesh(); lm.SetVertices(V); lm.SetNormals(N); lm.SetUVs(0, U); lm.subMeshCount = subs.Count;
+                for (int s = 0; s < subs.Count; s++) lm.SetTriangles(subs[s], s);
+                lm.RecalculateBounds();
+                var g = new GameObject("SeveredLimb"); g.transform.SetParent(cut, false);
+                g.AddComponent<MeshFilter>().sharedMesh = lm; g.AddComponent<MeshRenderer>().sharedMaterials = mats.ToArray();
+            }
+            // collapse the limb's skin to a stump: every severed bone on every LOD now points at a zero-scale proxy at the joint
+            var proxy = new GameObject("StumpProxy").transform; proxy.SetParent(stump, false); proxy.position = cut.position; proxy.localScale = Vector3.zero;
+            foreach (var r in smrs)
+            {
+                if (r == null) continue;
+                var arr = r.bones; bool ch = false;
+                for (int i = 0; i < arr.Length; i++) if (arr[i] != null && arr[i].IsChildOf(cut)) { arr[i] = proxy; ch = true; }
+                if (ch) r.bones = arr;
+            }
         }
 
         IEnumerator BleedWhileMoving()
@@ -263,11 +356,8 @@ namespace ASBO.Slice
             while (state == State.Ragdoll && t < 6f)
             {
                 t += 0.2f;
-                if (Gore.Level > 0 && UnityEngine.Random.value < 0.7f)
-                {
-                    Vector3 p = pelvis.position;
-                    if (Physics.Raycast(p + Vector3.up * 0.2f, Vector3.down, out var h, 3f)) Gore.Splat(h.point, h.normal, UnityEngine.Random.Range(0.1f, 0.3f));
-                }
+                if (Gore.Level > 0 && UnityEngine.Random.value < 0.7f && hips != null)
+                    if (Physics.Raycast(hips.position + Vector3.up * 0.2f, Vector3.down, out var h, 3f)) Gore.Splat(h.point, h.normal, UnityEngine.Random.Range(0.1f, 0.3f));
                 yield return new WaitForSeconds(0.2f);
             }
         }
@@ -275,19 +365,19 @@ namespace ASBO.Slice
         void Settle()
         {
             state = State.Settled;
-            foreach (var b in bones) { if (b.rb != null) { b.rb.linearVelocity = Vector3.zero; b.rb.angularVelocity = Vector3.zero; } }
-            if (Physics.Raycast(pelvis.position + Vector3.up * 0.3f, Vector3.down, out var h, 3f))
+            foreach (var b in bones) if (b.rb != null) { b.rb.linearVelocity = Vector3.zero; b.rb.angularVelocity = Vector3.zero; }
+            if (hips != null && Physics.Raycast(hips.position + Vector3.up * 0.3f, Vector3.down, out var h, 3f))
                 Gore.Pool(h.point, dead ? 1.15f : 0.55f, 14f);
             Settled?.Invoke(this);
         }
 
-        public Vector3 BodyPos => pelvis != null ? pelvis.position : transform.position;
+        public Vector3 BodyPos => hips != null ? hips.position : transform.position;
 
         /// <summary>Removes the body (picked up by ambulance crew).</summary>
         public void TakeAway()
         {
             state = State.Carried;
-            foreach (var b in bones) if (b.t != null) b.t.gameObject.SetActive(false);
+            foreach (var b in bones) if (b.t != null && b.severed) Destroy(b.t.gameObject);
             gameObject.SetActive(false);
         }
     }

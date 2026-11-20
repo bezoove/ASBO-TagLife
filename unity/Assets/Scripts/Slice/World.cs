@@ -29,8 +29,7 @@ namespace ASBO.Slice
             Root = null;
             Gore.Reset(); Ambulance.ResetAll(); Person.All.Clear();
             Root = new GameObject("SliceWorld").transform;
-            var sun = FindFirstObjectByType<Light>();
-            if (sun != null && sun.type == LightType.Directional) { sun.transform.rotation = Quaternion.Euler(48f, -35f, 0); sun.shadows = LightShadows.Soft; sun.intensity = 1.25f; }
+            Look.Apply(Root);
             GameAudio.Create(Root);
             BuildGround(); BuildRoad(); BuildEstate();
             Physics.SyncTransforms();
@@ -103,11 +102,11 @@ namespace ASBO.Slice
             p.important = important; p.route.Add(b); p.route.Add(a); p.speed = Random.Range(1.1f, 1.5f);
         }
 
-        public static Person MakePerson(Vector3 pos, Color shirt, Color trousers, string label, bool player = false)
+        public static Person MakePerson(Vector3 pos, Color shirt, Color trousers, string label, bool player = false, string model = null)
         {
             var g = new GameObject(label); g.transform.SetParent(Root, false); g.transform.position = pos;
             var p = g.AddComponent<Person>();
-            p.shirt = shirt; p.trousers = trousers; p.label = label; p.isPlayer = player;
+            p.shirt = shirt; p.trousers = trousers; p.label = label; p.isPlayer = player; p.model = model;
             p.Init();
             return p;
         }
