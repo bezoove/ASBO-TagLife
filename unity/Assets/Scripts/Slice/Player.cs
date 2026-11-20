@@ -121,6 +121,13 @@ namespace ASBO.Slice
                 float dd = Mathf.Max(0.3f, h.distance - 0.05f);
                 if (!blocked || dd < (want - focus).magnitude) { want = focus + dirC / lenC * dd; blocked = true; }
             }
+            // indoors: never let the camera slip out through a window or doorway
+            if (indoors && GameAudio.I != null)
+            {
+                Vector3 dirIn = (want - focus); float len = dirIn.magnitude;
+                while (len > 0.3f && !GameAudio.I.InsideAny(focus + dirIn.normalized * len)) len -= 0.15f;
+                want = focus + dirIn.normalized * len;
+            }
             // too tight for third person (small cottage rooms): go first person at eye height
             bool fp = !inCar && (want - focus).magnitude < 1.1f;
             if (fp != firstPerson) { firstPerson = fp; if (!inCar) SetVisible(!fp); }

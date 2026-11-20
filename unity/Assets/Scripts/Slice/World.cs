@@ -33,6 +33,9 @@ namespace ASBO.Slice
             if (sun != null && sun.type == LightType.Directional) { sun.transform.rotation = Quaternion.Euler(48f, -35f, 0); sun.shadows = LightShadows.Soft; sun.intensity = 1.25f; }
             GameAudio.Create(Root);
             BuildGround(); BuildRoad(); BuildEstate();
+            Physics.SyncTransforms();
+            Nav.Build(new Bounds(new Vector3(0, 4f, 10f), new Vector3(240f, 12f, 96f)));
+            Traffic.Spawn(Root);
             BuildCars(); BuildPeople();
         }
 
@@ -68,7 +71,7 @@ namespace ASBO.Slice
 
         void BuildCars()
         {
-            car = Car.Create(Root, new Vector3(-14f, 0.7f, -26.9f), 90f, new Color(0.55f, 0.08f, 0.1f));
+            car = Car.Create(Root, new Vector3(-14f, 0.6f, -26.3f), 90f, new Color(0.55f, 0.08f, 0.1f));
             var pl = MakePerson(new Vector3(-17f, 0, -23.9f), new Color(0.2f, 0.4f, 0.8f), new Color(0.12f, 0.12f, 0.2f), "Player", true);
             pl.transform.rotation = Quaternion.Euler(0, 90f, 0);
             pl.gameObject.AddComponent<PlayerCtl>().Setup(car);
@@ -81,11 +84,13 @@ namespace ASBO.Slice
             Walker(new Vector3(30f, 0, RoadZ + 7f), new Vector3(30f, 0, RoadZ - 7f), new Color(0.2f, 0.6f, 0.3f), false);
             Walker(new Vector3(44f, 0, RoadZ - 7f), new Vector3(44f, 0, RoadZ + 7f), new Color(0.9f, 0.8f, 0.2f), true);  // important: survives
             Walker(new Vector3(58f, 0, RoadZ + 7f), new Vector3(58f, 0, RoadZ - 7f), new Color(0.6f, 0.3f, 0.7f), false);
-            // two people standing in the car's lane for testing: an ordinary passer-by and an important one
-            var s1 = MakePerson(new Vector3(24f, 0, -26.9f), new Color(0.75f, 0.15f, 0.15f), new Color(0.15f, 0.15f, 0.25f), "Pedestrian");
-            s1.transform.rotation = Quaternion.Euler(0, 180f, 0);
-            var s2 = MakePerson(new Vector3(52f, 0, -26.9f), new Color(0.95f, 0.8f, 0.15f), new Color(0.15f, 0.15f, 0.25f), "Important");
-            s2.important = true; s2.transform.rotation = Quaternion.Euler(0, 180f, 0);
+            // residents of each cottage
+            var rr = new System.Random(9);
+            foreach (var h in Estate.Houses)
+            {
+                int n = h.pl.big || h.P.rooms.Count > 12 ? 2 : 1 + rr.Next(2);
+                for (int q = 0; q < n; q++) Resident.Spawn(h, q, rr);
+            }
             // estate residents strolling the garden
             var r = MakePerson(new Vector3(-20f, 0, Estate.LaneZ), new Color(0.35f, 0.45f, 0.3f), new Color(0.3f, 0.25f, 0.2f), "Resident");
             r.route.AddRange(new[] { new Vector3(30f, 0, Estate.LaneZ), new Vector3(0f, 0, Estate.LaneZ), new Vector3(0f, 0, 5f), new Vector3(0f, 0, Estate.LaneZ), new Vector3(-30f, 0, Estate.LaneZ) });
@@ -112,8 +117,9 @@ namespace ASBO.Slice
             var kb = Keyboard.current; if (kb == null) return;
             if (kb.rKey.wasPressedThisFrame) Rebuild();
             if (kb.gKey.wasPressedThisFrame) Gore.Level = (Gore.Level + 1) % 3;
-            // test keys: 1..0 teleport to each cottage's front door; Shift+number puts you inside the hall
+            // test keys: 1..0 teleport to each cottage's front door; Shift+number puts you inside the hall; T = zebra crossing
             var pc = FindFirstObjectByType<PlayerCtl>();
+            if (pc != null && kb.tKey.wasPressedThisFrame) { pc.Teleport(new Vector3(12f, 0.2f, RoadZ + 6.2f), 110f, 10f); lastHouse = "Zebra crossing"; }
             for (int i = 0; i < 10 && pc != null; i++)
             {
                 var key = i == 9 ? kb.digit0Key : (UnityEngine.InputSystem.Controls.KeyControl)kb[(Key)((int)Key.Digit1 + i)];
@@ -138,7 +144,7 @@ namespace ASBO.Slice
             string lvl = Gore.Level == 2 ? "Full" : Gore.Level == 1 ? "Reduced" : "Off";
             GUI.Label(new Rect(12, 8, 700, 120), "ASBO — Abbots Wend slice   WASD move/drive • Shift run • E enter/exit car • Space jump/brake • R reset • G gore: " + lvl);
             if (!string.IsNullOrEmpty(Ambulance.Status)) GUI.Label(new Rect(12, 28, 700, 30), Ambulance.Status);
-            GUI.Label(new Rect(12, 46, 700, 30), Mathf.RoundToInt(1f / Time.smoothDeltaTime) + " fps   1-0: visit cottage (Shift = inside)   " + lastHouse);
+            GUI.Label(new Rect(12, 46, 900, 30), Mathf.RoundToInt(1f / Time.smoothDeltaTime) + " fps   1-0: visit cottage (Shift = inside)   " + lastHouse + "   " + Resident.Stats() + "  traffic " + TrafficCar.All.Count);
         }
     }
 }

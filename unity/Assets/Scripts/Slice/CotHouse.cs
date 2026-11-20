@@ -15,6 +15,7 @@ namespace ASBO.Slice
         public readonly CPlot pl; public readonly CPlan P;
         public Transform root;
         public Vector3 FrontDoorLocal; // outside the front door, for paths
+        public Vector3 FrontOutLocal = Vector3.back; // outward direction of the front door
         public readonly List<CRect> zones = new List<CRect>();
         MeshKit solid, deco, roofKit;
         Material limeM, frameM, doorM, strawM;
@@ -836,7 +837,7 @@ namespace ASBO.Slice
                 deco.Pop();
                 if (E.kind == "front")
                 {
-                    FrontDoorLocal = L3(E.side, m, 0, o + sg * 0.8f);
+                    FrontDoorLocal = L3(E.side, m, 0, o + sg * 0.8f); FrontOutLocal = new Vector3(n.x, 0, n.y);
                     Porch(E, o, sg, n);
                 }
             }

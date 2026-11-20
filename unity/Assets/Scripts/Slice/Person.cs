@@ -12,7 +12,7 @@ namespace ASBO.Slice
     public class Person : MonoBehaviour
     {
         public enum State { Walking, Ragdoll, Settled, Carried }
-        public bool isPlayer, important, isParamedic;
+        public bool isPlayer, important, isParamedic, agentDriven;
         public Color shirt = Color.gray, trousers = new Color(0.15f, 0.15f, 0.25f);
         public List<Vector3> route = new List<Vector3>();
         public float speed = 1.3f;
@@ -121,7 +121,7 @@ namespace ASBO.Slice
         void Update()
         {
             if (state != State.Walking) return;
-            if (route.Count > 0 && !isPlayer)
+            if (route.Count > 0 && !isPlayer && !agentDriven)
             {
                 Vector3 t = route[wp];
                 if ((t - transform.position).WithY(0).magnitude < 0.3f) wp = (wp + 1) % route.Count;
@@ -172,7 +172,7 @@ namespace ASBO.Slice
         void OnTriggerEnter(Collider other)
         {
             if (isPlayer || state != State.Walking) return;
-            var car = other.GetComponentInParent<Car>();
+            var car = other.GetComponentInParent<IVehicle>();
             if (car == null) return;
             float sp = car.Speed;
             if (sp < 1.5f) return;

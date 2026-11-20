@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 namespace ASBO.Slice
 {
     /// <summary>Simple drivable car: rigid body with four wheel colliders.</summary>
-    public class Car : MonoBehaviour
+    public class Car : MonoBehaviour, IVehicle
     {
         public bool occupied;
         public Rigidbody rb;
@@ -30,23 +30,16 @@ namespace ASBO.Slice
             rb.mass = 1300f; rb.centerOfMass = new Vector3(0, -0.15f, 0.1f); rb.linearDamping = 0.02f; rb.angularDamping = 0.3f;
             rb.interpolation = RigidbodyInterpolation.Interpolate;
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-            var paint = Gfx.Mat(bodyColor, null, 0.7f, 0.3f);
-            var glass = Gfx.Mat(new Color(0.08f, 0.1f, 0.12f), null, 0.9f);
-            var black = Gfx.Mat(new Color(0.04f, 0.04f, 0.04f), null, 0.3f);
-            // body (separate colliders so wheels have room)
-            Gfx.Box(transform, new Vector3(0, 0.75f, 0), new Vector3(1.8f, 0.62f, 4.3f), paint, 0, "Body");
-            Gfx.Box(transform, new Vector3(0, 1.28f, -0.2f), new Vector3(1.6f, 0.5f, 2.1f), glass, 0, "Cabin");
-            Gfx.Box(transform, new Vector3(0, 1.58f, -0.2f), new Vector3(1.5f, 0.06f, 1.9f), paint, 0, "Roof", false);
-            Gfx.Box(transform, new Vector3(0, 0.55f, 2.17f), new Vector3(1.7f, 0.25f, 0.15f), black, 0, "BumperF", false);
-            Gfx.Box(transform, new Vector3(0, 0.55f, -2.17f), new Vector3(1.7f, 0.25f, 0.15f), black, 0, "BumperR", false);
-            var lamp = Gfx.Emissive(new Color(1f, 0.95f, 0.8f), 2f);
-            var tail = Gfx.Emissive(new Color(0.9f, 0.05f, 0.05f), 1.2f);
+            // collision shape
+            var bc = gameObject.AddComponent<BoxCollider>(); bc.center = new Vector3(0, 0.78f, 0); bc.size = new Vector3(1.78f, 0.72f, 4.4f);
+            var cc2 = gameObject.AddComponent<BoxCollider>(); cc2.center = new Vector3(0, 1.25f, -0.15f); cc2.size = new Vector3(1.5f, 0.42f, 2.0f);
+            // lofted saloon body (visual root dropped to sit on the wheels)
+            var vis = new GameObject("Visual").transform; vis.SetParent(transform, false); vis.localPosition = new Vector3(0, -0.06f, 0);
+            var wheelVis = CarBody.Build(vis, CarBody.Saloon, bodyColor);
             foreach (int s in new[] { -1, 1 })
             {
-                Gfx.Box(transform, new Vector3(s * 0.65f, 0.82f, 2.16f), new Vector3(0.35f, 0.16f, 0.05f), lamp, 0, "Headlamp", false);
-                Gfx.Box(transform, new Vector3(s * 0.65f, 0.82f, -2.16f), new Vector3(0.35f, 0.16f, 0.05f), tail, 0, "Taillamp", false);
                 var l = new GameObject("Head").AddComponent<Light>(); l.transform.SetParent(transform, false);
-                l.transform.localPosition = new Vector3(s * 0.65f, 0.85f, 2.2f); l.type = LightType.Spot; l.range = 28f; l.spotAngle = 55f; l.intensity = 6f;
+                l.transform.localPosition = new Vector3(s * 0.65f, 0.65f, 2.25f); l.type = LightType.Spot; l.range = 28f; l.spotAngle = 55f; l.intensity = 6f;
                 head[(s + 1) / 2] = l;
             }
             float[] xs = { -0.88f, 0.88f, -0.88f, 0.88f }, zs = { 1.35f, 1.35f, -1.35f, -1.35f };
@@ -54,13 +47,12 @@ namespace ASBO.Slice
             {
                 var w = new GameObject("WC" + i); w.transform.SetParent(transform, false); w.transform.localPosition = new Vector3(xs[i], 0.5f, zs[i]);
                 var c = w.AddComponent<WheelCollider>();
-                c.radius = 0.36f; c.suspensionDistance = 0.22f; c.mass = 20f;
+                c.radius = 0.31f; c.suspensionDistance = 0.22f; c.mass = 20f;
                 c.suspensionSpring = new JointSpring { spring = 38000f, damper = 4800f, targetPosition = 0.5f };
                 var f = c.forwardFriction; f.stiffness = 2.2f; c.forwardFriction = f;
                 var sf = c.sidewaysFriction; sf.stiffness = 2.4f; c.sidewaysFriction = sf;
                 wc[i] = c;
-                var v = Gfx.Prim(PrimitiveType.Cylinder, transform, w.transform.localPosition, new Vector3(0.72f, 0.12f, 0.72f), black, "Wheel", false);
-                wv[i] = v.transform;
+                wv[i] = wheelVis[i];
             }
             gameObject.AddComponent<EngineAudio>();
             seatPoint = new GameObject("Seat").transform; seatPoint.SetParent(transform, false); seatPoint.localPosition = new Vector3(-0.4f, 0.9f, 0.1f);
@@ -106,7 +98,7 @@ namespace ASBO.Slice
             for (int i = 0; i < 4; i++)
             {
                 wc[i].GetWorldPose(out var p, out var q);
-                wv[i].position = p; wv[i].rotation = q * Quaternion.Euler(0, 0, 90f);
+                wv[i].position = p - transform.up * 0.0f; wv[i].rotation = q * Quaternion.Euler(0, 0, 90f);
             }
         }
 

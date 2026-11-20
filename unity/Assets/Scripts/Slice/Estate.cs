@@ -83,7 +83,7 @@ namespace ASBO.Slice
                 try { h.Build(root, W(ox, oz), -th * Mathf.Rad2Deg); }
                 catch (System.Exception e) { Debug.LogError("[ASBO] cottage " + pl.id + " failed: " + e); continue; }
                 Houses.Add(h);
-                Garden(h, pl, green, ground, rng);
+                Garden(h, pl, green, ground, walls, rng);
             }
             Debug.Log("[ASBO] Abbots Wend: " + Houses.Count + " cottages built in " + sw.ElapsedMilliseconds + " ms");
 
@@ -103,15 +103,15 @@ namespace ASBO.Slice
         }
 
         /// <summary>Hedged plot with a gap and flagstone path to the front door, flower beds, and back-garden trees.</summary>
-        static void Garden(CotHouse h, CPlot pl, MeshKit green, MeshKit ground, System.Random rng)
+        static void Garden(CotHouse h, CPlot pl, MeshKit green, MeshKit ground, MeshKit hedges, System.Random rng)
         {
             float x0 = pl.r[0] - 45f, x1 = pl.r[1] - 45f, z0 = 214f - pl.r[3], z1 = 214f - pl.r[2];
             Vector3 door = h.root.TransformPoint(h.FrontDoorLocal);
             const float ins = 0.35f, hh = 1.05f, ht = 0.55f;
             // which edge is the front?
             string front = pl.side == "+z" ? "zmin" : pl.side == "-z" ? "zmax" : pl.side == "+x" ? "xmax" : "xmin";
-            void HedgeX(float xa, float xb, float z) { if (xb - xa > 0.2f) green.Box(CotMats.hedge, new Vector3(xa, 0, z - ht / 2), new Vector3(xb, hh, z + ht / 2)); }
-            void HedgeZ(float za, float zb, float x) { if (zb - za > 0.2f) green.Box(CotMats.hedge, new Vector3(x - ht / 2, 0, za), new Vector3(x + ht / 2, hh, zb)); }
+            void HedgeX(float xa, float xb, float z) { if (xb - xa > 0.2f) hedges.Box(CotMats.hedge, new Vector3(xa, 0, z - ht / 2), new Vector3(xb, hh, z + ht / 2)); }
+            void HedgeZ(float za, float zb, float x) { if (zb - za > 0.2f) hedges.Box(CotMats.hedge, new Vector3(x - ht / 2, 0, za), new Vector3(x + ht / 2, hh, zb)); }
             const float gap = 0.8f;
             if (front == "zmin") { HedgeX(x0 + ins, door.x - gap, z0 + ins); HedgeX(door.x + gap, x1 - ins, z0 + ins); } else HedgeX(x0 + ins, x1 - ins, z0 + ins);
             if (front == "zmax") { HedgeX(x0 + ins, door.x - gap, z1 - ins); HedgeX(door.x + gap, x1 - ins, z1 - ins); } else HedgeX(x0 + ins, x1 - ins, z1 - ins);
