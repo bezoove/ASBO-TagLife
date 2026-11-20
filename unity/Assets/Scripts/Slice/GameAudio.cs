@@ -8,6 +8,9 @@ namespace ASBO.Slice
     {
         public static GameAudio I;
         public static readonly List<Transform> Interiors = new List<Transform>();
+        public class Zone { public Transform t; public List<CRect> rects; public float h; }
+        public static readonly List<Zone> Zones = new List<Zone>();
+        public static void RegisterZone(Transform t, List<CRect> rects, float h) { Zones.Add(new Zone { t = t, rects = rects, h = h }); }
         readonly List<AudioSource> pool = new List<AudioSource>();
         AudioSource wind; AudioLowPassFilter lowpass; float nextBird;
         static Dictionary<string, List<AudioClip>> voices;
@@ -15,7 +18,7 @@ namespace ASBO.Slice
 
         public static void Create(Transform parent)
         {
-            Interiors.Clear();
+            Interiors.Clear(); Zones.Clear();
             var g = new GameObject("GameAudio"); g.transform.SetParent(parent, false);
             I = g.AddComponent<GameAudio>();
         }
@@ -108,6 +111,13 @@ namespace ASBO.Slice
 
         public bool InsideAny(Vector3 p)
         {
+            foreach (var z in Zones)
+            {
+                if (z.t == null) continue;
+                Vector3 l = z.t.InverseTransformPoint(p);
+                if (l.y < -0.5f || l.y > z.h) continue;
+                foreach (var r in z.rects) if (r.In(l.x, l.z, -0.3f)) return true;
+            }
             foreach (var t in Interiors)
             {
                 if (t == null) continue;

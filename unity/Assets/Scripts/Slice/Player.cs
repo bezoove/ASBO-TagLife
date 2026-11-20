@@ -9,7 +9,7 @@ namespace ASBO.Slice
         public Car car;
         CharacterController cc; Person person; Camera cam;
         float yaw, pitch = 14f, vy;
-        bool inCar, spectate; int shotN;
+        bool inCar, spectate, firstPerson; int shotN;
         Vector3 camVel;
 
         public void Setup(Car c)
@@ -21,6 +21,15 @@ namespace ASBO.Slice
             cam.nearClipPlane = 0.15f; cam.farClipPlane = 600f;
             Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false;
             yaw = transform.eulerAngles.y;
+        }
+
+        /// <summary>Debug teleport (number keys): stand at pos looking along yawDeg, camera behind.</summary>
+        public void Teleport(Vector3 pos, float yawDeg, float pitchDeg = 14f)
+        {
+            if (inCar) ToggleCar();
+            cc.enabled = false; transform.position = pos; transform.rotation = Quaternion.Euler(0, yawDeg, 0); cc.enabled = true;
+            yaw = yawDeg; pitch = pitchDeg; vy = 0f;
+            if (cam != null) { cam.transform.position = pos + Vector3.up * 1.5f - Quaternion.Euler(pitch, yaw, 0) * Vector3.forward * 5f; camVel = Vector3.zero; }
         }
 
         void SetVisible(bool v) { foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = v; }
@@ -93,7 +102,8 @@ namespace ASBO.Slice
                 cam.transform.rotation = Quaternion.LookRotation(fc - cam.transform.position);
                 return;
             }
-            float dist = inCar ? 8.5f : 5.0f, height = inCar ? 1.8f : 1.5f;
+            bool indoors = !inCar && GameAudio.I != null && GameAudio.I.InsideAny(transform.position + Vector3.up);
+            float dist = inCar ? 8.5f : indoors ? 2.6f : 5.0f, height = inCar ? 1.8f : indoors ? 1.6f : 1.5f;
             if (inCar)
             {
                 float carYaw = car.transform.eulerAngles.y;
@@ -102,9 +112,27 @@ namespace ASBO.Slice
             Quaternion rot = Quaternion.Euler(pitch, yaw, 0);
             Vector3 focus = tgt.position + Vector3.up * height;
             Vector3 want = focus - rot * Vector3.forward * dist;
-            if (Physics.Linecast(focus, want, out var hit, ~0, QueryTriggerInteraction.Ignore) && hit.collider.GetComponentInParent<Car>() == null && hit.collider.GetComponentInParent<Person>() == null)
-                want = hit.point + (focus - want).normalized * 0.25f;
-            cam.transform.position = Vector3.SmoothDamp(cam.transform.position, want, ref camVel, 0.05f);
+            bool blocked = false;
+            var dirC = want - focus; float lenC = dirC.magnitude;
+            foreach (var h in Physics.SphereCastAll(focus, 0.2f, dirC / Mathf.Max(lenC, 0.001f), lenC, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (h.collider.GetComponentInParent<Car>() != null || h.collider.GetComponentInParent<Person>() != null) continue;
+                if (h.distance <= 0f) continue;
+                float dd = Mathf.Max(0.3f, h.distance - 0.05f);
+                if (!blocked || dd < (want - focus).magnitude) { want = focus + dirC / lenC * dd; blocked = true; }
+            }
+            // too tight for third person (small cottage rooms): go first person at eye height
+            bool fp = !inCar && (want - focus).magnitude < 1.1f;
+            if (fp != firstPerson) { firstPerson = fp; if (!inCar) SetVisible(!fp); }
+            if (fp)
+            {
+                cam.transform.position = transform.position + Vector3.up * 1.62f + Quaternion.Euler(0, yaw, 0) * Vector3.forward * 0.12f;
+                cam.transform.rotation = Quaternion.Euler(pitch, yaw, 0); camVel = Vector3.zero;
+                return;
+            }
+            // snap in immediately when something is between the player and the camera, ease back out otherwise
+            if (blocked && (cam.transform.position - focus).magnitude > (want - focus).magnitude) { cam.transform.position = want; camVel = Vector3.zero; }
+            else cam.transform.position = Vector3.SmoothDamp(cam.transform.position, want, ref camVel, 0.08f);
             cam.transform.rotation = Quaternion.LookRotation(focus - cam.transform.position);
         }
     }
