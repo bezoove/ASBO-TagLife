@@ -42,12 +42,12 @@ namespace ASBO.EditorTools
         [System.Serializable] class Speeds { public float walk, run, sprint, turnSecs; }
 
         [MenuItem("ASBO/Test/2 Build Locomotion Controllers")]
-        public static void BuildControllers() { Build("M", "Male"); Build("F", "Female"); AssetDatabase.SaveAssets(); }
+        public static void BuildControllers() { foreach (var ik in new[] { true, false }) { Build("M", "Male", ik); Build("F", "Female", ik); } AssetDatabase.SaveAssets(); }
 
-        static void Build(string s, string folder)
+        static void Build(string s, string folder, bool ik)
         {
             string p = folder + "/", h = "Human" + s + "@";
-            string ctrlPath = Out + "Loco" + s + ".controller";
+            string ctrlPath = Out + "Loco" + s + (ik ? "" : "_Stock") + ".controller";
             Directory.CreateDirectory(Out);
             if (File.Exists(ctrlPath)) AssetDatabase.DeleteAsset(ctrlPath);
             var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
@@ -97,6 +97,9 @@ namespace ASBO.EditorTools
             var talk = St("Talk", Clip($"{p}Social/Conversation/{h}Talk01"), new Vector3(300, 140));
             var ti = move.AddTransition(talk); ti.AddCondition(AnimatorConditionMode.If, 0, "Talk"); ti.hasExitTime = false; ti.duration = 0.3f;
             var to = talk.AddTransition(move); to.AddCondition(AnimatorConditionMode.IfNot, 0, "Talk"); to.hasExitTime = false; to.duration = 0.3f;
+            // Foot IK on every state: feet go back to where the original mocap put them (fixes wide stance after retargeting onto UMA)
+            foreach (var cs in sm.states) cs.state.iKOnFeet = ik;
+            if (!ik) { EditorUtility.SetDirty(ac); return; }
             EditorUtility.SetDirty(ac);
             File.WriteAllText(Out + "LocoSpeeds" + s + ".json", JsonUtility.ToJson(sp));
             AssetDatabase.ImportAsset(Out + "LocoSpeeds" + s + ".json");
@@ -135,6 +138,75 @@ namespace ASBO.EditorTools
                 Debug.Log("[ASBO] fixed markers in " + path + " (removed " + removed + " missing scripts)");
             }
             EditorSceneManager.OpenScene("Assets/Scenes/AbbotsWend_Test.unity", OpenSceneMode.Single);
+        }
+
+        [MenuItem("ASBO/Test/Log Leg Curves")]
+        public static void LogLegCurves()
+        {
+            foreach (var rel in new[] { "Male/Movement/Run/RootMotion/HumanM@Run01_Forward [RM]", "Male/Movement/Walk/RootMotion/HumanM@Walk01_Forward [RM]", "Male/Idles/HumanM@Idle01" })
+            {
+                var c = Clip(rel); if (c == null) continue;
+                var sb = new System.Text.StringBuilder("[ASBO] curves " + c.name + ": ");
+                foreach (var b in AnimationUtility.GetCurveBindings(c))
+                {
+                    if (!(b.propertyName.Contains("Leg") || b.propertyName.Contains("Foot") || b.propertyName.Contains("Spread"))) continue;
+                    var cv = AnimationUtility.GetEditorCurve(c, b); float mn = 9, mx = -9, sum = 0; int n = 40;
+                    for (int i = 0; i < n; i++) { float v = cv.Evaluate(c.length * i / n); mn = Mathf.Min(mn, v); mx = Mathf.Max(mx, v); sum += v; }
+                    sb.Append($"{b.propertyName}=[{mn:F2},{sum / n:F2},{mx:F2}] ");
+                }
+                Debug.Log(sb.ToString());
+            }
+        }
+
+        /// <summary>RCC ships Built-in pipeline materials (pink in URP): convert them to URP Lit / Particles Unlit, keeping maps and colours.</summary>
+        [MenuItem("ASBO/Test/5 Convert RCC Materials to URP")]
+        public static void ConvertRcc()
+        {
+            var lit = Shader.Find("Universal Render Pipeline/Lit"); var pu = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            int n = 0;
+            foreach (var path in AssetDatabase.FindAssets("t:Material", new[] { "Assets/Realistic Car Controller Pro" }).Select(AssetDatabase.GUIDToAssetPath))
+            {
+                var m = AssetDatabase.LoadAssetAtPath<Material>(path); if (m == null || m.shader == null) continue;
+                string sn = m.shader.name;
+                if (path.Contains("/Font/") || path.Contains("/Lensflares/") || path.Contains("Skybox"))
+                {   // not surface materials: put back anything an earlier run changed
+                    var orig = path.Contains("/Font/") ? (path.EndsWith(".asset") ? null : "GUI/Text Shader") : path.Contains("/Lensflares/") ? "FX/Flare" : "Skybox/Procedural";
+                    if (orig != null && sn != orig && Shader.Find(orig) != null) { m.shader = Shader.Find(orig); EditorUtility.SetDirty(m); }
+                    continue;
+                }
+                if (sn.StartsWith("Universal Render Pipeline") || sn.StartsWith("Shader Graphs")) continue;
+                Texture T(string p) => m.HasProperty(p) ? m.GetTexture(p) : null;
+                Color C(string p, Color d) => m.HasProperty(p) ? m.GetColor(p) : d;
+                float F(string p, float d) => m.HasProperty(p) ? m.GetFloat(p) : d;
+                var main = T("_MainTex"); var col = C("_Color", C("_TintColor", Color.white)); var bump = T("_BumpMap");
+                var mg = T("_MetallicGlossMap"); float met = F("_Metallic", 0f), gl = F("_Glossiness", F("_Smoothness", 0.5f));
+                var em = T("_EmissionMap"); var emc = C("_EmissionColor", Color.black); float mode = F("_Mode", 0f);
+                bool particle = sn.ToLowerInvariant().Contains("particle") || sn.ToLowerInvariant().Contains("additive") || sn.ToLowerInvariant().Contains("alpha blended") || path.Contains("/Particle") || path.Contains("Skidmark") || path.Contains("WheelBlur");
+                m.shader = particle ? pu : lit;
+                if (main != null) m.SetTexture("_BaseMap", main);
+                m.SetColor("_BaseColor", col);
+                if (!particle)
+                {
+                    if (bump != null) { m.SetTexture("_BumpMap", bump); m.EnableKeyword("_NORMALMAP"); }
+                    if (mg != null) { m.SetTexture("_MetallicGlossMap", mg); m.EnableKeyword("_METALLICSPECGLOSSMAP"); }
+                    m.SetFloat("_Metallic", met); m.SetFloat("_Smoothness", gl);
+                    if (em != null || emc.maxColorComponent > 0.01f) { if (em != null) m.SetTexture("_EmissionMap", em); m.SetColor("_EmissionColor", emc); m.EnableKeyword("_EMISSION"); m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; }
+                }
+                bool transparent = particle || mode >= 2f;
+                if (transparent)
+                {
+                    m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", sn.ToLowerInvariant().Contains("additive") ? 2f : 0f);
+                    m.SetOverrideTag("RenderType", "Transparent");
+                    m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                    m.SetFloat("_DstBlend", (float)(sn.ToLowerInvariant().Contains("additive") ? UnityEngine.Rendering.BlendMode.One : UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha));
+                    m.SetFloat("_ZWrite", 0f); m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); m.renderQueue = 3000;
+                }
+                else if (mode == 1f) { m.SetFloat("_AlphaClip", 1f); m.SetFloat("_Cutoff", F("_Cutoff", 0.5f)); m.EnableKeyword("_ALPHATEST_ON"); m.renderQueue = 2450; }
+                EditorUtility.SetDirty(m); n++;
+                Debug.Log("[ASBO] RCC material " + path + ": " + sn + " -> " + m.shader.name);
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log("[ASBO] converted " + n + " RCC materials to URP");
         }
 
         [MenuItem("ASBO/Test/3 Build Test Scene")]

@@ -21,6 +21,19 @@ namespace ASBO.Slice
         {
             var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (pc != null) pc.scripted = pattern;
         }
+        /// <summary>Showcase a gait on the spot: side view, then the camera swings round to the front. Frames at a locked 30 fps.</summary>
+        public static void ShowGait(float speed, int frames)
+        {
+            var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (pc == null) return;
+            var go = new GameObject("GaitShow"); go.AddComponent<GaitShow>().Run(pc, speed, frames);
+        }
+        /// <summary>Gait from a fixed camera angle (0 = directly behind, -90 = left side, 180 = front), optional swing.</summary>
+        public static void Stock(int on) { PlayerPrefs.SetInt("asbo_stock", on); PlayerPrefs.Save(); Debug.Log("[ASBO] stock bodies " + on); }
+        public static void ShowGaitFrom(float speed, int frames, float camOffset, float swing, float radius)
+        {
+            var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (pc == null) return;
+            var go = new GameObject("GaitShow"); var g = go.AddComponent<GaitShow>(); g.offset = camOffset; g.swing = swing; if (radius > 0f) g.radius = radius; g.superSize = 2; g.Run(pc, speed, frames);
+        }
         public static void Info()
         {
             Debug.Log($"[ASBO] info: baked={Object.FindFirstObjectByType<BakedWorld>() != null} free={FreePackTest.On} houses={Estate.Houses.Count} people={Person.All.Count} traffic={TrafficCar.All.Count} cottageRefs={Object.FindObjectsByType<CottageRef>(FindObjectsSortMode.None).Length} rcc={Object.FindFirstObjectByType<RccVehicle>() != null}");
@@ -37,6 +50,34 @@ namespace ASBO.Slice
             Vector3 door = h.root.TransformPoint(h.FrontDoorLocal), outw = h.root.TransformDirection(h.FrontOutLocal);
             Vector3 p = inside ? h.root.TransformPoint(h.MainRoomLocal()) : door + outw * 4.5f;
             pc.Teleport(p + Vector3.up * 0.1f, Quaternion.LookRotation(-outw).eulerAngles.y, inside ? 8f : 12f);
+        }
+    }
+
+    public class GaitShow : MonoBehaviour
+    {
+        public float offset = -90f, swing = 125f, radius = 3.2f; public int superSize = 1;
+        public void Run(PlayerCtl pc, float speed, int frames) { StartCoroutine(Go(pc, speed, frames)); }
+        System.Collections.IEnumerator Go(PlayerCtl pc, float speed, int frames)
+        {
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/show"); System.IO.Directory.CreateDirectory(dir);
+            foreach (var f in System.IO.Directory.GetFiles(dir, "*.png")) { try { System.IO.File.Delete(f); } catch { } }
+            World.HideHud = true;
+            pc.showSpeed = speed; pc.showRadius = radius; pc.showPitch = 4f;
+            float baseYaw = pc.transform.eulerAngles.y + offset;
+            pc.showYaw = baseYaw;
+            for (int i = 0; i < 45; i++) yield return null; // settle into the cycle
+            Time.captureFramerate = 30;
+            for (int i = 0; i < frames; i++)
+            {
+                float t = Mathf.Clamp01((i - frames * 0.45f) / (frames * 0.3f));
+                pc.showYaw = baseYaw + Mathf.SmoothStep(0f, 1f, t) * swing;
+                ScreenCapture.CaptureScreenshot(dir + "/f_" + i.ToString("000") + ".png", superSize);
+                yield return null;
+            }
+            Time.captureFramerate = 0;
+            pc.showSpeed = -1f; pc.showYaw = float.NaN; pc.showRadius = -1f; pc.showPitch = float.NaN;
+            World.HideHud = false;
+            Destroy(gameObject);
         }
     }
 

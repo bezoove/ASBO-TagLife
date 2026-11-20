@@ -63,9 +63,16 @@ namespace ASBO.Slice
             go.transform.SetParent(p.transform, false);
             var dca = go.AddComponent<DynamicCharacterAvatar>();
             dca.RacePreset = race.raceName;
-            string k = isMale ? "M" : "F";
+            bool stock = PlayerPrefs.GetInt("asbo_stock", 0) == 1; // before/after comparison: UMA defaults, no foot IK
+            string k = (isMale ? "M" : "F") + (stock ? "_Stock" : "");
             if (!ctrls.TryGetValue(k, out var ctrl)) { ctrl = Resources.Load<RuntimeAnimatorController>("Anim/Loco" + k); ctrls[k] = ctrl; }
             dca.raceAnimationControllers.defaultAnimationController = ctrl;
+            // body: legs a little closer under the pelvis than UMA's default (0.5)
+            if (!stock)
+            {
+                dca.predefinedDNA = new UMAPredefinedDNA();
+                dca.predefinedDNA.AddDNA("legSeparation", 0.36f + (float)rng.NextDouble() * 0.06f);
+            }
             dca.applyRootMotion = false;
             dca.animatorCullingMode = isPlayer ? AnimatorCullingMode.AlwaysAnimate : AnimatorCullingMode.CullUpdateTransforms;
 
