@@ -27,6 +27,9 @@ namespace ASBO.Slice
             Debug.Log("[ASBO] NavMesh built from " + src.Count + " sources in " + sw.ElapsedMilliseconds + " ms, tris=" + tri.indices.Length / 3 + " lane=" + a + " road=" + c + " type=" + AgentType);
         }
 
+        /// <summary>Use the NavMesh baked into the scene (default agent type, tuned for doorways in project settings).</summary>
+        public static void UseBaked() { AgentType = 0; Ready = true; }
+
         public static bool Snap(Vector3 p, out Vector3 q, float r = 1.5f)
         {
             var f = new NavMeshQueryFilter { agentTypeID = AgentType, areaMask = NavMesh.AllAreas };

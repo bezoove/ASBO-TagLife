@@ -38,7 +38,10 @@ namespace ASBO.Slice
             orbit.TrackerSettings.BindingMode = Unity.Cinemachine.TargetTracking.BindingMode.WorldSpace;
             var comp = vg.AddComponent<CinemachineRotationComposer>();
             comp.Composition.ScreenPosition = new Vector2(0f, 0.05f);
-            vg.AddComponent<CinemachineDeoccluder>();
+            var deocc = vg.AddComponent<CinemachineDeoccluder>();
+            deocc.CollideAgainst = ~(1 << 2);
+            deocc.MinimumDistanceFromTarget = 0.25f;
+            var av = deocc.AvoidObstacles; av.Enabled = true; av.CameraRadius = 0.12f; deocc.AvoidObstacles = av;
             Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false;
             yaw = transform.eulerAngles.y;
         }

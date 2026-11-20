@@ -146,9 +146,11 @@ namespace ASBO.Slice
                 r.sharedMaterial = m;
             }
             else r.sharedMaterial = mat;
-            if (!collider) Object.Destroy(g.GetComponent<Collider>());
+            if (!collider) Kill(g.GetComponent<Collider>());
             return g;
         }
+
+        public static void Kill(Object o) { if (o == null) return; if (Application.isPlaying) Object.Destroy(o); else Object.DestroyImmediate(o); }
 
         public static GameObject Prim(PrimitiveType t, Transform parent, Vector3 pos, Vector3 scale, Material mat, string name = "Prim", bool collider = true)
         {
@@ -158,7 +160,7 @@ namespace ASBO.Slice
             g.transform.localPosition = pos;
             g.transform.localScale = scale;
             g.GetComponent<Renderer>().sharedMaterial = mat;
-            if (!collider) Object.Destroy(g.GetComponent<Collider>());
+            if (!collider) Kill(g.GetComponent<Collider>());
             return g;
         }
 

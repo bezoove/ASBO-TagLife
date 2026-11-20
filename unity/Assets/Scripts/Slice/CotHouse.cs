@@ -721,6 +721,10 @@ namespace ASBO.Slice
                 float y0 = rm.y + W.y0, y1 = rm.y + W.y1, a = W.a, b = W.b;
                 float plane = o - sg * 0.14f;
                 bool barn = W.Opt("barn"), frost = W.Opt("frost"), vent = W.Opt("vent");
+                // camera-only blocker so third-person cameras can't slip out through the opening
+                var camBlk = new GameObject("CamBlock"); camBlk.layer = World.CamBlockLayer; camBlk.transform.SetParent(root, false);
+                camBlk.transform.localPosition = L3(W.side, (a + b) / 2f, (y0 + y1) / 2f, plane);
+                var bx = camBlk.AddComponent<BoxCollider>(); bx.size = SideN(W.side).x != 0 ? new Vector3(0.04f, y1 - y0, b - a) : new Vector3(b - a, y1 - y0, 0.04f);
                 var fm = barn ? CotMats.oak : frameM;
                 Vector3 nn = n.x != 0 ? new Vector3(n.x, 0, 0) : new Vector3(0, 0, n.y);
                 // frame
@@ -1069,11 +1073,12 @@ namespace ASBO.Slice
                 var lg = new GameObject("FireLight"); lg.transform.SetParent(root, false); lg.transform.localPosition = p;
                 var l = lg.AddComponent<Light>(); l.type = LightType.Point; l.range = 6f; l.color = new Color(1f, 0.58f, 0.3f); l.intensity = 2.5f; l.shadows = LightShadows.None;
                 lg.AddComponent<FireFlicker>(); lights.Add(l);
-                var src = lg.AddComponent<AudioSource>(); src.clip = FireClip ??= AudioSynth.Fire(); src.loop = true; src.spatialBlend = 1f; src.minDistance = 1.2f; src.maxDistance = 10f; src.volume = 0.5f; src.rolloffMode = AudioRolloffMode.Linear; src.Play();
+                var src = lg.AddComponent<AudioSource>(); if (Application.isPlaying) src.clip = FireClip ??= AudioSynth.Fire(); src.loop = true; src.playOnAwake = true; src.spatialBlend = 1f; src.minDistance = 1.2f; src.maxDistance = 10f; src.volume = 0.5f; src.rolloffMode = AudioRolloffMode.Linear; src.Play();
             }
             // interior zones for audio muffling / footstep surface
             foreach (var w in P.wings) zones.Add(w.r);
             GameAudio.RegisterZone(root, zones, Mathf.Max(Y1 + 2.6f, 5f));
+            var cref = g.AddComponent<CottageRef>(); cref.plotId = pl.id; cref.frontDoorLocal = FrontDoorLocal; cref.frontOutLocal = FrontOutLocal;
             var rz = g.AddComponent<AudioReverbZone>();
             rz.reverbPreset = AudioReverbPreset.Livingroom;
             float diag = 0f; foreach (var w in P.wings) diag = Mathf.Max(diag, Mathf.Max(w.r.x1, w.r.d1));
@@ -1105,7 +1110,7 @@ namespace ASBO.Slice
     /// <summary>Hides furniture/interior detail and fire lights when the camera is far away (mobile budget).</summary>
     public class CotLOD : MonoBehaviour
     {
-        GameObject deco, furn; List<Light> lights; float next;
+        [SerializeField] GameObject deco, furn; [SerializeField] List<Light> lights; float next;
         public void Setup(GameObject d, GameObject f, List<Light> l) { deco = d; furn = f; lights = l; }
         void Update()
         {

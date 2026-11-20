@@ -10,12 +10,14 @@ namespace ASBO.Slice
         public static Transform Root;
         public const float RoadZ = -30f;
         public const float LaneZ = -27.8f; // lane the ambulance uses
+        public const int CamBlockLayer = 31;   // collides with nothing; only the camera deoccluder sees it
         static World inst;
         Car car;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
         {
+            for (int i = 0; i < 32; i++) Physics.IgnoreLayerCollision(CamBlockLayer, i, true);
             if (inst != null || FindFirstObjectByType<World>() != null) return;
             var g = new GameObject("ASBO_Slice"); inst = g.AddComponent<World>();
             DontDestroyOnLoad(g);
@@ -29,23 +31,41 @@ namespace ASBO.Slice
             Root = null;
             Gore.Reset(); Ambulance.ResetAll(); Person.All.Clear();
             Root = new GameObject("SliceWorld").transform;
-            Look.Apply(Root);
-            GameAudio.Create(Root);
-            BuildGround(); BuildRoad(); BuildEstate();
-            Physics.SyncTransforms();
-            Nav.Build(new Bounds(new Vector3(0, 4f, 10f), new Vector3(240f, 12f, 96f)));
+            bool baked = FindFirstObjectByType<BakedWorld>() != null;
+            if (!baked)
+            {
+                // no saved scene: build the static world procedurally (fallback / sandbox)
+                Look.Apply(Root);
+                GameAudio.Create(Root);
+                BuildGround(Root); BuildStatic(Root);
+                Physics.SyncTransforms();
+                Nav.Build(new Bounds(new Vector3(0, 4f, 10f), new Vector3(240f, 12f, 96f)));
+            }
+            else
+            {
+                // the Abbots Wend scene holds the static world (prefabs, terrain, baked lighting, baked NavMesh)
+                Look.ApplyPost(Root);
+                GameAudio.Create(Root);
+                Estate.Attach();
+                Nav.UseBaked();
+            }
             Traffic.Spawn(Root);
             BuildCars(); BuildPeople();
         }
 
-        void BuildGround()
+        public static void BuildStatic(Transform root)
+        {
+            BuildRoad(root); Estate.Build(root);
+        }
+
+        static void BuildGround(Transform Root)
         {
             var grass = Gfx.Mat(Color.white, Gfx.GrassTex(1), 0.02f);
             var g = Gfx.Box(Root, new Vector3(0, -0.5f, 0), new Vector3(500, 1, 500), grass, 0, "Ground");
             g.GetComponent<Renderer>().sharedMaterial.SetTextureScale("_BaseMap", new Vector2(250, 250));
         }
 
-        void BuildRoad()
+        static void BuildRoad(Transform Root)
         {
             var asphalt = Gfx.Mat(new Color(0.13f, 0.13f, 0.14f), null, 0.15f);
             var line = Gfx.Mat(new Color(0.9f, 0.9f, 0.85f), null, 0.1f);
@@ -61,11 +81,6 @@ namespace ASBO.Slice
             for (int i = 0; i < 9; i++) Gfx.Box(Root, new Vector3(18f, 0.05f, RoadZ - 3.6f + i * 0.9f), new Vector3(3f, 0.01f, 0.45f), line, 0, "Zebra", false);
             // approach road to the estate gate
             Gfx.Box(Root, new Vector3(0, 0.065f, -23.75f), new Vector3(6f, 0.13f, 3.6f), asphalt, 0, "Approach");
-        }
-
-        void BuildEstate()
-        {
-            Estate.Build(Root);
         }
 
         void BuildCars()

@@ -7,6 +7,28 @@ namespace ASBO.Slice
     /// <summary>Lighting and grading: warm trilight ambient, sun colour, fog, and a mobile-friendly post stack (tonemap, bloom, grade, vignette).</summary>
     public static class Look
     {
+        /// <summary>Baked scene: lighting/ambient come from the scene; only add the camera post stack.</summary>
+        public static void ApplyPost(Transform root)
+        {
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                var data = cam.GetComponent<UniversalAdditionalCameraData>() ?? cam.gameObject.AddComponent<UniversalAdditionalCameraData>();
+                data.renderPostProcessing = true; data.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
+            }
+        }
+
+        public static VolumeProfile MakeProfile()
+        {
+            var prof = ScriptableObject.CreateInstance<VolumeProfile>();
+            var tm = prof.Add<Tonemapping>(true); tm.mode.Override(TonemappingMode.ACES);
+            var bl = prof.Add<Bloom>(true); bl.intensity.Override(0.35f); bl.threshold.Override(1.05f); bl.scatter.Override(0.6f); bl.highQualityFiltering.Override(false);
+            var ca = prof.Add<ColorAdjustments>(true); ca.postExposure.Override(0.35f); ca.contrast.Override(12f); ca.saturation.Override(8f);
+            var wb = prof.Add<WhiteBalance>(true); wb.temperature.Override(6f);
+            var vg = prof.Add<Vignette>(true); vg.intensity.Override(0.18f); vg.smoothness.Override(0.5f);
+            return prof;
+        }
+
         public static void Apply(Transform root)
         {
             var sun = Object.FindFirstObjectByType<Light>();

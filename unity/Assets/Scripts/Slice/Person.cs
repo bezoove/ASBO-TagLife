@@ -67,6 +67,7 @@ namespace ASBO.Slice
                 {
                     string n = ms[i] != null ? ms[i].name.ToLowerInvariant() : "";
                     if (n.StartsWith("skin")) ms[i] = CharModel.Skin(male, stubble, skinTone);
+                    else if (n.StartsWith("haircards")) ms[i] = CharModel.HairCards(hairColor);
                     else if (n.StartsWith("hair")) ms[i] = CharModel.Hair(hairColor);
                     else if (n.StartsWith("top")) ms[i] = CharModel.Cloth(shirt);
                     else if (n.StartsWith("bottom")) ms[i] = CharModel.Cloth(trousers);

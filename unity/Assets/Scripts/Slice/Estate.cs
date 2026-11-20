@@ -13,6 +13,23 @@ namespace ASBO.Slice
         public static Vector3 W(float bx, float bz, float y = 0f) => new Vector3(bx - 45f, y, 214f - bz);
         public const float LaneZ = 26f; // centre of the internal lane in Unity z
 
+        /// <summary>Baked scene: rebuild the runtime cottage records from the saved CottageRef components.</summary>
+        public static void Attach()
+        {
+            Houses.Clear();
+            if (!CotData.Load()) return;
+            foreach (var r in Object.FindObjectsByType<CottageRef>(FindObjectsSortMode.None))
+            {
+                var pl = CotData.Plots.Find(p => p.id == r.plotId);
+                if (pl == null || !CotData.Plans.TryGetValue(pl.id, out var plan)) continue;
+                var h = new CotHouse(pl, plan) { root = r.transform, FrontDoorLocal = r.frontDoorLocal, FrontOutLocal = r.frontOutLocal };
+                foreach (var w in plan.wings) h.zones.Add(w.r);
+                GameAudio.RegisterZone(r.transform, h.zones, Mathf.Max(plan.Y1 + 2.6f, 5f));
+                Houses.Add(h);
+            }
+            Houses.Sort((a, b) => CotData.Plots.FindIndex(p => p.id == a.pl.id).CompareTo(CotData.Plots.FindIndex(p => p.id == b.pl.id)));
+        }
+
         public static void Build(Transform parent)
         {
             CotMats.Init();

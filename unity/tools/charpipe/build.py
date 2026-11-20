@@ -10,10 +10,10 @@ os.makedirs(OUT, exist_ok=True)
 V0, VT0, FACES = load_obj(MH + '/3dobjs/base.obj')
 RIG = Rig()
 DF, DT = pickle.load(open('/tmp/claude-0/charpipe/out/dec7000.pkl', 'rb'))
-FULL, FULLT = [], []
+FULL, FULLT, FULLQ = [], [], []   # triangles, their uvs, and the source quad (for quad-level region cuts)
 for g, vs, ts in FACES:
     if g == 'body':
-        for k in range(1, len(vs) - 1): FULL.append([vs[0], vs[k], vs[k + 1]]); FULLT.append([ts[0], ts[k], ts[k + 1]])
+        for k in range(1, len(vs) - 1): FULL.append([vs[0], vs[k], vs[k + 1]]); FULLT.append([ts[0], ts[k], ts[k + 1]]); FULLQ.append(tuple(vs))
 FULL = np.array(FULL)
 _vts = {}
 for f, t in zip(FULL, FULLT):
@@ -78,7 +78,7 @@ COMBOS = [
     ('f_young', 'tee', 'long'), ('f_young', 'skirt', 'bob'), ('f_slim', 'shirt', 'long'), ('f_slim', 'dress', 'bob'),
     ('f_curvy', 'skirt', 'bob'), ('f_curvy', 'jacket', 'bun'), ('f_old', 'skirt', 'bun'), ('f_old', 'jacket', 'bun'),
 ]
-MATS = ['skin', 'hair', 'top', 'bottom', 'shoes', 'eyes', 'lashes']
+MATS = ['skin', 'hair', 'top', 'bottom', 'shoes', 'eyes', 'lashes', 'haircards']
 
 def seg_t(p, a, b):
     d = b - a; return float(np.clip((p - a).dot(d) / (d.dot(d) + 1e-12), 0, 1))
@@ -105,11 +105,17 @@ def build(body, outfit, hair, target_tris=7600):
         bs = [bone_of(v) for v in f]
         b = max(set(bs), key=bs.count)
         side = b[-1] if b.endswith('.L') or b.endswith('.R') else None
-        if b in ('Head', 'Neck'):
+        # crew/collar neckline: a smooth curve, dipping at the front, instead of bone-influence boundaries
+        if b in ('Neck', 'Chest', 'Spine') or (side and b.startswith('Shoulder')):
+            nY, nZ = heads['Neck'][1], heads['Neck'][2]
+            front = float(np.clip((c[2] - nZ) / 0.07, 0, 1))
+            lineY = nY - 0.012 - 0.045 * front + (0.025 if O.get('jacket') else 0.0)
+            if c[1] < lineY: return 'top'
+            if b != 'Neck' and c[1] < nY - 0.06: return 'top'
+            return 'hair' if (b == 'Neck' and hair_region(c, b)) else 'skin'
+        if b == 'Head':
             hr = hair_region(c, b)
             return 'hair' if hr else 'skin'
-        if b in ('Chest', 'Spine') or (side and b.startswith('Shoulder')):
-            return 'top'
         if b == 'Hips':
             if c[1] > waistY: return 'top'
             return 'top' if O.get('jacket') and c[1] > heads['Hips'][1] - 0.12 else 'bottom'
@@ -189,7 +195,11 @@ def build(body, outfit, hair, target_tris=7600):
         keyv.append((reg, v))
         return i
 
-    full_reg = [region(list(f)) for f in FULL]
+    qreg = {}
+    full_reg = []
+    for q in FULLQ:
+        if q not in qreg: qreg[q] = region(list(q))
+        full_reg.append(qreg[q])
     lock = BASELOCK.copy()
     vreg = {}
     for f, r in zip(FULL, full_reg):
@@ -254,6 +264,59 @@ def build(body, outfit, hair, target_tris=7600):
             for j in range(seg):
                 tris['hair'] += [[idx[i, j], idx[i + 1, j + 1], idx[i + 1, j]], [idx[i, j], idx[i, j + 1], idx[i + 1, j + 1]]]
 
+    # ---- hair cards: alpha-cut strand strips rooted in the hair shell, flowing from the crown ----
+    if hair and target_tris >= 4000 and tris['hair']:
+        rng = np.random.default_rng(hash((body, outfit, hair)) & 0xffff)
+        HP = np.array(pos, np.float64); HN = np.array(nrm, np.float64)
+        F = np.array(tris['hair']); A = HP[F]
+        area = np.linalg.norm(np.cross(A[:, 1] - A[:, 0], A[:, 2] - A[:, 0]), axis=1) * 0.5
+        ncards = int((700 if target_tris > 12000 else 220) * (0.6 if hair == 'bald' else 1.0))
+        style = {'short': (0.03, 0.05, 0.002, 0.012), 'bald': (0.015, 0.025, 0.001, 0.01), 'bob': (0.08, 0.14, 0.02, 0.018), 'long': (0.15, 0.26, 0.04, 0.02), 'bun': (0.05, 0.09, 0.01, 0.016)}[hair]
+        crown = hc + np.array([0, 0.085, -0.025])
+        down = np.array([0, -1.0, 0])
+        hcw = 0  # weight bone
+        hidx = GAME.index('Head')
+        for ci in range(ncards):
+            fi = rng.choice(len(F), p=area / area.sum())
+            r1, r2 = rng.random(), rng.random()
+            if r1 + r2 > 1: r1, r2 = 1 - r1, 1 - r2
+            w0, w1, w2 = 1 - r1 - r2, r1, r2
+            p = A[fi, 0] * w0 + A[fi, 1] * w1 + A[fi, 2] * w2
+            n = HN[F[fi, 0]] * w0 + HN[F[fi, 1]] * w1 + HN[F[fi, 2]] * w2; n /= np.linalg.norm(n) + 1e-9
+            d = p - crown
+            if p[2] > hc[2] + 0.01:  # fringe: sweep to the sides and back, never down over the face
+                d = np.array([np.sign(p[0] - hc[0] + 1e-6) * 1.0, -0.15, -0.35])
+            d -= n * d.dot(n)
+            if np.linalg.norm(d) < 1e-3: d = down - n * down.dot(n)
+            d /= np.linalg.norm(d) + 1e-9
+            L = rng.uniform(style[0], style[1]); droop = style[2]; wid = style[3] * rng.uniform(0.8, 1.3)
+            root = p - n * 0.003
+            r0 = np.linalg.norm(root - hc)
+            seg = 4; pts = []
+            for k in range(seg + 1):
+                t = k / seg
+                q = root + d * L * t + down * droop * t * t + n * 0.004 * np.sin(np.pi * t)
+                dq = q - hc; rq = np.linalg.norm(dq)
+                hang = q[1] < eyeY - 0.03 and q[2] < hc[2] + 0.02
+                rmax = r0 + 0.006 + (0.03 * t if hang else 0.004 * t)
+                if rq < r0 * 0.995: q = hc + dq / rq * r0 * 0.995
+                elif rq > rmax and not (hang and hair in ('long',)): q = hc + dq / rq * rmax
+                pts.append(q)
+            face_hit = any(q[2] > hc[2] + 0.025 and q[1] < eyeY + 0.045 and abs(q[0] - hc[0]) < 0.068 for q in pts)
+            if face_hit: continue
+            side = np.cross(n, d); side /= np.linalg.norm(side) + 1e-9
+            u0 = rng.random() * 0.75
+            ids = []
+            for k, q in enumerate(pts):
+                t = k / seg; ww = wid * (1 - 0.55 * t)
+                below_neck = q[1] < heads['Neck'][1] + 0.02
+                wt = [(GAME.index('Neck'), 0.5), (hidx, 0.5)] if below_neck else [(hidx, 1.0)]
+                ids.append((vid('card', -5000 - ci * 20 - k * 2, 0, p=q - side * ww / 2, w=wt, u=[u0, t], n=n),
+                            vid('card', -5001 - ci * 20 - k * 2, 0, p=q + side * ww / 2, w=wt, u=[u0 + 0.25, t], n=n)))
+            for k in range(seg):
+                a0, a1 = ids[k]; b0, b1 = ids[k + 1]
+                tris['haircards'] += [[a0, b0, b1], [a0, b1, a1]]
+
     pos = np.array(pos, np.float32)
     # smooth normals per (region, base vertex) over final geometry
     fn_acc = np.zeros_like(pos)
@@ -264,10 +327,10 @@ def build(body, outfit, hair, target_tris=7600):
         for k in range(3): np.add.at(fn_acc, F[:, k], fn)
     group = {}
     for i, (reg, v) in enumerate(keyv):
-        group.setdefault((reg if reg not in ('eye', 'bun', 'lash') else reg + str(i), v), []).append(i)
+        group.setdefault((reg if reg not in ('eye', 'bun', 'lash', 'card') else reg + str(i), v), []).append(i)
     nrm = np.array(nrm, np.float32)
     for k, ids in group.items():
-        if k[0].startswith('eye') or k[0].startswith('bun'): continue
+        if k[0].startswith('eye') or k[0].startswith('bun') or k[0].startswith('card'): continue
         s = fn_acc[ids].sum(axis=0); l = np.linalg.norm(s)
         if l > 0: nrm[ids] = s / l
     nrm = nrm / (np.linalg.norm(nrm, axis=1, keepdims=True) + 1e-9)

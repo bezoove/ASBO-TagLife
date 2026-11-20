@@ -86,6 +86,35 @@ namespace ASBO.Slice
         });
         public static Material Hair(Color c) => Cached("hair" + K(c), () => { hairTex ??= HairTex(); var m = Gfx.Mat(c, hairTex, 0.42f); m.SetTextureScale("_BaseMap", new Vector2(6, 6)); return m; });
         public static Material Cloth(Color c, float smooth = 0.12f) => Cached("cloth" + K(c) + smooth, () => { fabricTex ??= FabricTex(); var m = Gfx.Mat(c, fabricTex, smooth); m.SetTextureScale("_BaseMap", new Vector2(28, 28)); return m; });
+        /// <summary>Alpha-cut, double-sided strand cards for hair.</summary>
+        public static Material HairCards(Color c) => Cached("hcard" + K(c), () =>
+        {
+            cardTex ??= CardTex();
+            var m = Gfx.Mat(c * 1.1f, cardTex, 0.45f);
+            m.SetFloat("_AlphaClip", 1f); m.SetFloat("_Cutoff", 0.4f); m.EnableKeyword("_ALPHATEST_ON");
+            m.SetFloat("_Cull", 0f); m.renderQueue = 2450;
+            return m;
+        });
+        static Texture2D cardTex;
+        static Texture2D CardTex()
+        {
+            const int W = 128, H = 128; var px = new Color32[W * H]; var r = new System.Random(5);
+            for (int i = 0; i < px.Length; i++) px[i] = new Color32(0, 0, 0, 0);
+            for (int s = 0; s < 70; s++)
+            {
+                float x0 = (float)r.NextDouble() * W, wob = (float)r.NextDouble() * 3f, len = H * (0.55f + 0.45f * (float)r.NextDouble());
+                byte v = (byte)(150 + r.Next(105));
+                for (int y = 0; y < len; y++)
+                {
+                    int x = Mathf.RoundToInt(x0 + Mathf.Sin(y * 0.06f + s) * wob) % W; if (x < 0) x += W;
+                    float a = 1f - Mathf.Pow(y / len, 3f);
+                    px[y * W + x] = new Color32(v, v, v, (byte)(a * 255));
+                    int x2 = (x + 1) % W; if (px[y * W + x2].a < a * 120) px[y * W + x2] = new Color32(v, v, v, (byte)(a * 120));
+                }
+            }
+            var t = new Texture2D(W, H, TextureFormat.RGBA32, true); t.SetPixels32(px); t.wrapMode = TextureWrapMode.Repeat; t.Apply(true); return t;
+        }
+
         public static Material Shoes(Color c) => Cached("shoe" + K(c), () => Gfx.Mat(c, null, 0.55f));
         public static Material Eyes() => Cached("eyes", () => { var t = Resources.Load<Texture2D>("Chars/eye_brown"); return Gfx.Mat(Color.white, t, 0.85f); });
         public static Material Lashes() => Cached("lashes", () => { var m = Gfx.Mat(new Color(0.05f, 0.04f, 0.03f), null, 0.2f); m.SetFloat("_Cull", 0f); return m; });
