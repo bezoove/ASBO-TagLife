@@ -4,3 +4,11 @@ obj/
 Logs/
 UserSettings/
 Shots/
+# Asset Store packs: licensed per seat, never commit (re-import from My Assets)
+Assets/UMA/
+Assets/UMA.meta
+Assets/UMAProjectData/
+Assets/Kevin Iglesias/
+Assets/Kevin Iglesias.meta
+Assets/Realistic Car Controller Pro/
+Assets/Realistic Car Controller Pro.meta

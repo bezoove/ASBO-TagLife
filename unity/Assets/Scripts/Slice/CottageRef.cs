@@ -9,6 +9,5 @@ namespace ASBO.Slice
         public Vector3 frontDoorLocal, frontOutLocal = Vector3.back;
     }
 
-    /// <summary>Marker: this scene already contains the static world (built by ASBO > Build Abbots Wend Scene).</summary>
-    public class BakedWorld : MonoBehaviour { }
+
 }

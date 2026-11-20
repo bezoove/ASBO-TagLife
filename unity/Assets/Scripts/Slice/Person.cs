@@ -44,8 +44,40 @@ namespace ASBO.Slice
         void OnDestroy() { All.Remove(this); }
 
         // ---------------------------------------------------------------- build
+        // ---------------------------------------------------------------- UMA body (free-pack test)
+        bool uma; Vector2 wantLocal, curLocal; bool localSet;
+        public bool Ready => anim != null;
+        void BuildUma()
+        {
+            uma = true;
+            int h = Mathf.Abs(GetInstanceID() * 7919 + (int)(transform.position.x * 13f));
+            male = isPlayer || (string.IsNullOrEmpty(model) ? (h % 2) == 1 : model.StartsWith("m_"));
+            if (isParamedic || label == "Paramedic") male = (h % 3) != 0;
+            UmaBody.Create(this, male, h, isPlayer, d =>
+            {
+                anim = d.animator != null ? d.animator : GetComponentInChildren<Animator>();
+                if (anim == null) return;
+                anim.applyRootMotion = false;
+                hips = anim.isHuman ? anim.GetBoneTransform(HumanBodyBones.Hips) : anim.transform;
+                smrs = GetComponentsInChildren<SkinnedMeshRenderer>(true);
+                foreach (var r in smrs) r.updateWhenOffscreen = false;
+            });
+            if (!isPlayer)
+            {
+                trigger = gameObject.AddComponent<CapsuleCollider>();
+                trigger.isTrigger = true; trigger.center = new Vector3(0, 0.9f, 0); trigger.radius = 0.33f; trigger.height = 1.8f;
+                rootRb = gameObject.AddComponent<Rigidbody>(); rootRb.isKinematic = true;
+            }
+        }
+
+        /// <summary>Player: local-space velocity (x = right, y = forward) in m/s, drives the 8-direction blend.</summary>
+        public void SetMove(Vector2 local) { wantLocal = local; localSet = true; moved = true; wantSpeed = local.magnitude; }
+        public void TurnInPlace(bool left) { if (anim != null && anim.enabled && uma) anim.SetTrigger(left ? "TurnL" : "TurnR"); }
+        public void SetGrounded(bool g) { if (anim != null && anim.enabled && uma) anim.SetBool("Grounded", g); }
+
         void Build()
         {
+            if (FreePackTest.On) { BuildUma(); return; }
             ChooseModel();
             var prefab = Resources.Load<GameObject>("Characters/" + model) ?? Resources.Load<GameObject>("Characters/m_young_tee_short");
             body = Instantiate(prefab, transform);
@@ -142,10 +174,16 @@ namespace ASBO.Slice
         void LateUpdate()
         {
             if (state != State.Walking || anim == null) return;
-            if (!moved) wantSpeed = 0f;
+            if (!moved) { wantSpeed = 0f; wantLocal = Vector2.zero; }
             animSpeed = Mathf.MoveTowards(animSpeed, wantSpeed, 9f * Time.deltaTime);
-            anim.SetFloat("Speed", animSpeed);
-            moved = false;
+            if (uma)
+            {
+                Vector2 target = localSet ? wantLocal : new Vector2(0f, wantSpeed);
+                curLocal = Vector2.Lerp(curLocal, target, 1f - Mathf.Exp(-14f * Time.deltaTime));
+                anim.SetFloat("MoveX", curLocal.x); anim.SetFloat("MoveZ", curLocal.y);
+            }
+            else anim.SetFloat("Speed", animSpeed);
+            moved = false; localSet = false;
             // footsteps at the gait's cadence
             if (animSpeed > 0.3f && GameAudio.I != null)
             {

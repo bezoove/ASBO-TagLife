@@ -29,7 +29,7 @@ namespace ASBO.Slice
         {
             foreach (var go in GameObject.FindObjectsByType<Transform>(FindObjectsSortMode.None)) if (go != null && go.parent == null && go.name == "SliceWorld") DestroyImmediate(go.gameObject);
             Root = null;
-            Gore.Reset(); Ambulance.ResetAll(); Person.All.Clear();
+            Gore.Reset(); Ambulance.ResetAll(); Person.All.Clear(); FreePackTest.Reset();
             Root = new GameObject("SliceWorld").transform;
             bool baked = FindFirstObjectByType<BakedWorld>() != null;
             if (!baked)
@@ -85,7 +85,7 @@ namespace ASBO.Slice
 
         void BuildCars()
         {
-            car = Car.Create(Root, new Vector3(-14f, 0.6f, -26.3f), 90f, new Color(0.55f, 0.08f, 0.1f));
+            car = FreePackTest.On ? null : Car.Create(Root, new Vector3(-14f, 0.6f, -26.3f), 90f, new Color(0.55f, 0.08f, 0.1f));
             var pl = MakePerson(new Vector3(-17f, 0, -23.9f), new Color(0.2f, 0.4f, 0.8f), new Color(0.12f, 0.12f, 0.2f), "Player", true);
             pl.transform.rotation = Quaternion.Euler(0, 90f, 0);
             pl.gameObject.AddComponent<PlayerCtl>().Setup(car);
