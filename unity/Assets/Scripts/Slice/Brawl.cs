@@ -288,6 +288,7 @@ namespace ASBO.Slice
             }
             hp = Mathf.Max(0f, hp - dmg);
             OnHit?.Invoke(from, this, dmg);
+            if (p.isPlayer && !blocked && head) { if (M.heavy || dmg > 14f) Social.Mark("eye", 420f); else if (Random.value < 0.3f) Social.Mark(Random.value < 0.4f ? "lip" : Random.value < 0.5f ? "nose" : "brow", 240f); } // people notice
             MoveBy(toMe * M.knock * (blocked ? 0.3f : 1f) * 0.5f);
             if (p.isPlayer || (from != null && from.p != null && from.p.isPlayer)) Session.Feel(blocked ? 0f : M.heavy ? 0.09f : 0.05f, blocked ? 0.015f : 0.03f + Mathf.Clamp01(dmg / 12f) * 0.05f);
 
@@ -464,17 +465,8 @@ namespace ASBO.Slice
             static Fighter pf;
             public static Fighter PlayerFighter { get { if (pf == null) foreach (var f in All) if (f.p != null && f.p.isPlayer) { pf = f; break; } return pf; } }
             static readonly string[] Barks = { "Go on, son!", "Oi oi!", "Leave it, lads!", "Ooooh!", "Someone stop them!", "He felt that!", "Get in there!", "Leave it out!", "Here we go...", "Not on my doorstep!" };
-            static readonly string[] MaleNames = { "Gaz", "Dean", "Lee", "Wayne", "Craig", "Darren", "Shane", "Kev", "Tony", "Mick", "Jason", "Paul", "Ryan", "Dale", "Steve", "Carl" };
-            static readonly string[] FemaleNames = { "Shaz", "Tracy", "Kelly", "Donna", "Leanne", "Jade", "Michelle", "Kerry", "Stacey", "Debbie", "Lisa", "Gemma", "Carol", "Mandy" };
 
-            public static string NameOf(Fighter f)
-            {
-                if (f == null || f.p == null) return "Someone";
-                if (f.p.isPlayer) return "You";
-                if (f.p.isParamedic || f.p.label == "Paramedic") return "The paramedic";
-                uint h = (uint)Mathf.Abs(f.gameObject.GetInstanceID() * 7919);
-                var list = f.p.male ? MaleNames : FemaleNames; return list[h % list.Length];
-            }
+            public static string NameOf(Fighter f) => f == null || f.p == null ? "Someone" : Persona.Name(f.p);
 
             public static void Started(Fighter n, Fighter other)
             {
@@ -557,7 +549,12 @@ namespace ASBO.Slice
             static void End()
             {
                 Active = false; Hot = false; endT = 0f;
-                foreach (var k in koed) if (k != null && k.p != null) { var r = Rel.Of(k.p); r.friend -= 15f; r.grudge = Mathf.Max(r.grudge, 60f); Rel.Set(k.p, r); }
+                foreach (var k in koed) if (k != null && k.p != null)
+                {
+                    var r = Rel.Of(k.p); r.friend -= 15f; r.grudge = Mathf.Max(r.grudge, 60f); r.met = true; Rel.Set(k.p, r);
+                    // and the estate talks about it
+                    Lines.Rumour(PlayerStarted ? "Heard you put " + NameOf(k) + " on the floor. They're telling everyone you jumped them." : "Heard you sorted " + NameOf(k) + " out. About time someone did.");
+                }
                 if (koed.Count > 0)
                 {
                     Rel.Rep = Mathf.Clamp(Rel.Rep + (PlayerStarted ? 1 : 3) * Mathf.Min(3, koed.Count), 0, 100);
@@ -566,18 +563,5 @@ namespace ASBO.Slice
                 koed.Clear();
             }
         }
-    }
-
-    /// <summary>
-    /// How people feel about you: friendship (-100..100), grudge (0..100) and your reputation round here. Placeholder
-    /// until the talking-to-people system fills it in; fights already read and write it.
-    /// </summary>
-    public static class Rel
-    {
-        public struct R { public float friend, grudge; }
-        static readonly Dictionary<Person, R> map = new Dictionary<Person, R>();
-        public static float Rep;
-        public static R Of(Person p) => p != null && map.TryGetValue(p, out var r) ? r : default;
-        public static void Set(Person p, R r) { if (p != null) map[p] = r; }
     }
 }

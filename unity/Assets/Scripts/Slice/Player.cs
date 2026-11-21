@@ -96,6 +96,8 @@ namespace ASBO.Slice
             if (lookAdd != Vector2.zero) { lookT = Time.time; yaw += lookAdd.x; pitch = Mathf.Clamp(pitch - lookAdd.y, -25f, 60f); lookAdd = Vector2.zero; }
             if (gp != null) { var rs = gp.rightStick.ReadValue(); if (rs.sqrMagnitude > 0.02f) { lookT = Time.time; yaw += rs.x * 150f * Time.deltaTime; pitch = Mathf.Clamp(pitch - rs.y * 90f * Time.deltaTime, -25f, 60f); } }
             if ((kb != null && kb.eKey.wasPressedThisFrame) || (gp != null && gp.selectButton.wasPressedThisFrame)) ToggleCar();
+            // talk to whoever's in front of you, or answer whoever came over: T / pad Y / TALK
+            if (!inCar && Social.I != null && ((kb != null && kb.tKey.wasPressedThisFrame) || (gp != null && gp.buttonNorth.wasPressedThisFrame))) Social.I.TalkPressed();
             if (kb != null && kb.vKey.wasPressedThisFrame) spectate = !spectate;
             if (kb != null && kb.f9Key.wasPressedThisFrame)
             {
@@ -113,7 +115,7 @@ namespace ASBO.Slice
             else
             {
                 // fists and feet. Punch: F / left click / pad X (tap: jab, cross, hook, body; hold: overhand). Kick: Q / pad B.
-                // Shove: C / pad RB. Guard (hold): Z / right mouse / pad LB. Fists up: X / pad d-pad up.
+                // Shove: C / pad RB. Fists up: X / pad d-pad up.
                 fighter ??= GetComponent<Fighter>();
                 if (fighter != null && showSpeed < 0f)
                 {
@@ -121,7 +123,7 @@ namespace ASBO.Slice
                     bool punchHeld = (kb != null && kb.fKey.isPressed) || (gp != null && gp.buttonWest.isPressed) || (locked && ms.leftButton.isPressed && !lockedThisFrame);
                     bool kick = (kb != null && kb.qKey.wasPressedThisFrame) || (gp != null && gp.buttonEast.wasPressedThisFrame);
                     bool shove = (kb != null && kb.cKey.wasPressedThisFrame) || (gp != null && gp.rightShoulder.wasPressedThisFrame);
-                    bool guardHeld = (kb != null && kb.zKey.isPressed) || (gp != null && gp.leftShoulder.isPressed) || (locked && ms.rightButton.isPressed);
+                    const bool guardHeld = false; // no guard button: fights are about hitting, not hiding
                     bool fists = (kb != null && kb.xKey.wasPressedThisFrame) || (gp != null && gp.dpad.up.wasPressedThisFrame);
                     bool can = !inCar && cc.isGrounded && turnTimer <= 0f;
                     fighter.PlayerInput(punchHeld, kick, shove, guardHeld, fists, can);

@@ -10,10 +10,13 @@ namespace ASBO.Slice
     public class FootGround : MonoBehaviour
     {
         public float rayUp = 0.55f, rayDown = 0.75f, maxDrop = 0.32f;
+        public float lift = 0.025f; // stand a touch taller than the clips: straighter legs, less of a crouch
+        float rootFix;
         const int Mask = ~((1 << 2) | (1 << 31) | (1 << 28) | (1 << 29)); // not cars or ragdolls
         Animator anim; float pelvis, lOff, rOff, lW, rW;
 
         public void Bind(Animator a) { anim = a; }
+        public float Pelvis => pelvis; public float LeftOff => lOff; public float RightOff => rOff;
 
         bool Probe(AvatarIKGoal goal, float bottom, out Vector3 pos, out Quaternion rot, out float off)
         {
@@ -28,9 +31,23 @@ namespace ASBO.Slice
             return true;
         }
 
+        /// <summary>
+        /// Stand the body on the real ground: the navmesh (or the controller's skin) can sit a few centimetres off the
+        /// visible ground, which made the feet get pushed up and the knees bend. Measured under the person every frame.
+        /// </summary>
+        void Update()
+        {
+            if (anim == null || !anim.enabled || transform.parent == null) return;
+            var root = transform.parent;
+            float want = 0f;
+            if (Physics.Raycast(root.position + Vector3.up * 0.5f, Vector3.down, out var hit, 1.1f, Mask, QueryTriggerInteraction.Ignore)) want = Mathf.Clamp(hit.point.y - root.position.y, -0.25f, 0.25f);
+            rootFix = Mathf.Lerp(rootFix, want, 1f - Mathf.Exp(-12f * Time.deltaTime));
+            var lp = transform.localPosition; lp.y = rootFix; transform.localPosition = lp;
+        }
+
         void OnAnimatorIK(int layer)
         {
-            if (anim == null || !anim.enabled || !anim.isHuman) return;
+            if (anim == null || !anim.enabled || !anim.isHuman || layer != 0) return;
             float k = 1f - Mathf.Exp(-16f * Time.deltaTime);
             bool lok = Probe(AvatarIKGoal.LeftFoot, anim.leftFeetBottomHeight, out var lp, out var lr, out var lo);
             bool rok = Probe(AvatarIKGoal.RightFoot, anim.rightFeetBottomHeight, out var rp, out var rr, out var ro);
@@ -40,7 +57,7 @@ namespace ASBO.Slice
             float want = Mathf.Clamp(Mathf.Min(0f, Mathf.Min(lok ? lo : 0f, rok ? ro : 0f)), -maxDrop, 0f);
             pelvis = Mathf.Lerp(pelvis, want, k);
             Vector3 up = anim.transform.up;
-            anim.bodyPosition += up * pelvis;
+            anim.bodyPosition += up * (pelvis + lift * Mathf.Min(lW, rW));
             // feet go to the surface; the hip drop is already in the IK goals' frame, so add it back
             anim.SetIKPositionWeight(AvatarIKGoal.LeftFoot, lW); anim.SetIKRotationWeight(AvatarIKGoal.LeftFoot, lW * 0.7f);
             anim.SetIKPosition(AvatarIKGoal.LeftFoot, lp + up * lOff); anim.SetIKRotation(AvatarIKGoal.LeftFoot, lr);

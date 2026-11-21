@@ -7,7 +7,7 @@ These come from you and apply to every change. Anyone working on the project rea
 3. **Smooth on phones.** No jitter. Check the frame-time readout on every change; the game should run smoothly on phones up to about five years old.
 4. **UK council estate.** Rough-looking people, nothing glamorous; cars in the old game's UK styles.
 5. **No real brands or logos.** Made-up names for every shop, car, product and place.
-6. **Commercially safe assets only.** Asset Store packs (standard licence), CC0, CMU motion capture and our own work. No non-commercial or restricted sources (no Mixamo, Ready Player Me or CC BY-NC). Asset Store packs are never committed to GitHub.
+6. **Commercially safe assets only.** Asset Store packs (standard licence), Mixamo (royalty-free in games you sell, per Adobe's FAQ; downloaded with your Adobe ID), CC0, CMU motion capture and our own work. No non-commercial or restricted sources (no Ready Player Me, CC BY-NC or ND). Asset Store packs and Mixamo files are never committed to GitHub: they ship inside the game only.
 7. **Touch controls you can customise**, on foot and in vehicles, as in the old game.
 8. **Sound and chat only where you are.** Each place has its own sound; pub chatter never outside the pub.
 9. **You do the accounts.** Account sign-ups, accepting terms, payments and passwords are yours.

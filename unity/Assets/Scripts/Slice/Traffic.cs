@@ -51,6 +51,13 @@ namespace ASBO.Slice
             // something ahead in our lane?
             float gap = 999f;
             foreach (var o in All) if (o != this && Mathf.Abs(o.laneZ - laneZ) < 1f && !o.wrecked) { float d = (o.transform.position.x - o.dir * o.L / 2f - front) * dir; if (d > 0 && d < gap) gap = d; }
+            // an ambulance stopped (or crawling) in the lane: wait behind it
+            foreach (var amb in Ambulance.All)
+            {
+                if (amb == null) continue; Vector3 ap = amb.transform.position;
+                if (Mathf.Abs(ap.z - laneZ) > 1.9f) continue;
+                float d = (ap.x - dir * amb.HalfLength - front) * dir; if (d > -1f && d < gap) gap = Mathf.Max(0f, d);
+            }
             foreach (var p in Person.All)
             {
                 if (p == null) continue;

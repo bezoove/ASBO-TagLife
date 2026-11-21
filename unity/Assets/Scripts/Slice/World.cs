@@ -38,7 +38,7 @@ namespace ASBO.Slice
             {
                 // no saved scene: build the static world procedurally (fallback / sandbox)
                 Look.Apply(Root);
-                GameAudio.Create(Root); Perf.Create(Root);
+                GameAudio.Create(Root); Perf.Create(Root); Social.Create(Root); GameClock.Create(Root); Tag.Create(Root);
                 BuildGround(Root); BuildStatic(Root);
                 Physics.SyncTransforms();
                 Nav.Build(new Bounds(new Vector3(0, 4f, 10f), new Vector3(240f, 12f, 96f)));
@@ -47,7 +47,7 @@ namespace ASBO.Slice
             {
                 // the Abbots Wend scene holds the static world (prefabs, terrain, baked lighting, baked NavMesh)
                 Look.ApplyPost(Root);
-                GameAudio.Create(Root); Perf.Create(Root);
+                GameAudio.Create(Root); Perf.Create(Root); Social.Create(Root); GameClock.Create(Root); Tag.Create(Root);
                 Estate.Attach();
                 Nav.UseBaked();
             }
@@ -143,9 +143,10 @@ namespace ASBO.Slice
             if (kb.rKey.wasPressedThisFrame) Rebuild();
             if (kb.gKey.wasPressedThisFrame) Gore.Level = (Gore.Level + 1) % 3;
             // test keys: 1..0 teleport to each cottage's front door; Shift+number puts you inside the hall; T = zebra crossing
-            var pc = FindFirstObjectByType<PlayerCtl>();
-            if (pc != null && kb.tKey.wasPressedThisFrame) { pc.Teleport(new Vector3(12f, 0.2f, RoadZ + 6.2f), 110f, 10f); lastHouse = "Zebra crossing"; }
-            for (int i = 0; i < 10 && pc != null; i++)
+            if (pcCache == null) pcCache = FindFirstObjectByType<PlayerCtl>(); // once, not every frame
+            var pc = pcCache;
+            if (pc != null && kb.f8Key.wasPressedThisFrame) { pc.Teleport(new Vector3(12f, 0.2f, RoadZ + 6.2f), 110f, 10f); lastHouse = "Zebra crossing"; }
+            for (int i = 0; i < 10 && pc != null && !DialogueUI.Open; i++)
             {
                 var key = i == 9 ? kb.digit0Key : (UnityEngine.InputSystem.Controls.KeyControl)kb[(Key)((int)Key.Digit1 + i)];
                 if (!key.wasPressedThisFrame || i >= Estate.Houses.Count) continue;
@@ -165,6 +166,7 @@ namespace ASBO.Slice
         }
 
         public static bool HideHud;
+        PlayerCtl pcCache; static GUIStyle cashStyle;
 
         // ---- messages across the top (what people shout, what just happened) and fades to black
         struct ToastLine { public string text; public int kind; public float until; }
@@ -218,6 +220,15 @@ namespace ASBO.Slice
                 var old = GUI.color; GUI.color = new Color(0f, 0f, 0f, 0.55f); GUI.DrawTexture(new Rect(x - 2, y - 2, w + 4, 16), Texture2D.whiteTexture);
                 GUI.color = Color.Lerp(new Color(0.85f, 0.1f, 0.08f), new Color(0.2f, 0.75f, 0.25f), pf.Health01); GUI.DrawTexture(new Rect(x, y, w * pf.Health01, 12), Texture2D.whiteTexture); GUI.color = old;
             }
+            // money, top left
+            cashStyle ??= new GUIStyle(GUI.skin.label) { fontSize = Mathf.Max(18, Screen.height / 30), fontStyle = FontStyle.Bold };
+            { var cr = new Rect(14, Screen.height * 0.075f, 300, cashStyle.fontSize * 1.5f); cashStyle.normal.textColor = new Color(0, 0, 0, 0.7f); GUI.Label(new Rect(cr.x + 2, cr.y + 2, cr.width, cr.height), Econ.Fmt(Econ.Cash), cashStyle); cashStyle.normal.textColor = new Color(1f, 0.93f, 0.7f); GUI.Label(cr, Econ.Fmt(Econ.Cash), cashStyle);
+              var tr = new Rect(16, cr.yMax - 4, 300, cashStyle.fontSize * 1.2f); int fs = cashStyle.fontSize; cashStyle.fontSize = Mathf.RoundToInt(fs * 0.62f);
+              cashStyle.normal.textColor = new Color(0, 0, 0, 0.7f); GUI.Label(new Rect(tr.x + 2, tr.y + 2, tr.width, tr.height), GameClock.Text, cashStyle); cashStyle.normal.textColor = new Color(0.85f, 0.9f, 1f); GUI.Label(tr, GameClock.Text, cashStyle); cashStyle.fontSize = fs; }
+            // the tag: how close to the edge, or the violation
+            { string tl = Tag.HudLine; if (tl != null) { toastStyle ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Mathf.Max(16, Screen.height / 38), fontStyle = FontStyle.Bold };
+                var r2 = new Rect(0, 44, Screen.width, toastStyle.fontSize * 1.5f); var keep = toastStyle.normal.textColor; toastStyle.normal.textColor = new Color(0, 0, 0, 0.75f); GUI.Label(new Rect(2, r2.y + 2, r2.width, r2.height), tl, toastStyle);
+                toastStyle.normal.textColor = Tag.Outside ? new Color(1f, 0.35f, 0.3f) : new Color(1f, 0.75f, 0.35f); GUI.Label(r2, tl, toastStyle); toastStyle.normal.textColor = keep; } }
             // stamina, while you're fighting or getting your breath back
             if (pf != null && (Fighter.Session.Hot || pf.Stam01 < 0.995f))
             {
@@ -231,9 +242,9 @@ namespace ASBO.Slice
                 hudT = Time.unscaledTime + 0.5f;
                 string lvl = Gore.Level == 2 ? "Full" : Gore.Level == 1 ? "Reduced" : "Off";
                 hud1 = TouchControls.Wanted
-                    ? "ASBO — Abbots Wend (Unity test)   Left thumb: move • Drag: look • PUNCH (hold: big one) / KICK / SHOVE / GUARD / FISTS • CAR by a car to drive"
-                    : "ASBO — Abbots Wend slice   WASD move/drive • Shift run • F punch (hold: overhand) • Q kick • C shove • Z/right mouse guard • X fists up • E car • Space jump/brake • R reset • G gore: " + lvl;
-                hud3 = "1-0: visit cottage (Shift = inside)   " + lastHouse + "   " + Resident.Stats() + "  traffic " + TrafficCar.All.Count;
+                    ? "ASBO — Abbots Wend (Unity test)   Left thumb: move • Drag: look • PUNCH (hold: big one) / KICK / SHOVE / FISTS • CAR by a car to drive"
+                    : "ASBO — Abbots Wend slice   WASD move/drive • Shift run • F punch (hold: overhand) • Q kick • C shove • X fists up • E car • Space jump/brake • R reset • G gore: " + lvl;
+                hud3 = "1-0: visit cottage (Shift = inside) • F8 zebra • T talk   " + lastHouse + "   " + Resident.Stats() + "  traffic " + TrafficCar.All.Count;
             }
             GUI.Label(new Rect(12, 8, 760, 40), hud1);
             if (!string.IsNullOrEmpty(Ambulance.Status)) GUI.Label(new Rect(12, 28, 700, 30), Ambulance.Status);

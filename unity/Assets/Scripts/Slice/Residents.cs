@@ -49,6 +49,9 @@ namespace ASBO.Slice
         // trouble: who we're fighting (or running from), until when, and how often we swing
         Fighter fleeFrom, fighter; float angryUntil, baseSpeed;
         Transform watching; float watchUntil, cheerUntil;
+        Transform talkTo; bool coming; float comeRepath;
+        /// <summary>Not busy with anything that matters (fighting, running off, watching a scrap, talking to you).</summary>
+        public bool Free => p != null && p.state == Person.State.Walking && enabled && watching == null && fleeFrom == null && talkTo == null && doing != "fight" && doing != "hold" && (fighter == null || !fighter.Fighting);
         static readonly List<Resident> all = new List<Resident>();
         public string Doing => doing;
         public static int Count;
@@ -134,6 +137,7 @@ namespace ASBO.Slice
             float v = ag.velocity.magnitude;
             if (v > 0.08f) p.Animate(v);
             if (watching != null) { Watching(); return; }
+            if (talkTo != null) { TalkStep(); return; }
             if (fleeFrom != null)
             {
                 if (Time.time > angryUntil || (!ag.pathPending && ag.remainingDistance < 0.5f)) { fleeFrom = null; ag.speed = baseSpeed; doing = ""; wait = Random.Range(2f, 5f); }
@@ -171,7 +175,7 @@ namespace ASBO.Slice
         {
             if (ag == null) return;
             if (baseSpeed <= 0f) baseSpeed = ag.speed;
-            watching = null; fleeFrom = null; doing = "fight"; p.SetWave(false);
+            watching = null; fleeFrom = null; talkTo = null; doing = "fight"; p.SetWave(false); p.SetTalk(false);
             if (ag.enabled && ag.isOnNavMesh) { ag.isStopped = true; ag.ResetPath(); }
         }
 
@@ -199,7 +203,7 @@ namespace ASBO.Slice
         /// <summary>Somebody's scrapping nearby: stop, turn and watch for a while. The drunk and lairy cheer them on; others wince.</summary>
         public void Watch(Transform t, float secs, bool cheer)
         {
-            if (ag == null || !ag.enabled || !ag.isOnNavMesh || p.state != Person.State.Walking || doing == "flee") return;
+            if (ag == null || !ag.enabled || !ag.isOnNavMesh || p.state != Person.State.Walking || doing == "flee" || talkTo != null) return;
             if (baseSpeed <= 0f) baseSpeed = ag.speed;
             watching = t; watchUntil = Time.time + secs; doing = "watch";
             ag.isStopped = true; ag.ResetPath();
@@ -225,6 +229,40 @@ namespace ASBO.Slice
             if (d.sqrMagnitude > 0.01f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(d), 240f * Time.deltaTime);
         }
 
+        /// <summary>Walk over to the player to talk to them (they answer with TALK).</summary>
+        public void ComeOver(Transform player)
+        {
+            if (ag == null || !ag.enabled || !ag.isOnNavMesh) return;
+            if (baseSpeed <= 0f) baseSpeed = ag.speed;
+            talkTo = player; coming = true; doing = "approach"; comeRepath = 0f;
+            ag.isStopped = false; ag.speed = p.drunk ? baseSpeed : Mathf.Max(baseSpeed, 1.25f);
+        }
+
+        /// <summary>Stand and talk to the player (on), or carry on with the day (off).</summary>
+        public void TalkWith(Transform player, bool on)
+        {
+            if (ag == null) return;
+            if (baseSpeed <= 0f) baseSpeed = ag.speed;
+            if (on) { talkTo = player; coming = false; doing = "talkp"; if (ag.enabled && ag.isOnNavMesh) { ag.isStopped = true; ag.ResetPath(); } }
+            else if (talkTo != null) { talkTo = null; coming = false; doing = ""; p.SetTalk(false); if (ag.enabled && ag.isOnNavMesh) { ag.isStopped = false; ag.speed = baseSpeed; } wait = Random.Range(1f, 3f); }
+        }
+
+        void TalkStep()
+        {
+            Vector3 d = (talkTo.position - transform.position).WithY(0); float dist = d.magnitude;
+            if (coming)
+            {
+                if (dist > 1.5f)
+                {
+                    ag.isStopped = false;
+                    if (Time.time > comeRepath) { comeRepath = Time.time + 0.5f; if (Nav.Snap(talkTo.position - d.normalized * 1.2f, out var dest, 2f)) ag.SetDestination(dest); }
+                    return;
+                }
+                ag.isStopped = true; ag.ResetPath(); // close enough: wait to be answered
+            }
+            if (d.sqrMagnitude > 0.01f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(d), 300f * Time.deltaTime);
+        }
+
         /// <summary>Stand still at a spot for a while (scripted tests, cut-scenes), then carry on with the day.</summary>
         public void HoldAt(Vector3 pos, float yaw, float secs)
         {
@@ -238,10 +276,35 @@ namespace ASBO.Slice
             p.SetTalk(true); yield return new WaitForSeconds(t); if (p != null) p.SetTalk(false);
         }
 
+        // ---- bedtime: most turn in late evening, night owls (and drunks) are out till the small hours; up again in the morning
+        float BedHour { get { uint h = (uint)Mathf.Abs(GetInstanceID() * 2654435761); bool owl = p.drunk || h % 4 == 0; return owl ? 25f + (h % 60) / 60f : 22f + (h % 90) / 60f; } }
+        float WakeHour { get { uint h = (uint)Mathf.Abs(GetInstanceID() * 40503); return 6.5f + (h % 150) / 60f; } }
+        bool Bedtime { get { float hr = GameClock.Hour; float bed = BedHour, wake = WakeHour; return bed >= 24f ? (hr >= bed - 24f && hr < wake) : (hr >= bed || hr < wake); } }
+        static readonly List<Resident> asleep = new List<Resident>();
+        /// <summary>Indoors for the night: off the street until their wake-up time.</summary>
+        void TurnIn()
+        {
+            doing = "bed"; asleep.Add(this); if (ag.enabled) ag.ResetPath();
+            gameObject.SetActive(false);
+        }
+        /// <summary>Called by the clock: anyone whose morning it is comes back out of their front door.</summary>
+        public static void WakeAny()
+        {
+            for (int i = asleep.Count - 1; i >= 0; i--)
+            {
+                var r = asleep[i]; if (r == null) { asleep.RemoveAt(i); continue; }
+                if (r.Bedtime) continue;
+                asleep.RemoveAt(i); r.gameObject.SetActive(true); r.doing = ""; r.wait = Random.Range(1f, 6f);
+                if (r.HomePoint(out var door) && r.ag != null && r.ag.enabled) r.ag.Warp(door);
+            }
+        }
+
         void Next()
         {
             float r = Random.value;
             Vector3 dest; bool ok;
+            if (doing == "bed" || (doing == "home" && Bedtime)) { TurnIn(); return; }
+            if (Bedtime) { doing = "home"; ok = HomePoint(out dest); wait = 0.5f; if (ok) ag.SetDestination(dest); else TurnIn(); return; } // time to go in
             if (r < 0.42f) { doing = "home"; ok = HomePoint(out dest); wait = Random.Range(6f, 18f); }
             else if (r < 0.62f) { doing = "garden"; ok = GardenPoint(home, out dest); wait = Random.Range(8f, 20f); }
             else if (r < 0.8f) { doing = "lane"; ok = Nav.Snap(new Vector3(Random.Range(-38f, 38f), 0, Estate.LaneZ + Random.Range(-1.2f, 1.2f)), out dest); wait = Random.Range(3f, 9f); }

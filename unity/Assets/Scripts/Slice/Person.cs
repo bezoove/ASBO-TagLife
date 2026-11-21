@@ -534,6 +534,37 @@ namespace ASBO.Slice
         public Vector3 BodyPos => hips != null ? hips.position : transform.position;
 
         /// <summary>Removes the body (picked up by ambulance crew).</summary>
+        /// <summary>
+        /// Lifted onto a stretcher: out of the ragdoll, laid flat on the back with arms by the sides, head towards the
+        /// stretcher's head end (its -z), hips at hipsLocal on the bed. Moves with the stretcher from then on.
+        /// </summary>
+        public void LieOn(Transform bed, Vector3 hipsLocal)
+        {
+            StopAllCoroutines();
+            foreach (var b in bones) if (b.t != null && b.severed) b.t.gameObject.SetActive(false);
+            TearDownRagdoll();
+            state = State.Carried;
+            var cc = GetComponent<CharacterController>(); if (cc != null) cc.enabled = false;
+            var agent = GetComponent<UnityEngine.AI.NavMeshAgent>(); if (agent != null) agent.enabled = false;
+            if (trigger != null) trigger.enabled = false;
+            if (anim != null && anim.isHuman && anim.avatar != null)
+            {
+                anim.enabled = false;
+                var hph = new HumanPoseHandler(anim.avatar, anim.transform);
+                var pose = new HumanPose(); hph.GetHumanPose(ref pose);
+                for (int i = 0; i < pose.muscles.Length; i++)
+                {
+                    string mn = HumanTrait.MuscleName[i];
+                    pose.muscles[i] = mn.Contains("Arm Down-Up") ? -0.85f : mn.Contains("Forearm Stretch") ? 0.9f : mn.Contains("Arm Front-Back") ? 0.1f : mn.Contains("Finger") || mn.Contains("Thumb") ? 0.25f : 0f;
+                }
+                pose.bodyPosition = new Vector3(0f, pose.bodyPosition.y, 0f); pose.bodyRotation = Quaternion.identity;
+                hph.SetHumanPose(ref pose); hph.Dispose();
+            }
+            transform.SetParent(bed, true);
+            transform.localRotation = Quaternion.Euler(-90f, 0f, 0f); // on the back: face up, head to -z
+            if (hips != null) transform.position += bed.TransformPoint(hipsLocal) - hips.position;
+        }
+
         public void TakeAway()
         {
             state = State.Carried;

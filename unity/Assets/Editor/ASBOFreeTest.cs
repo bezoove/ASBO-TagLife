@@ -136,7 +136,7 @@ namespace ASBO.EditorTools
             if (ac.layers.Any(l => l.name == "Fists")) return;
             var lsm = new AnimatorStateMachine { name = "Fists", hideFlags = HideFlags.HideInHierarchy };
             AssetDatabase.AddObjectToAsset(lsm, ac);
-            var sSt = lsm.AddState("Stance", new Vector3(300, 0)); sSt.motion = stance;
+            var sSt = lsm.AddState("Stance", new Vector3(300, 0)); sSt.motion = guard; // fists right up by the face (the high guard), not the low ready stance
             var gSt = lsm.AddState("Guard", new Vector3(300, 80)); gSt.motion = guard;
             lsm.defaultState = sSt;
             var a = sSt.AddTransition(gSt); a.AddCondition(AnimatorConditionMode.If, 0, "Guard"); a.hasExitTime = false; a.duration = 0.08f;

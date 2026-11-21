@@ -159,16 +159,16 @@ namespace ASBO.Slice
             Button("car", "CAR", "<Gamepad>/select", true, false, new Vector2(-150, 430), default, 140, blue);
             Button("punch", "PUNCH", "<Gamepad>/buttonWest", true, false, new Vector2(-400, 330), default, 160, new Color(0.45f, 0.12f, 0.08f, 0.5f));
             Button("kick", "KICK", "<Gamepad>/buttonEast", true, false, new Vector2(-600, 170), default, 150, new Color(0.45f, 0.25f, 0.06f, 0.5f));
-            Button("guard", "GUARD", "<Gamepad>/leftShoulder", true, false, new Vector2(-610, 380), default, 140, new Color(0.12f, 0.2f, 0.4f, 0.5f));
             Button("shove", "SHOVE", "<Gamepad>/rightShoulder", true, false, new Vector2(-790, 250), default, 125, new Color(0.4f, 0.18f, 0.1f, 0.5f));
             Button("fists", "FISTS", "<Gamepad>/dpad/up", true, false, new Vector2(-560, 560), default, 115, dark);
+            Button("talk", "TALK", "<Gamepad>/buttonNorth", true, false, new Vector2(-330, 560), default, 130, new Color(0.15f, 0.35f, 0.25f, 0.55f));
             // driving, laid out like the old game: pedals on the left, steering buttons on the right
             Hold("vfwd", "FORWARD", true, new Vector2(192, 475), 250, new Color(0.08f, 0.35f, 0.12f, 0.5f), v => TouchCar.fwd = v);
-            Hold("vrev", "REVERSE", true, new Vector2(173, 151), 175, dark, v => TouchCar.rev = v);
-            Hold("vbrake", "BRAKE", true, new Vector2(470, 216), 210, new Color(0.45f, 0.08f, 0.06f, 0.5f), v => TouchCar.brake = v);
+            Hold("vbrake", "BRAKE\nREVERSE", true, new Vector2(440, 200), 220, new Color(0.45f, 0.08f, 0.06f, 0.5f), v => TouchCar.brake = v); // brakes, then reverses once stopped
+            Hold("vhand", "HAND\nBRAKE", false, new Vector2(-360, 430), 175, new Color(0.35f, 0.22f, 0.05f, 0.55f), v => TouchCar.hand = v); // skid
             Hold("vleft", "LEFT", false, new Vector2(-595, 216), 265, dark, v => TouchCar.left = v);
             Hold("vright", "RIGHT", false, new Vector2(-221, 216), 265, dark, v => TouchCar.right = v);
-            Hold("vhorn", "HORN", false, new Vector2(-499, 486), 135, dark, v => { if (v) TouchCar.horn = true; });
+            Hold("vhorn", "HORN", false, new Vector2(-560, 500), 135, dark, v => { if (v) TouchCar.horn = true; });
             Button("out", "OUT", "<Gamepad>/select", false, true, default, new Vector2(-192, 540), 170, blue);
 
             // edit button and the editor's bars
@@ -331,11 +331,20 @@ namespace ASBO.Slice
         }
         void Tapped(Ctl c) { Select(c); }
 
+        Ctl talkCtl; bool talkLooked;
         void Update()
         {
             if (pc == null || editing) return;
             bool inCar = pc.InCar;
             if (inCar != carSet) { carSet = inCar; Apply(); }
+            // TALK only shows when there's someone to talk to (or a conversation to end)
+            if (!talkLooked) { talkLooked = true; foreach (var c in ctls) if (c.id == "talk") talkCtl = c; }
+            if (talkCtl != null && talkCtl.rt.gameObject.activeSelf)
+            {
+                bool can = !inCar && Social.I != null && (Social.I.Near != null || DialogueUI.Open);
+                talkCtl.group.alpha = Mathf.MoveTowards(talkCtl.group.alpha, can ? 1f : 0f, Time.deltaTime * 6f);
+                talkCtl.group.blocksRaycasts = can; talkCtl.group.interactable = can;
+            }
         }
 
         class EditHandle : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler

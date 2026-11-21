@@ -103,9 +103,33 @@ namespace ASBO.Slice
         public static void FightFilm(int clip, float step, float secs) { var r = new GameObject("FightFilm").AddComponent<FightFilmRun>(); r.clip = clip; r.step = step; r.secs = secs; }
         public static void FightFilmFrom(int clip, float step, float secs, float from) { var r = new GameObject("FightFilm").AddComponent<FightFilmRun>(); r.clip = clip; r.step = step; r.secs = secs; r.from = from; }
         public static void BrawlTest() { new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); }
+        public static void TalkTest() { new GameObject("TalkTest").AddComponent<TalkTestRun>(); }
+        public static void SetHour(float h) { GameClock.Set(h); Debug.Log("[ASBO] clock " + GameClock.Text); }
+        public static void ClockSpeed(float s) { GameClock.Speed = s; }
+        public static void CountOut() { int n = 0; var sb = new System.Text.StringBuilder(); foreach (var r in Object.FindObjectsByType<Resident>(FindObjectsSortMode.None)) { n++; sb.Append(r.Doing + " "); } Debug.Log($"[ASBO] out {GameClock.Text}: {n} ({sb})"); }
+        public static void NightTest() { new GameObject("NightTest").AddComponent<NightTestRun>(); }
+        /// <summary>Why legs look bent: root height over the ground, hip drop from the foot IK, knee bend, for the player and a few walkers.</summary>
+        public static void Legs()
+        {
+            var sb = new System.Text.StringBuilder("[ASBO] legs:");
+            int n = 0;
+            foreach (var p in Person.All)
+            {
+                if (p == null || p.anim == null || !p.anim.isHuman || !p.gameObject.activeInHierarchy) continue;
+                if (!p.isPlayer && n >= 4) continue; if (!p.isPlayer) n++;
+                var a = p.anim; var fg = a.GetComponent<FootGround>();
+                float ground = Physics.Raycast(p.transform.position + Vector3.up * 0.6f, Vector3.down, out var gh, 2f, ~((1 << 2) | (1 << 31) | (1 << 28) | (1 << 29)), QueryTriggerInteraction.Ignore) ? gh.point.y : float.NaN;
+                float Knee(HumanBodyBones up, HumanBodyBones lo, HumanBodyBones ft) { var u = a.GetBoneTransform(up); var l = a.GetBoneTransform(lo); var f = a.GetBoneTransform(ft); return u && l && f ? Vector3.Angle(l.position - u.position, f.position - l.position) : -1f; }
+                var hips = a.GetBoneTransform(HumanBodyBones.Hips); var lf = a.GetBoneTransform(HumanBodyBones.LeftFoot);
+                var ag = p.GetComponent<UnityEngine.AI.NavMeshAgent>();
+                sb.Append($" | {(p.isPlayer ? "PLAYER" : p.name)} rootOverGround={(p.transform.position.y - ground):F3} animRootOver={(a.transform.position.y - ground):F3} hipsOver={(hips.position.y - ground):F2} footOver={(lf.position.y - ground):F2} kneeL={Knee(HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg, HumanBodyBones.LeftFoot):F0} kneeR={Knee(HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg, HumanBodyBones.RightFoot):F0} pelvisIK={(fg != null ? fg.Pelvis : 0f):F3} lOff={(fg != null ? fg.LeftOff : 0f):F3} scale={a.humanScale:F2} speed={(ag != null ? ag.velocity.magnitude : 0f):F2}");
+            }
+            Debug.Log(sb.ToString());
+        }
         public static void KnockTest() { new GameObject("KnockTest").AddComponent<KnockTestRun>(); }
         public static void CarTest() { new GameObject("CarTest").AddComponent<CarTestRun>(); }
         public static void HardHit() { var v = Object.FindObjectsByType<Resident>(FindObjectsSortMode.None).Select(r => r.GetComponent<Person>()).FirstOrDefault(p => p != null && p.Ready && p.state == Person.State.Walking); var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (v != null && pc != null) { v.GetComponent<Resident>().HoldAt(pc.transform.position + pc.transform.forward * 3f, 0f, 30f); v.Hit(pc.transform.forward * 9f, v.transform.position + Vector3.up, 9f); } }
+        public static void AmbTest() { new GameObject("AmbTest").AddComponent<AmbTestRun>(); }
         public static void TouchDrive() { new GameObject("TouchDriveTest").AddComponent<TouchDriveTest>().Run(); }
         public static void EditSwitch() { if (TouchControls.I != null) TouchControls.I.SwitchEditSet(); }
         public static void EditPreset() { if (TouchControls.I != null) TouchControls.I.NextPreset(); }
@@ -486,15 +510,17 @@ namespace ASBO.Slice
             string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/cartest"); System.IO.Directory.CreateDirectory(dir);
             foreach (var f in System.IO.Directory.GetFiles(dir, "*.png")) { try { System.IO.File.Delete(f); } catch { } }
             float t0 = Time.time; int n = 0; float nextShot = 0f, nextLog = 0f; Vector3 p0 = car.transform.position;
-            while (Time.time - t0 < 11f)
+            while (Time.time - t0 < 15f)
             {
                 float t = Time.time - t0;
                 TouchCar.Clear();
-                if (t < 4f) TouchCar.fwd = true;
-                if (t > 2.5f && t < 4f) TouchCar.right = true;
-                if (t >= 4f && t < 5.5f) TouchCar.brake = true;
-                if (t >= 6f && t < 9f) { TouchCar.rev = true; if (t > 7f) TouchCar.left = true; }
-                if (t >= nextLog) { nextLog = t + 0.5f; Debug.Log($"[ASBO] cartest t={t:F1} speed={car.SignedSpeed * 3.6f:F0} km/h yaw={car.transform.eulerAngles.y:F0} moved={(car.transform.position - p0).magnitude:F1}m"); }
+                if (t < 4f) TouchCar.fwd = true;                       // floor it
+                if (t > 2.5f && t < 4f) TouchCar.right = true;          // and turn
+                if (t >= 4f && t < 5.5f) TouchCar.brake = true;         // brake to a stop
+                if (t >= 6f && t < 8.5f) { TouchCar.brake = true; if (t > 7f) TouchCar.left = true; } // brake again: reverses
+                if (t >= 9f && t < 11.5f) TouchCar.fwd = true;         // off again
+                if (t >= 11.5f && t < 13f) { TouchCar.hand = true; TouchCar.right = true; } // handbrake turn
+                if (t >= nextLog) { nextLog = t + 0.5f; Debug.Log($"[ASBO] cartest t={t:F1} speed={car.SignedSpeed * 3.6f:F0} km/h yaw={car.transform.eulerAngles.y:F0} slip={car.Slip:F0} moved={(car.transform.position - p0).magnitude:F1}m"); }
                 if (t >= nextShot) { nextShot = t + 0.25f; ScreenCapture.CaptureScreenshot(dir + "/c_" + (n++).ToString("000") + ".png"); }
                 yield return null;
             }
@@ -553,6 +579,115 @@ namespace ASBO.Slice
             foreach (var t in TrafficCar.All.ToArray()) if (t != null) t.gameObject.SetActive(true);
             World.HideHud = false;
             Debug.Log("[ASBO] people show done");
+            Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Talk to the nearest resident (natter twice, flirt), then give another a grudge and let them come over for a word.</summary>
+    public class TalkTestRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>();
+            Resident a = null, b = null;
+            for (int tries = 0; tries < 30 && (a == null || b == null); tries++)
+            {
+                a = b = null; float da = 1e9f, db = 1e9f;
+                foreach (var r in FindObjectsByType<Resident>(FindObjectsSortMode.None))
+                {
+                    var pp = r.GetComponent<Person>(); if (pp == null || pp.state != Person.State.Walking || !pp.Ready) continue;
+                    float d = (r.transform.position - pc.transform.position).sqrMagnitude;
+                    if (d < da) { db = da; b = a; da = d; a = r; } else if (d < db) { db = d; b = r; }
+                }
+                if (a == null || b == null) yield return new WaitForSeconds(0.5f);
+            }
+            if (pc == null || a == null || b == null || Social.I == null) { Debug.Log("[ASBO] talktest: missing"); Destroy(gameObject); yield break; }
+            var pa = a.GetComponent<Person>();
+            a.HoldAt(pc.transform.position + pc.transform.forward * 1.4f, pc.transform.eulerAngles.y + 180f, 40f);
+            yield return new WaitForSeconds(0.6f);
+            Debug.Log($"[ASBO] talktest: near={(Social.I.Near != null ? Persona.Name(Social.I.Near) : "none")} talking to {Persona.Name(pa)}");
+            Social.I.TalkPressed(); yield return new WaitForSeconds(1.2f);
+            DialogueUI.Choose(0); yield return new WaitForSeconds(1.2f);   // natter
+            DialogueUI.Choose(0); yield return new WaitForSeconds(1.2f);   // natter again (talked out)
+            DialogueUI.Choose(1); yield return new WaitForSeconds(1.2f);   // flirt or leave
+            Debug.Log($"[ASBO] talktest: friend={Rel.Of(pa).friend:F0} romance={Rel.Of(pa).romance:F0} met={Rel.Of(pa).met} open={DialogueUI.Open}");
+            if (DialogueUI.Open) Social.I.EndTalk(true);
+            // a grudge: they should come over for a word
+            var pb = b.GetComponent<Person>(); var rb = Rel.Of(pb); rb.friend = -45f; rb.grudge = 70f; rb.met = true; Rel.Set(pb, rb);
+            Social.I.approachCool = 0f;
+            for (float t = 0f; t < 20f; t += 0.5f)
+            {
+                yield return new WaitForSeconds(0.5f);
+                if (Social.I.Near == pb) { Debug.Log($"[ASBO] talktest: {Persona.Name(pb)} came over after {t:F1}s"); Social.I.TalkPressed(); yield return new WaitForSeconds(1f); DialogueUI.Choose(0); break; }
+            }
+            yield return new WaitForSeconds(3f);
+            var fb = b.GetComponent<Fighter>();
+            Debug.Log($"[ASBO] talktest end: {Persona.Name(pb)} grudge={Rel.Of(pb).grudge:F0} fighting={(fb != null && fb.Fighting)} cash={Econ.Cash:F2}");
+            if (fb != null && fb.Fighting) fb.Leave(null);
+            Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Evening to morning fast: who's out on the street each game hour, the tag at the zone's edge, and a frame of night.</summary>
+    public class NightTestRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>();
+            GameClock.Set(21.8f); GameClock.Speed = 6f; // a game hour every 12.5 s: long enough for people to walk home
+            int lastHour = -1; float t0 = Time.time; bool shot = false;
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots"); System.IO.Directory.CreateDirectory(dir);
+            while (Time.time - t0 < 80f)
+            {
+                int hr = (int)GameClock.Hour;
+                if (hr != lastHour)
+                {
+                    lastHour = hr; int out_ = 0; foreach (var r in FindObjectsByType<Resident>(FindObjectsSortMode.None)) out_++;
+                    Debug.Log($"[ASBO] nighttest {GameClock.Text} residents out={out_} night={GameClock.Night}");
+                }
+                if (!shot && hr == 23) { shot = true; ScreenCapture.CaptureScreenshot(dir + "/night.png"); }
+                if (hr == 0 && GameClock.Minute > 30f) { GameClock.Set(7.6f); }
+                if (hr == 9) break;
+                yield return null;
+            }
+            GameClock.Speed = 1f;
+            // the tag: walk to the edge of the zone and out
+            Vector3 p = pc.transform.position; var z = Tag.Zone;
+            pc.Teleport(new Vector3(z.xMax - 6f, p.y + 0.5f, Mathf.Clamp(p.z, z.yMin + 10f, z.yMax - 10f)), 90f, 10f);
+            yield return new WaitForSeconds(3f);
+            Debug.Log($"[ASBO] nighttest tag near edge: {Tag.HudLine}");
+            pc.Teleport(new Vector3(z.xMax + 3f, p.y + 0.5f, Mathf.Clamp(p.z, z.yMin + 10f, z.yMax - 10f)), 90f, 10f);
+            yield return new WaitForSeconds(3f);
+            Debug.Log($"[ASBO] nighttest tag outside: {Tag.HudLine} outside={Tag.Outside}");
+            pc.Teleport(p + Vector3.up * 0.5f, 0f, 10f);
+            Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Hit someone hard, then film the whole ambulance call-out from the side (Shots/amb, every half second) and log each stage.</summary>
+    public class AmbTestRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>();
+            DebugCmd.HardHit();
+            yield return new WaitForSeconds(2.5f);
+            Person victim = Person.LastHit; if (victim == null) { Debug.Log("[ASBO] ambtest: no victim"); Destroy(gameObject); yield break; }
+            Vector3 at = victim.BodyPos; pc.Teleport(at + new Vector3(0, 0.5f, 9f), 180f, 10f);
+            var cg = new GameObject("AmbCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 55f; World.HideHud = true;
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/amb"); System.IO.Directory.CreateDirectory(dir);
+            foreach (var f in System.IO.Directory.GetFiles(dir, "*.png")) { try { System.IO.File.Delete(f); } catch { } }
+            string last = ""; int n = 0; float t0 = Time.time;
+            while (Time.time - t0 < 95f)
+            {
+                Vector3 focus = at; if (Ambulance.All.Count > 0) focus = Vector3.Lerp(at, Ambulance.All[0].transform.position, 0.45f);
+                cg.transform.position = focus + new Vector3(-3f, 4.2f, 9.5f); cg.transform.LookAt(focus + Vector3.up * 0.6f);
+                if (Ambulance.Status != last) { last = Ambulance.Status; Debug.Log($"[ASBO] ambtest t={Time.time - t0:F1} {last}"); }
+                ScreenCapture.CaptureScreenshot(dir + "/a_" + (n++).ToString("000") + ".png");
+                if (last.StartsWith("En route") && Ambulance.All.Count == 0) break;
+                yield return new WaitForSeconds(0.5f);
+            }
+            Destroy(cg); World.HideHud = false; Debug.Log($"[ASBO] ambtest end frames={n}");
             Destroy(gameObject);
         }
     }
