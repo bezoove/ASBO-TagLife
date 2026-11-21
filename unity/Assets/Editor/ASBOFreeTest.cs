@@ -66,7 +66,11 @@ namespace ASBO.EditorTools
         }
 
         const string KO = "Assets/MoCapCentral/MC_Sample/Animations/Fight/MCU_am_Ready_Fight_01_Knockdown_A.FBX";
-        /// <summary>Cut the punch, front kick and fighting stance out of MoCap Central's 25 s fight take (frames picked from a filmed contact sheet).</summary>
+        /// <summary>
+        /// Cut the moves out of MoCap Central's 25 s fight take. Ranges found by measuring the body through the take
+        /// (ASBOFightCuts: hands against head and chest), not by eye: jab, cross, left hook, right to the body, overhand,
+        /// front kick, fists-up stance, high guard, and buckling from a body shot.
+        /// </summary>
         static void SplitFightClips()
         {
             var mi = AssetImporter.GetAtPath(KO) as ModelImporter; if (mi == null) { Debug.LogWarning("[ASBO] no " + KO); return; }
@@ -78,7 +82,9 @@ namespace ASBO.EditorTools
                 lockRootRotation = true, keepOriginalOrientation = false, lockRootHeightY = true, keepOriginalPositionY = true, lockRootPositionXZ = true, keepOriginalPositionXZ = false,
                 maskType = baseC.maskType
             };
-            var list = new[] { baseC, Make("ASBO_Punch", 155, 180, false), Make("ASBO_Kick", 102, 139, false), Make("ASBO_Stance", 30, 90, true) };
+            var list = new[] { baseC, Make("ASBO_Punch", 155, 180, false), Make("ASBO_Kick", 102, 139, false), Make("ASBO_Stance", 30, 90, true),
+                Make("ASBO_Cross", 182, 202, false), Make("ASBO_Hook", 213, 242, false), Make("ASBO_Body", 322, 340, false), Make("ASBO_Over", 550, 583, false),
+                Make("ASBO_Guard", 585, 600, true), Make("ASBO_Buckle", 519, 546, false) };
             var cur = mi.clipAnimations;
             if (cur.Length == list.Length && cur.Select(c => c.name + c.firstFrame + c.lastFrame).SequenceEqual(list.Select(c => c.name + c.firstFrame + c.lastFrame))) return;
             mi.clipAnimations = list; mi.SaveAndReimport();
@@ -86,25 +92,56 @@ namespace ASBO.EditorTools
         }
         static AnimationClip KOClip(string name) => AssetDatabase.LoadAllAssetsAtPath(KO).OfType<AnimationClip>().FirstOrDefault(c => c.name == name);
 
-        /// <summary>Punch (jab), Kick, Hay (big swinging haymaker) and Struck (taking a hit): any-state triggers back to Move.</summary>
+        /// <summary>Upper body only (spine, head, arms, fingers): the fists-up stance and guard ride on top of walking.</summary>
+        static AvatarMask UpperBodyMask()
+        {
+            string path = Out + "UpperBody.mask";
+            var m = AssetDatabase.LoadAssetAtPath<AvatarMask>(path);
+            if (m != null) return m;
+            m = new AvatarMask();
+            for (var part = AvatarMaskBodyPart.Root; part < AvatarMaskBodyPart.LastBodyPart; part++)
+                m.SetHumanoidBodyPartActive(part, part == AvatarMaskBodyPart.Body || part == AvatarMaskBodyPart.Head || part == AvatarMaskBodyPart.LeftArm || part == AvatarMaskBodyPart.RightArm || part == AvatarMaskBodyPart.LeftFingers || part == AvatarMaskBodyPart.RightFingers);
+            AssetDatabase.CreateAsset(m, path);
+            return m;
+        }
+
+        /// <summary>
+        /// Fighting: any-state triggers for each move and for taking a hit (head or body), back to Move when done; plus a
+        /// "Fists" layer over the upper body for the fists-up stance and the guard (Fighter sets its weight).
+        /// Durations here are the clip lengths at these speeds; Fighter's move table matches them.
+        /// </summary>
         static void AddFight(AnimatorController ac, AnimatorStateMachine sm, AnimatorState move)
         {
             SplitFightClips();
-            foreach (var n in new[] { "Punch", "Kick", "Hay", "Struck" }) if (!ac.parameters.Any(q => q.name == n)) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
-            var clips = new (string trig, AnimationClip c)[] {
-                ("Punch", KOClip("ASBO_Punch")), ("Kick", KOClip("ASBO_Kick")),
-                ("Hay", AnyClip(KevBase + "Male/Combat/1H/HumanM@Attack1H01_R.fbx")),
-                ("Struck", AnyClip(KevBase + "Male/Combat/HumanM@CombatDamage01.fbx")) };
+            foreach (var n in new[] { "Punch", "Cross", "Hook", "Body", "Hay", "Kick", "Shove", "Struck", "StruckBody" }) if (!ac.parameters.Any(q => q.name == n)) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
+            foreach (var n in new[] { "Guard" }) if (!ac.parameters.Any(q => q.name == n)) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
+            var clips = new (string trig, AnimationClip c, float speed)[] {
+                ("Punch", KOClip("ASBO_Punch"), 2.1f), ("Cross", KOClip("ASBO_Cross"), 1.6f), ("Hook", KOClip("ASBO_Hook"), 1.9f), ("Body", KOClip("ASBO_Body"), 1.55f),
+                ("Hay", KOClip("ASBO_Over"), 1.7f), ("Kick", KOClip("ASBO_Kick"), 1.8f),
+                ("Shove", AnyClip(KevBase + "Male/Combat/Shield/HumanM@AttackShield01.fbx"), 1.5f),
+                ("Struck", AnyClip(KevBase + "Male/Combat/HumanM@CombatDamage01.fbx"), 1.4f), ("StruckBody", KOClip("ASBO_Buckle"), 1.5f) };
             int i = 0;
-            foreach (var (trig, c) in clips)
+            foreach (var (trig, c, speed) in clips)
             {
                 if (c == null) { Debug.LogWarning("[ASBO] no clip for " + trig); continue; }
-                var st = sm.AddState("F" + trig, new Vector3(650, 60 * i++)); st.motion = c; st.iKOnFeet = true;
-                // snappy: street punches, not a choreographed film fight
-                st.speed = trig == "Punch" ? 1.9f : trig == "Kick" ? 1.65f : trig == "Hay" ? 1.75f : 1.4f;
-                var tin = sm.AddAnyStateTransition(st); tin.AddCondition(AnimatorConditionMode.If, 0, trig); tin.hasExitTime = false; tin.duration = trig == "Struck" ? 0.05f : 0.08f; tin.canTransitionToSelf = trig == "Struck";
-                var tout = st.AddTransition(move); tout.hasExitTime = true; tout.exitTime = 0.88f; tout.duration = 0.18f;
+                var st = sm.AddState("F" + trig, new Vector3(650, 60 * i++)); st.motion = c; st.iKOnFeet = true; st.speed = speed;
+                bool react = trig.StartsWith("Struck");
+                var tin = sm.AddAnyStateTransition(st); tin.AddCondition(AnimatorConditionMode.If, 0, trig); tin.hasExitTime = false; tin.duration = react ? 0.05f : 0.07f; tin.canTransitionToSelf = react;
+                var tout = st.AddTransition(move); tout.hasExitTime = true; tout.exitTime = 0.86f; tout.duration = 0.16f;
+                Debug.Log($"[ASBO] fight {trig}: {c.name} plays {c.length / speed:F2}s");
             }
+            // the Fists layer: stance by default, guard while "Guard" is held
+            var stance = KOClip("ASBO_Stance"); var guard = KOClip("ASBO_Guard");
+            if (stance == null || guard == null) return;
+            if (ac.layers.Any(l => l.name == "Fists")) return;
+            var lsm = new AnimatorStateMachine { name = "Fists", hideFlags = HideFlags.HideInHierarchy };
+            AssetDatabase.AddObjectToAsset(lsm, ac);
+            var sSt = lsm.AddState("Stance", new Vector3(300, 0)); sSt.motion = stance;
+            var gSt = lsm.AddState("Guard", new Vector3(300, 80)); gSt.motion = guard;
+            lsm.defaultState = sSt;
+            var a = sSt.AddTransition(gSt); a.AddCondition(AnimatorConditionMode.If, 0, "Guard"); a.hasExitTime = false; a.duration = 0.08f;
+            var b = gSt.AddTransition(sSt); b.AddCondition(AnimatorConditionMode.IfNot, 0, "Guard"); b.hasExitTime = false; b.duration = 0.15f;
+            ac.AddLayer(new AnimatorControllerLayer { name = "Fists", stateMachine = lsm, avatarMask = UpperBodyMask(), defaultWeight = 0f, blendingMode = AnimatorLayerBlendingMode.Override });
         }
 
         /// <summary>Hurt: getting up off the floor, then bent over holding the belly (idle and limping walk). MoCap Central injured set.</summary>

@@ -311,7 +311,7 @@ namespace ASBO.Slice
             label = important ? "Important person" : "Passer-by";
             if (severity >= 7f && !important) dead = true; else injured = true;
             // a light knock: down, a moment on the floor, then up and limping off (no ambulance)
-            getUp = !dead && severity < 5.5f;
+            getUp = !dead && severity < 5.5f; knockKO = true; knockDelay = 0f;
             EnterRagdoll(v, severity);
             Vector3 flat = v.normalized;
             Gore.Burst(point, flat + Vector3.up * 0.3f, getUp ? 25 : 90);
@@ -343,11 +343,15 @@ namespace ASBO.Slice
             }
         }
 
-        /// <summary>Punched or kicked out: goes limp, falls the way the blow pushed, gets up after a while.</summary>
-        public void Knockout(Vector3 push)
+        float knockDelay; bool knockKO = true;
+        /// <summary>
+        /// Floored in a fight: goes limp and falls the way the blow pushed. A knockdown (ko false) is back up after
+        /// downSecs with a quick get-up and carries on; a knockout stays down longer and may get up limping.
+        /// </summary>
+        public void Knockout(Vector3 push, float downSecs = 3f, bool ko = true)
         {
             if (state != State.Walking || anim == null) return;
-            injured = false; getUp = true; LastHit = this;
+            injured = false; getUp = true; LastHit = this; knockDelay = downSecs; knockKO = ko;
             EnterRagdoll(push * 0.6f, 1.5f); // crumple rather than fly
         }
 
@@ -384,19 +388,23 @@ namespace ASBO.Slice
             anim.Update(0f);
             Vector3 off = (blendHips - hips.position).WithY(0); transform.position += off;
             anim.Update(0f);
-            blendT = 0f; blendDur = faceUp ? 0.9f : 0.35f;
+            bool quick = !knockKO; // a knockdown in a scrap: straight back up
+            anim.speed = quick ? 2.1f : 1f;
+            blendT = 0f; blendDur = (faceUp ? 0.9f : 0.35f) / anim.speed;
             state = State.GettingUp;
-            yield return new WaitForSeconds(5.4f);
+            yield return new WaitForSeconds(5.4f / anim.speed);
+            anim.speed = 1f;
             if (state != State.GettingUp) yield break;
-            // up: hurt for a while, then back to normal
-            state = State.Walking; hurt = injured || UnityEngine.Random.value < 0.5f; hurtUntil = Time.time + (isPlayer ? 8f : injured ? 60f : 20f);
+            // up: after a knockout or a car, hurt for a while, then back to normal
+            state = State.Walking; hurt = injured || (knockKO && UnityEngine.Random.value < 0.5f); hurtUntil = Time.time + (isPlayer ? 8f : injured ? 60f : 20f);
             if (!hurt) RestoreNormal();
             if (trigger != null) trigger.enabled = true;
             var cc = GetComponent<CharacterController>(); if (cc != null) cc.enabled = true;
             var agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
             if (agent != null) { agent.enabled = true; if (agent.isOnNavMesh) agent.Warp(transform.position); agent.speed = hurt ? HurtSpeed : agent.speed; }
             var res = GetComponent<Resident>(); if (res != null) res.enabled = true;
-            var f = GetComponent<Fighter>(); if (f != null) f.Recover();
+            var f = GetComponent<Fighter>(); if (f != null) f.Recover(knockKO);
+            knockKO = true;
             GotUp?.Invoke(this);
         }
         public event Action<Person> GotUp;
@@ -423,7 +431,7 @@ namespace ASBO.Slice
             float v = 0f;
             foreach (var b in bones) if (!b.severed && b.rb != null) v = Mathf.Max(v, b.rb.linearVelocity.magnitude);
             calmTimer = v < 0.25f ? calmTimer + Time.fixedDeltaTime : 0f;
-            if ((calmTimer > 1.2f && hitTime > 1.5f) || hitTime > 12f) Settle();
+            if ((calmTimer > 1.2f && hitTime > 1.5f) || hitTime > 12f || (!knockKO && knockDelay > 0f && hitTime > knockDelay)) Settle(); // a knockdown in a scrap is up on time, settled or not
         }
 
         IEnumerator Dismember(float severity)
@@ -520,7 +528,7 @@ namespace ASBO.Slice
             if (hips != null && Physics.Raycast(hips.position + Vector3.up * 0.3f, Vector3.down, out var h, 3f))
                 if ((injured && !getUp) || dead) Gore.Pool(h.point, dead ? 1.15f : 0.55f, 14f);
             Settled?.Invoke(this);
-            if (getUp && !dead) StartCoroutine(GetUpAfter(UnityEngine.Random.Range(2.5f, 4.5f)));
+            if (getUp && !dead) { StartCoroutine(GetUpAfter(knockDelay > 0f ? (knockKO ? knockDelay : Mathf.Max(0.2f, knockDelay - hitTime)) : UnityEngine.Random.Range(2.5f, 4.5f))); knockDelay = 0f; } // a knockdown counts the time spent falling
         }
 
         public Vector3 BodyPos => hips != null ? hips.position : transform.position;

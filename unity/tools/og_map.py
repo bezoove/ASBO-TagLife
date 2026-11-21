@@ -123,8 +123,8 @@ SECTIONS = [
   ('todo', 'Drink, food and being drunk', 'Pints, sipping, getting merry, sobering up, snacks.', ['Bar', 'DRINKS', 'FOOD', 'CRISPS', 'CAN_DRINK'], [], []),
  ]),
  ('Fighting, injury and emergency services', [
-  ('part', 'Punch, haymaker, kick', 'Much faster in v8. Still to come: fists-up stance and the old game\'s other moves.', ['Fight', 'Fists', 'FIGHT_ANIMS', 'ATK', 'TBTN'], [], ['Punches, kicks and running a lot faster.']),
-  ('part', 'People fight back or run; knockouts; getting up; limping', 'In. Still to come: others wading in, Brenda breaking it up, dropping drinks.', [], [],
+  ('done', 'Punches, kicks, shove, guard and fists up', 'v9: tap PUNCH for jab, cross, hook, body shot; hold for an overhand. KICK, SHOVE (gets through a guard), hold GUARD to block, FISTS to keep them up. Stamina: tired punches are slow and weak. All motion capture.', ['Fight', 'Fists', 'FIGHT_ANIMS', 'ATK', 'TBTN'], [], ['Punches, kicks and running a lot faster.']),
+  ('part', 'People fight back or run; knockouts; getting up; limping', 'v9: anyone hit squares up and fights smart (blocks, mixes punches, circles, hits back); big hits knock people down and they get up and carry on; the faint-hearted leg it home when badly hurt; onlookers stop and watch, the lairy cheer, others wince and shout; "word will get around" afterwards. Still to come: mates wading in (needs the talking-to-people system), Brenda breaking it up (with the pub), dropping drinks.', [], [],
    ['Survivors get up and limp.']),
   ('done', 'Paramedics can be hit and fight back', 'v8.', [], [], ['Emergency workers can be punched and kicked and fight.']),
   ('todo', 'Weapons', 'Flick knife, kitchen knife, baseball bat, cosh, knuckle duster, crowbar, shotgun.', ['Weapons'], [], []),

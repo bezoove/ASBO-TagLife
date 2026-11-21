@@ -45,6 +45,7 @@ namespace ASBO.EditorTools
             ("hitFace", Kind.Shot, new[] { DK + "face_hit_small*.wav", DK + "face_hit_Large*.wav" }),
             ("hitBody", Kind.Shot, new[] { DK + "body_hit_small*.wav", DK + "body_hit_large*.wav" }),
             ("hitKO", Kind.Shot, new[] { DK + "face_hit_finisher*.wav", DK + "body_hit_finisher*.wav" }),
+            ("block", Kind.Shot, new[] { DK + "block_small*.wav", DK + "block_medium*.wav" }),
         };
 
         [MenuItem("ASBO/Audio/Build Sound Bank")]

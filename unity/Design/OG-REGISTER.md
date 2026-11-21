@@ -169,10 +169,10 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 
 ## Fighting, injury and emergency services
 
-- [~] **Punch, haymaker, kick**: Much faster in v8. Still to come: fists-up stance and the old game's other moves.
+- [x] **Punches, kicks, shove, guard and fists up**: v9: tap PUNCH for jab, cross, hook, body shot; hold for an overhand. KICK, SHOVE (gets through a guard), hold GUARD to block, FISTS to keep them up. Stamina: tired punches are slow and weak. All motion capture.
   - You asked: Punches, kicks and running a lot faster.
   - Old game: [Fight](og/modules/Fight.md), [Fists](og/modules/Fists.md), [FIGHT_ANIMS](og/modules/FIGHT_ANIMS.md), [ATK](og/modules/ATK.md), [TBTN](og/modules/TBTN.md) (104 behaviours, 20 lines said or shown, 62 tuning numbers)
-- [~] **People fight back or run; knockouts; getting up; limping**: In. Still to come: others wading in, Brenda breaking it up, dropping drinks.
+- [~] **People fight back or run; knockouts; getting up; limping**: v9: anyone hit squares up and fights smart (blocks, mixes punches, circles, hits back); big hits knock people down and they get up and carry on; the faint-hearted leg it home when badly hurt; onlookers stop and watch, the lairy cheer, others wince and shout; "word will get around" afterwards. Still to come: mates wading in (needs the talking-to-people system), Brenda breaking it up (with the pub), dropping drinks.
   - You asked: Survivors get up and limp.
 - [x] **Paramedics can be hit and fight back**: v8.
   - You asked: Emergency workers can be punched and kicked and fight.

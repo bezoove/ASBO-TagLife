@@ -47,7 +47,8 @@ namespace ASBO.Slice
         public CotHouse home; public string arch;
         Person p; NavMeshAgent ag; float wait = 1f, chatCd; string doing = "";
         // trouble: who we're fighting (or running from), until when, and how often we swing
-        Fighter foe, fleeFrom; float angryUntil, nextSwing, repath, baseSpeed;
+        Fighter fleeFrom, fighter; float angryUntil, baseSpeed;
+        Transform watching; float watchUntil, cheerUntil;
         static readonly List<Resident> all = new List<Resident>();
         public string Doing => doing;
         public static int Count;
@@ -121,16 +122,18 @@ namespace ASBO.Slice
         }
         void OnDestroy() { all.Remove(this); }
 
-        void OnEnable() { if (ag != null && ag.enabled && ag.isOnNavMesh) { ag.isStopped = false; foe = null; fleeFrom = null; wait = 1f; } }
+        void OnEnable() { if (ag != null && ag.enabled && ag.isOnNavMesh) { ag.isStopped = false; fleeFrom = null; watching = null; wait = 1f; } }
 
         void Update()
         {
             if (p == null || ag == null || home == null || home.root == null) return;
             if (p.state != Person.State.Walking) { if (ag.enabled) ag.enabled = false; enabled = false; return; }
             if (!ag.isOnNavMesh) return;
+            fighter ??= GetComponent<Fighter>();
+            if (fighter != null && fighter.Fighting) return; // the fighter drives us while we're scrapping
             float v = ag.velocity.magnitude;
             if (v > 0.08f) p.Animate(v);
-            if (foe != null) { Brawl(); return; }
+            if (watching != null) { Watching(); return; }
             if (fleeFrom != null)
             {
                 if (Time.time > angryUntil || (!ag.pathPending && ag.remainingDistance < 0.5f)) { fleeFrom = null; ag.speed = baseSpeed; doing = ""; wait = Random.Range(2f, 5f); }
@@ -163,58 +166,63 @@ namespace ASBO.Slice
             }
         }
 
-        /// <summary>
-        /// Someone's hit us. Blokes (and anyone drunk) mostly square up and fight back; others leg it. The hurt and the
-        /// old just run.
-        /// </summary>
-        public void Provoked(Fighter by)
+        /// <summary>A scrap has started with us in it: stop the routine (the Fighter moves us now).</summary>
+        public void EnterFight()
         {
-            if (by == null || p == null || ag == null || !ag.enabled || p.state != Person.State.Walking) return;
+            if (ag == null) return;
             if (baseSpeed <= 0f) baseSpeed = ag.speed;
-            bool fight = !p.hurt && (p.drunk ? Random.value < 0.9f : p.male ? Random.value < 0.65f : Random.value < 0.15f);
-            if (foe == by || (fleeFrom == by && !fight)) { angryUntil = Time.time + 20f; return; }
-            if (fight)
-            {
-                foe = by; fleeFrom = null; angryUntil = Time.time + 25f; nextSwing = Time.time + Random.Range(0.4f, 0.9f); doing = "fight";
-                if (GameAudio.I != null) GameAudio.I.PlayVoice("hostile", transform.position + Vector3.up * 1.6f, 0.2f);
-            }
-            else
-            {
-                foe = null; fleeFrom = by; angryUntil = Time.time + 12f; doing = "flee";
-                Vector3 away = (transform.position - by.transform.position).WithY(0); if (away.sqrMagnitude < 0.01f) away = transform.forward;
-                if (Nav.Snap(transform.position + away.normalized * 16f, out var dest, 4f)) { ag.isStopped = false; ag.speed = p.hurt ? 1.2f : 3.2f; ag.SetDestination(dest); }
-                if (GameAudio.I != null) GameAudio.I.Pain(transform.position + Vector3.up * 1.6f, p.male, 0.15f);
-            }
+            watching = null; fleeFrom = null; doing = "fight"; p.SetWave(false);
+            if (ag.enabled && ag.isOnNavMesh) { ag.isStopped = true; ag.ResetPath(); }
         }
 
-        void Brawl()
+        /// <summary>Out of the scrap. Legging it: run off home (or just away), then carry on. Otherwise back to the day.</summary>
+        public void ExitFight(Fighter runFrom)
         {
-            var fb = foe.Body;
-            float dist = fb != null ? (foe.transform.position - transform.position).WithY(0).magnitude : 999f;
-            if (fb == null || fb.state != Person.State.Walking || dist > 25f || Time.time > angryUntil || p.hurt)
+            if (ag == null || !ag.enabled || !ag.isOnNavMesh) return;
+            if (baseSpeed <= 0f) baseSpeed = ag.speed;
+            ag.isStopped = false; ag.updateRotation = true;
+            if (runFrom != null)
             {
-                // they're down, gone, or we've had enough
-                foe = null; ag.isStopped = false; ag.speed = baseSpeed > 0f ? baseSpeed : ag.speed; doing = ""; wait = Random.Range(1.5f, 4f);
+                fleeFrom = runFrom; angryUntil = Time.time + 15f; doing = "flee";
+                Vector3 dest;
+                if (!HomePoint(out dest))
+                {
+                    Vector3 away = (transform.position - runFrom.transform.position).WithY(0); if (away.sqrMagnitude < 0.01f) away = transform.forward;
+                    if (!Nav.Snap(transform.position + away.normalized * 18f, out dest, 4f)) dest = transform.position;
+                }
+                ag.speed = p.hurt ? 1.2f : 3.4f; ag.SetDestination(dest);
+                if (GameAudio.I != null) GameAudio.I.Pain(transform.position + Vector3.up * 1.6f, p.male, 0.1f);
+            }
+            else { doing = ""; ag.speed = baseSpeed; wait = Random.Range(1.5f, 4f); }
+        }
+
+        /// <summary>Somebody's scrapping nearby: stop, turn and watch for a while. The drunk and lairy cheer them on; others wince.</summary>
+        public void Watch(Transform t, float secs, bool cheer)
+        {
+            if (ag == null || !ag.enabled || !ag.isOnNavMesh || p.state != Person.State.Walking || doing == "flee") return;
+            if (baseSpeed <= 0f) baseSpeed = ag.speed;
+            watching = t; watchUntil = Time.time + secs; doing = "watch";
+            ag.isStopped = true; ag.ResetPath();
+            if (cheer) { cheerUntil = Time.time + 1.8f; StartCoroutine(CheerFor(Random.Range(0.1f, 0.9f))); }
+            else StartCoroutine(Wince(Random.Range(0.1f, 0.9f)));
+        }
+        System.Collections.IEnumerator CheerFor(float delay) { yield return new WaitForSeconds(delay); if (p == null || watching == null) yield break; p.SetWave(true); yield return new WaitForSeconds(1.8f); if (p != null) p.SetWave(false); }
+        System.Collections.IEnumerator Wince(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            if (p == null || watching == null || ag == null || !ag.enabled) yield break;
+            Vector3 away = (transform.position - watching.position).WithY(0); if (away.sqrMagnitude < 0.01f) yield break;
+            for (float t = 0f; t < 0.35f; t += Time.deltaTime) { if (ag.enabled && ag.isOnNavMesh) ag.Move(away.normalized * 1.2f * Time.deltaTime); yield return null; }
+        }
+        void Watching()
+        {
+            if (watching == null || Time.time > watchUntil || !watching.gameObject.activeInHierarchy)
+            {
+                watching = null; doing = ""; p.SetWave(false); ag.isStopped = false; ag.speed = baseSpeed > 0f ? baseSpeed : ag.speed; wait = Random.Range(0.5f, 2f);
                 return;
             }
-            var me = GetComponent<Fighter>();
-            if (dist > 1.05f)
-            {
-                ag.isStopped = false; ag.speed = p.drunk ? 1.6f : 2.6f;
-                if (Time.time > repath) { repath = Time.time + 0.25f; ag.SetDestination(foe.transform.position); }
-            }
-            else
-            {
-                ag.isStopped = true; ag.velocity = Vector3.zero;
-                Vector3 d = (foe.transform.position - transform.position).WithY(0);
-                if (d.sqrMagnitude > 0.01f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(d), 540f * Time.deltaTime);
-                if (Time.time > nextSwing && me != null && !me.Busy)
-                {
-                    float r = Random.value;
-                    me.Attack(r < 0.55f ? Fighter.Move.Punch : r < 0.8f ? Fighter.Move.Hay : Fighter.Move.Kick);
-                    nextSwing = Time.time + (p.drunk ? Random.Range(1.0f, 1.9f) : Random.Range(0.6f, 1.3f));
-                }
-            }
+            Vector3 d = (watching.position - transform.position).WithY(0);
+            if (d.sqrMagnitude > 0.01f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(d), 240f * Time.deltaTime);
         }
 
         /// <summary>Stand still at a spot for a while (scripted tests, cut-scenes), then carry on with the day.</summary>

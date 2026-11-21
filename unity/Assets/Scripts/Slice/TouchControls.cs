@@ -159,6 +159,9 @@ namespace ASBO.Slice
             Button("car", "CAR", "<Gamepad>/select", true, false, new Vector2(-150, 430), default, 140, blue);
             Button("punch", "PUNCH", "<Gamepad>/buttonWest", true, false, new Vector2(-400, 330), default, 160, new Color(0.45f, 0.12f, 0.08f, 0.5f));
             Button("kick", "KICK", "<Gamepad>/buttonEast", true, false, new Vector2(-600, 170), default, 150, new Color(0.45f, 0.25f, 0.06f, 0.5f));
+            Button("guard", "GUARD", "<Gamepad>/leftShoulder", true, false, new Vector2(-610, 380), default, 140, new Color(0.12f, 0.2f, 0.4f, 0.5f));
+            Button("shove", "SHOVE", "<Gamepad>/rightShoulder", true, false, new Vector2(-790, 250), default, 125, new Color(0.4f, 0.18f, 0.1f, 0.5f));
+            Button("fists", "FISTS", "<Gamepad>/dpad/up", true, false, new Vector2(-560, 560), default, 115, dark);
             // driving, laid out like the old game: pedals on the left, steering buttons on the right
             Hold("vfwd", "FORWARD", true, new Vector2(192, 475), 250, new Color(0.08f, 0.35f, 0.12f, 0.5f), v => TouchCar.fwd = v);
             Hold("vrev", "REVERSE", true, new Vector2(173, 151), 175, dark, v => TouchCar.rev = v);

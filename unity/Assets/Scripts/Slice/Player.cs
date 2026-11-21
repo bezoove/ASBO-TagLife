@@ -69,7 +69,7 @@ namespace ASBO.Slice
             if (vcam != null) vcam.PreviousStateIsValid = false;
         }
 
-        bool wasGrounded = true; float fallSpeed; Fighter fighter;
+        bool wasGrounded = true; float fallSpeed; Fighter fighter; bool lockedThisFrame, clickLock, facing; float lookT;
         public bool InCar => inCar; bool touch;
         Vector2 lookAdd;
         /// <summary>Camera turn from touch drags (degrees).</summary>
@@ -82,15 +82,19 @@ namespace ASBO.Slice
         {
             var kb = Keyboard.current; var ms = Mouse.current; var gp = Gamepad.current;
             if (kb != null && kb.escapeKey.wasPressedThisFrame) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
-            if (!touch && ms != null && ms.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
+            lockedThisFrame = false;
+            if (!touch && ms != null && ms.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; lockedThisFrame = true; }
+            if (ms != null && ms.leftButton.isPressed && lockedThisFrame == false && clickLock) lockedThisFrame = true;
+            if (ms != null && !ms.leftButton.isPressed) clickLock = false; else if (lockedThisFrame) clickLock = true;
             if (!touch && ms != null && Cursor.lockState == CursorLockMode.Locked)
             {
                 Vector2 d = ms.delta.ReadValue() * 0.12f;
                 yaw += d.x; pitch = Mathf.Clamp(pitch - d.y, -25f, 60f);
+                if (d.sqrMagnitude > 0.25f) lookT = Time.time;
             }
             // touch drags and the gamepad's right stick turn the camera too
-            if (lookAdd != Vector2.zero) { yaw += lookAdd.x; pitch = Mathf.Clamp(pitch - lookAdd.y, -25f, 60f); lookAdd = Vector2.zero; }
-            if (gp != null) { var rs = gp.rightStick.ReadValue(); if (rs.sqrMagnitude > 0.02f) { yaw += rs.x * 150f * Time.deltaTime; pitch = Mathf.Clamp(pitch - rs.y * 90f * Time.deltaTime, -25f, 60f); } }
+            if (lookAdd != Vector2.zero) { lookT = Time.time; yaw += lookAdd.x; pitch = Mathf.Clamp(pitch - lookAdd.y, -25f, 60f); lookAdd = Vector2.zero; }
+            if (gp != null) { var rs = gp.rightStick.ReadValue(); if (rs.sqrMagnitude > 0.02f) { lookT = Time.time; yaw += rs.x * 150f * Time.deltaTime; pitch = Mathf.Clamp(pitch - rs.y * 90f * Time.deltaTime, -25f, 60f); } }
             if ((kb != null && kb.eKey.wasPressedThisFrame) || (gp != null && gp.selectButton.wasPressedThisFrame)) ToggleCar();
             if (kb != null && kb.vKey.wasPressedThisFrame) spectate = !spectate;
             if (kb != null && kb.f9Key.wasPressedThisFrame)
@@ -108,14 +112,20 @@ namespace ASBO.Slice
             else if (person != null && person.state != Person.State.Walking) { vel = Vector3.zero; bodyYaw = transform.eulerAngles.y; } // floored: wait to get up
             else
             {
-                // fists and feet: F / left click / pad X to punch (twice quickly for a haymaker), Q / pad B to kick
+                // fists and feet. Punch: F / left click / pad X (tap: jab, cross, hook, body; hold: overhand). Kick: Q / pad B.
+                // Shove: C / pad RB. Guard (hold): Z / right mouse / pad LB. Fists up: X / pad d-pad up.
                 fighter ??= GetComponent<Fighter>();
-                bool punch = (kb != null && kb.fKey.wasPressedThisFrame) || (gp != null && gp.buttonWest.wasPressedThisFrame) || (!touch && ms != null && ms.leftButton.wasPressedThisFrame && Cursor.lockState == CursorLockMode.Locked);
-                bool kick = (kb != null && kb.qKey.wasPressedThisFrame) || (gp != null && gp.buttonEast.wasPressedThisFrame);
                 if (fighter != null && showSpeed < 0f)
                 {
-                    if (punch) fighter.PunchButton(); else if (kick) fighter.Attack(Fighter.Move.Kick);
-                    if (punch || kick) bodyYaw = transform.eulerAngles.y;
+                    bool locked = !touch && ms != null && Cursor.lockState == CursorLockMode.Locked;
+                    bool punchHeld = (kb != null && kb.fKey.isPressed) || (gp != null && gp.buttonWest.isPressed) || (locked && ms.leftButton.isPressed && !lockedThisFrame);
+                    bool kick = (kb != null && kb.qKey.wasPressedThisFrame) || (gp != null && gp.buttonEast.wasPressedThisFrame);
+                    bool shove = (kb != null && kb.cKey.wasPressedThisFrame) || (gp != null && gp.rightShoulder.wasPressedThisFrame);
+                    bool guardHeld = (kb != null && kb.zKey.isPressed) || (gp != null && gp.leftShoulder.isPressed) || (locked && ms.rightButton.isPressed);
+                    bool fists = (kb != null && kb.xKey.wasPressedThisFrame) || (gp != null && gp.dpad.up.wasPressedThisFrame);
+                    bool can = !inCar && cc.isGrounded && turnTimer <= 0f;
+                    fighter.PlayerInput(punchHeld, kick, shove, guardHeld, fists, can);
+                    if (fighter.Busy) bodyYaw = transform.eulerAngles.y;
                 }
                 Move(kb);
             }
@@ -154,7 +164,14 @@ namespace ASBO.Slice
             float pace = sprint ? sp.sprint : walk ? sp.walk : sp.run;
             if (person.hurt) pace = person.HurtSpeed;
             Vector3 want = mag < 0.05f ? Vector3.zero : dir * pace;
-            if (fighter != null && fighter.Busy) want = Vector3.zero;
+            if (fighter != null)
+            {
+                want *= fighter.SpeedMul;
+                // in a scrap (and not running away), keep facing whoever's on you
+                var foe = fighter.Busy || Fighter.Session.Hot && !sprint ? fighter.NearestFoe() : null;
+                if (foe != null && turnTimer <= 0f) { Vector3 fd = (foe.transform.position - transform.position).WithY(0); if (fd.sqrMagnitude > 0.01f) { bodyYaw = Mathf.MoveTowardsAngle(bodyYaw, Mathf.Atan2(fd.x, fd.z) * Mathf.Rad2Deg, 540f * Time.deltaTime); facing = true; } }
+                else facing = false;
+            }
             bool grounded = cc.isGrounded;
 
             // turn on the spot: from (nearly) standing, a big change of direction plays the turn clip
@@ -181,8 +198,8 @@ namespace ASBO.Slice
             vel = Vector3.SmoothDamp(vel, want, ref velRef, accTime);
             if (want == Vector3.zero && vel.magnitude < 0.05f) vel = Vector3.zero;
 
-            // body follows the travel direction along a smooth arc (tighter when slow)
-            if (vel.sqrMagnitude > 0.04f && turnTimer <= 0f)
+            // body follows the travel direction along a smooth arc (tighter when slow); squared up in a fight, it strafes instead
+            if (vel.sqrMagnitude > 0.04f && turnTimer <= 0f && !facing)
             {
                 float target = Mathf.Atan2((want.sqrMagnitude > 0.01f ? want : vel).x, (want.sqrMagnitude > 0.01f ? want : vel).z) * Mathf.Rad2Deg;
                 float t = Mathf.Lerp(0.07f, 0.2f, vel.magnitude / Mathf.Max(sp.sprint, 0.1f));
@@ -237,6 +254,12 @@ namespace ASBO.Slice
             if (inCar && VehT != null && VehSpeed > 2f && Vector3.Dot(VehVel, VehT.forward) > 0) yaw = Mathf.LerpAngle(yaw, VehT.eulerAngles.y, 2f * Time.deltaTime);
             bool indoors = !inCar && GameAudio.I != null && GameAudio.I.InsideAny(transform.position + Vector3.up);
             orbit.Radius = Mathf.Lerp(orbit.Radius, inCar ? 8f : indoors ? 2.4f : spectate ? 6f : 4.2f, 4f * Time.deltaTime);
+            if (!inCar && Fighter.Session.Hot && fighter != null && Time.time - lookT > 0.8f)
+            {
+                var foe = fighter.NearestFoe();
+                if (foe != null) { Vector3 fd = (foe.transform.position - transform.position).WithY(0); if (fd.sqrMagnitude > 0.04f) yaw = Mathf.LerpAngle(yaw, Mathf.Atan2(fd.x, fd.z) * Mathf.Rad2Deg, 1f - Mathf.Exp(-1.5f * Time.deltaTime)); }
+            }
+            if (Fighter.Session.Shake > 0f) camTarget.position += Random.insideUnitSphere * Fighter.Session.Shake;
             if (!float.IsNaN(showYaw)) yaw = showYaw;
             if (!float.IsNaN(showPitch)) pitch = showPitch;
             if (showRadius > 0f) orbit.Radius = showRadius;

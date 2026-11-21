@@ -1,6 +1,6 @@
 # ATK (old game, v95)
 
-Part of: Punch, haymaker, kick
+Part of: Punches, kicks, shove, guard and fists up
 
 Source in game.pretty.js: 89422-89842, 116301-116816
 

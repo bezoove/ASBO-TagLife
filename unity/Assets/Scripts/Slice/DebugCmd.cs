@@ -391,7 +391,7 @@ namespace ASBO.Slice
     /// <summary>Scripted scrap: the player squares up to a resident and throws punches; side camera films it (Shots/brawl/b_###.png every 0.1 s).</summary>
     public class BrawlTestRun : MonoBehaviour
     {
-        public float secs = 16f; public bool kickFinish = true;
+        public float secs = 22f; public bool kickFinish = true;
         System.Collections.IEnumerator Start()
         {
             var pc = FindFirstObjectByType<PlayerCtl>(); var me = pc != null ? pc.GetComponent<Fighter>() : null;
@@ -414,7 +414,7 @@ namespace ASBO.Slice
             var cg = new GameObject("BrawlCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 45f; cam.nearClipPlane = 0.05f;
             string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/brawl"); System.IO.Directory.CreateDirectory(dir);
             foreach (var f in System.IO.Directory.GetFiles(dir, "*.png")) { try { System.IO.File.Delete(f); } catch { } }
-            float t0 = Time.time, nextShot = 0f, nextPunch = 0.6f; int n = 0, throws = 0;
+            float t0 = Time.time, nextShot = 0f, nextPunch = 0.6f; int n = 0, throws = 0; var lastState = fp.state;
             while (Time.time - t0 < secs)
             {
                 float t = Time.time - t0;
@@ -423,19 +423,23 @@ namespace ASBO.Slice
                 Vector3 side = Vector3.Cross(Vector3.up, (foe.transform.position - pc.transform.position).WithY(0).normalized); if (side.sqrMagnitude < 0.1f) side = Vector3.right;
                 cg.transform.position = Vector3.Lerp(cg.transform.position == Vector3.zero ? mid + side * 4f + Vector3.up * 1.4f : cg.transform.position, mid + side * 4f + Vector3.up * 1.4f, n == 0 ? 1f : 0.1f);
                 cg.transform.LookAt(mid + Vector3.up * 1.0f);
-                if (t >= nextPunch && fp.state == Person.State.Walking)
+                if (fp.state != lastState) { Debug.Log($"[ASBO] brawltest t={t:F1} foe state {lastState} -> {fp.state}"); lastState = fp.state; }
+                Fighter.TestGuard = t > 11f && t < 14.5f; // stand and block for a bit: the foe's swings should be soaked up
+                if (t >= nextPunch && fp.state == Person.State.Walking && !Fighter.TestGuard)
                 {
-                    nextPunch = t + 0.55f;
+                    nextPunch = t + 0.5f;
                     Vector3 d = (foe.transform.position - pc.transform.position).WithY(0);
                     if (d.magnitude > 1.15f) { pc.transform.position += d.normalized * Mathf.Min(0.4f, d.magnitude - 1f); }
-                    if (kickFinish && throws == 4) me.Attack(Fighter.Move.Kick); else me.PunchButton();
+                    if (throws % 6 == 4) me.Attack(Fighter.Move.Hay); else if (kickFinish && throws % 6 == 5) me.Attack(Fighter.Move.Kick); else me.PunchButton();
                     throws++;
-                    Debug.Log($"[ASBO] brawltest t={t:F1} throw {throws} foeHP={ff.health:F0} myHP={me.health:F0} foe={fp.state}");
+                    Debug.Log($"[ASBO] brawltest t={t:F1} throw {throws} foeHP={ff.hp:F0}/{ff.maxHp:F0} foeStam={ff.stam:F0} myHP={me.hp:F0} myStam={me.stam:F0} foe={fp.state} foeMode={ff.mode} fighting={ff.Fighting}");
                 }
+                if (Fighter.TestGuard && Time.frameCount % 20 == 0) Debug.Log($"[ASBO] brawltest guard t={t:F1} myHP={me.hp:F0} myStam={me.stam:F0} guard={me.guard} foeMode={ff.mode}");
                 if (t >= nextShot) { ScreenCapture.CaptureScreenshot(dir + "/b_" + (n++).ToString("000") + ".png"); nextShot = t + 0.1f; }
                 yield return null;
             }
-            Debug.Log($"[ASBO] brawltest end: foe={fp.state} hurt={fp.hurt} foeHP={ff.health:F0} myHP={me.health:F0} frames={n}");
+            Fighter.TestGuard = false;
+            Debug.Log($"[ASBO] brawltest end: foe={fp.state} hurt={fp.hurt} foeHP={ff.hp:F0} myHP={me.hp:F0} rep={Rel.Rep} frames={n}");
             Destroy(cg); World.HideHud = false; Destroy(gameObject);
         }
     }

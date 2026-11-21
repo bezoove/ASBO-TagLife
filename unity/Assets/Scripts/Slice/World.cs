@@ -165,12 +165,52 @@ namespace ASBO.Slice
         }
 
         public static bool HideHud;
+
+        // ---- messages across the top (what people shout, what just happened) and fades to black
+        struct ToastLine { public string text; public int kind; public float until; }
+        static readonly System.Collections.Generic.List<ToastLine> toasts = new System.Collections.Generic.List<ToastLine>();
+        /// <summary>A line across the top for a few seconds. kind: 0 note, 1 warning, 2 good.</summary>
+        public static void Toast(string text, int kind = 0)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            Debug.Log("[ASBO] toast: " + text);
+            toasts.Add(new ToastLine { text = text, kind = kind, until = Time.unscaledTime + 3.2f + text.Length * 0.03f });
+            while (toasts.Count > 4) toasts.RemoveAt(0);
+        }
+        static float fade, fadeTarget, fadeSpeed = 2f, fadeHoldUntil = -1f;
+        /// <summary>Fade the screen to black (1) or back (0) over secs; with hold > 0, stay dark that long and fade back.</summary>
+        public static void FadeTo(float target, float secs, float hold = 0f)
+        {
+            fadeTarget = target; fadeSpeed = 1f / Mathf.Max(0.05f, secs);
+            fadeHoldUntil = hold > 0f ? Time.unscaledTime + secs + hold : -1f;
+        }
+        static GUIStyle toastStyle;
         string hud1 = "", hud3 = ""; float hudT;
         static Fighter pfCache;
         static Fighter PlayerFighter { get { if (pfCache == null) { var pc = FindFirstObjectByType<PlayerCtl>(); if (pc != null) pfCache = pc.GetComponent<Fighter>(); } return pfCache; } }
         void OnGUI()
         {
+            if (Event.current.type == EventType.Repaint)
+            {
+                if (fadeHoldUntil > 0f && Time.unscaledTime > fadeHoldUntil) { fadeTarget = 0f; fadeHoldUntil = -1f; }
+                fade = Mathf.MoveTowards(fade, fadeTarget, fadeSpeed * Time.unscaledDeltaTime);
+            }
+            if (fade > 0.001f) { var oc = GUI.color; GUI.color = new Color(0f, 0f, 0f, fade); GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture); GUI.color = oc; }
             if (HideHud || TouchControls.Editing) return;
+            if (toasts.Count > 0)
+            {
+                toastStyle ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Mathf.Max(16, Screen.height / 38), fontStyle = FontStyle.Bold };
+                float ty = Screen.height * 0.13f, th = toastStyle.fontSize * 1.6f;
+                for (int i = toasts.Count - 1; i >= 0; i--) if (Time.unscaledTime > toasts[i].until) toasts.RemoveAt(i);
+                for (int i = 0; i < toasts.Count; i++)
+                {
+                    var tl = toasts[i]; var r = new Rect(0, ty + i * th, Screen.width, th);
+                    float a = Mathf.Clamp01((tl.until - Time.unscaledTime) / 0.5f);
+                    toastStyle.normal.textColor = new Color(0f, 0f, 0f, 0.7f * a); GUI.Label(new Rect(r.x + 2, r.y + 2, r.width, r.height), tl.text, toastStyle);
+                    toastStyle.normal.textColor = (tl.kind == 1 ? new Color(1f, 0.78f, 0.35f) : tl.kind == 2 ? new Color(0.55f, 1f, 0.6f) : new Color(1f, 1f, 1f)) * new Color(1, 1, 1, a);
+                    GUI.Label(r, tl.text, toastStyle);
+                }
+            }
             // your health, while it's down after a scrap
             var pf = PlayerFighter; if (pf != null && pf.Health01 < 0.995f)
             {
@@ -178,14 +218,21 @@ namespace ASBO.Slice
                 var old = GUI.color; GUI.color = new Color(0f, 0f, 0f, 0.55f); GUI.DrawTexture(new Rect(x - 2, y - 2, w + 4, 16), Texture2D.whiteTexture);
                 GUI.color = Color.Lerp(new Color(0.85f, 0.1f, 0.08f), new Color(0.2f, 0.75f, 0.25f), pf.Health01); GUI.DrawTexture(new Rect(x, y, w * pf.Health01, 12), Texture2D.whiteTexture); GUI.color = old;
             }
+            // stamina, while you're fighting or getting your breath back
+            if (pf != null && (Fighter.Session.Hot || pf.Stam01 < 0.995f))
+            {
+                float w = 260f, x = (Screen.width - w) * 0.5f, y = 32f;
+                var old = GUI.color; GUI.color = new Color(0f, 0f, 0f, 0.5f); GUI.DrawTexture(new Rect(x - 2, y - 2, w + 4, 9), Texture2D.whiteTexture);
+                GUI.color = pf.Stam01 < 0.25f ? new Color(1f, 0.55f, 0.15f) : new Color(0.95f, 0.85f, 0.35f); GUI.DrawTexture(new Rect(x, y, w * pf.Stam01, 5), Texture2D.whiteTexture); GUI.color = old;
+            }
             // the text is rebuilt twice a second, not every frame (string building every frame fed the garbage collector)
             if (Time.unscaledTime > hudT)
             {
                 hudT = Time.unscaledTime + 0.5f;
                 string lvl = Gore.Level == 2 ? "Full" : Gore.Level == 1 ? "Reduced" : "Off";
                 hud1 = TouchControls.Wanted
-                    ? "ASBO — Abbots Wend (Unity test)   Left thumb: move • Drag: look • PUNCH / KICK • CAR by a car to drive"
-                    : "ASBO — Abbots Wend slice   WASD move/drive • Shift run • F punch (twice: haymaker) • Q kick • E car • Space jump/brake • R reset • G gore: " + lvl;
+                    ? "ASBO — Abbots Wend (Unity test)   Left thumb: move • Drag: look • PUNCH (hold: big one) / KICK / SHOVE / GUARD / FISTS • CAR by a car to drive"
+                    : "ASBO — Abbots Wend slice   WASD move/drive • Shift run • F punch (hold: overhand) • Q kick • C shove • Z/right mouse guard • X fists up • E car • Space jump/brake • R reset • G gore: " + lvl;
                 hud3 = "1-0: visit cottage (Shift = inside)   " + lastHouse + "   " + Resident.Stats() + "  traffic " + TrafficCar.All.Count;
             }
             GUI.Label(new Rect(12, 8, 760, 40), hud1);
