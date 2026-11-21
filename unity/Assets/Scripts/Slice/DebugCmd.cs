@@ -76,6 +76,12 @@ namespace ASBO.Slice
         }
         /// <summary>Park one of each traffic body on the road and photograph them from a few angles (Shots/carshow_*).</summary>
         public static void CarShow() { new GameObject("CarShow").AddComponent<CarShowRun>(); }
+        /// <summary>Photograph a named object from an angle (degrees round it, 0 = in front), distance and height: Shots/of_NAME_ANGLE.png</summary>
+        public static void ShotOf(string name, float angle, float dist, float height)
+        {
+            var go = GameObject.Find(name); if (go == null) { Debug.LogWarning("[ASBO] ShotOf: no " + name); return; }
+            new GameObject("ShotOf").AddComponent<ShotOfRun>().Go(go.transform, angle, dist, height);
+        }
         public static void Touch(int on) { PlayerPrefs.SetInt("asbo_touch", on); PlayerPrefs.Save(); }
         public static void Stock(int on) { PlayerPrefs.SetInt("asbo_stock", on); PlayerPrefs.Save(); Debug.Log("[ASBO] stock bodies " + on); }
         public static void ShowGaitFrom(float speed, int frames, float camOffset, float swing, float radius)
@@ -222,6 +228,25 @@ namespace ASBO.Slice
             World.HideHud = false;
             Debug.Log("[ASBO] car show done");
             Destroy(gameObject);
+        }
+    }
+
+    public class ShotOfRun : MonoBehaviour
+    {
+        public void Go(Transform t, float angle, float dist, float height) { StartCoroutine(Run(t, angle, dist, height)); }
+        System.Collections.IEnumerator Run(Transform t, float angle, float dist, float height)
+        {
+            World.HideHud = true;
+            var cg = new GameObject("ShotCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 40f; cam.nearClipPlane = 0.05f;
+            var main = Camera.main; if (main != null) { var src = main.GetComponent<UniversalAdditionalCameraData>(); var dst = cam.GetUniversalAdditionalCameraData(); if (src != null) { dst.renderPostProcessing = src.renderPostProcessing; dst.antialiasing = src.antialiasing; } }
+            Vector3 dir = Quaternion.Euler(0, angle, 0) * t.forward;
+            cg.transform.position = t.position + dir * dist + Vector3.up * height;
+            cg.transform.LookAt(t.position + Vector3.up * 0.5f);
+            yield return null; yield return null;
+            string d = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots"); System.IO.Directory.CreateDirectory(d);
+            ScreenCapture.CaptureScreenshot(d + "/of_" + t.name + "_" + Mathf.RoundToInt(angle) + ".png");
+            yield return null; yield return null;
+            Destroy(cg); World.HideHud = false; Destroy(gameObject);
         }
     }
 }
