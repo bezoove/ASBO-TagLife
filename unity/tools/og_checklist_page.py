@@ -89,7 +89,7 @@ footer{color:var(--muted);font-size:13px;margin-top:26px;max-width:68ch}
   <p>Everything in the original browser game (v95), plus everything you've asked for, tracked as it goes into the Unity version. Open any item to see every line, reaction and behaviour recorded for it from the old game's code.</p>
   <div class="summary" id="summary"></div>
   <div class="bar" id="bar" aria-hidden="true"></div>
-  <div class="how"><b>How nothing gets lost.</b> All the detail below was pulled straight out of the old game's code, not written from memory: every line people say, every on-screen message, every behaviour, mood and state, and every timing and number. It's all saved with the Unity project, one file per system. Each system is built from its old code, and an item only gets marked done once everything recorded for it is in.</div>
+  <div class="how"><b>How nothing gets lost.</b> All the detail below was pulled straight out of the old game's code, not written from memory: every line people say, every on-screen message, every behaviour, mood and state, and every timing and number. It's all saved with the Unity project, one file per system. The old game says what each thing should do; how it looks, moves and feels is built new with Unity and the new assets, to be better. An item only gets marked done once everything recorded for it is in.</div>
   <div class="tools">
     <input id="q" type="search" placeholder="Search every line and behaviour, e.g. Cashmere, wee, Brenda" aria-label="Search the register">
     <span id="hits"></span>
