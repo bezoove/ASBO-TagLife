@@ -46,6 +46,8 @@ namespace ASBO.Slice
     {
         public CotHouse home; public string arch;
         Person p; NavMeshAgent ag; float wait = 1f, chatCd; string doing = "";
+        // trouble: who we're fighting (or running from), until when, and how often we swing
+        Fighter foe, fleeFrom; float angryUntil, nextSwing, repath, baseSpeed;
         static readonly List<Resident> all = new List<Resident>();
         public string Doing => doing;
         public static int Count;
@@ -111,12 +113,15 @@ namespace ASBO.Slice
             gameObject.SetActive(true); ag.radius = 0.24f; ag.height = 1.75f; ag.baseOffset = 0f;
             ag.speed = p != null && p.drunk ? Random.Range(0.58f, 0.68f) : Random.Range(1.0f, 1.35f); ag.angularSpeed = 300f; ag.acceleration = 3f; ag.stoppingDistance = 0.25f; ag.autoBraking = true;
             ag.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance; ag.avoidancePriority = Random.Range(30, 70);
+            baseSpeed = ag.speed;
             if (Nav.Snap(transform.position, out var q, 2f)) transform.position = q;
             ag.enabled = true;
             if (ag.isOnNavMesh) ag.Warp(transform.position);
             Count++;
         }
         void OnDestroy() { all.Remove(this); }
+
+        void OnEnable() { if (ag != null && ag.enabled && ag.isOnNavMesh) { ag.isStopped = false; foe = null; fleeFrom = null; wait = 1f; } }
 
         void Update()
         {
@@ -125,6 +130,12 @@ namespace ASBO.Slice
             if (!ag.isOnNavMesh) return;
             float v = ag.velocity.magnitude;
             if (v > 0.08f) p.Animate(v);
+            if (foe != null) { Brawl(); return; }
+            if (fleeFrom != null)
+            {
+                if (Time.time > angryUntil || (!ag.pathPending && ag.remainingDistance < 0.5f)) { fleeFrom = null; ag.speed = baseSpeed; doing = ""; wait = Random.Range(2f, 5f); }
+                return;
+            }
             chatCd -= Time.deltaTime;
             if (!ag.pathPending && ag.remainingDistance <= ag.stoppingDistance + 0.1f)
             {
@@ -148,6 +159,60 @@ namespace ASBO.Slice
                     GameAudio.I.PlayVoice("resident", transform.position + Vector3.up * 1.6f);
                     StartCoroutine(TalkFor(4f + Random.value * 3f)); o.StartCoroutine(o.TalkFor(4f + Random.value * 3f));
                     return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Someone's hit us. Blokes (and anyone drunk) mostly square up and fight back; others leg it. The hurt and the
+        /// old just run.
+        /// </summary>
+        public void Provoked(Fighter by)
+        {
+            if (by == null || p == null || ag == null || !ag.enabled || p.state != Person.State.Walking) return;
+            if (baseSpeed <= 0f) baseSpeed = ag.speed;
+            bool fight = !p.hurt && (p.drunk ? Random.value < 0.9f : p.male ? Random.value < 0.65f : Random.value < 0.15f);
+            if (foe == by || (fleeFrom == by && !fight)) { angryUntil = Time.time + 20f; return; }
+            if (fight)
+            {
+                foe = by; fleeFrom = null; angryUntil = Time.time + 25f; nextSwing = Time.time + Random.Range(0.4f, 0.9f); doing = "fight";
+                if (GameAudio.I != null) GameAudio.I.PlayVoice("hostile", transform.position + Vector3.up * 1.6f, 0.2f);
+            }
+            else
+            {
+                foe = null; fleeFrom = by; angryUntil = Time.time + 12f; doing = "flee";
+                Vector3 away = (transform.position - by.transform.position).WithY(0); if (away.sqrMagnitude < 0.01f) away = transform.forward;
+                if (Nav.Snap(transform.position + away.normalized * 16f, out var dest, 4f)) { ag.isStopped = false; ag.speed = p.hurt ? 1.2f : 3.2f; ag.SetDestination(dest); }
+                if (GameAudio.I != null) GameAudio.I.Pain(transform.position + Vector3.up * 1.6f, p.male, 0.15f);
+            }
+        }
+
+        void Brawl()
+        {
+            var fb = foe.Body;
+            float dist = fb != null ? (foe.transform.position - transform.position).WithY(0).magnitude : 999f;
+            if (fb == null || fb.state != Person.State.Walking || dist > 25f || Time.time > angryUntil || p.hurt)
+            {
+                // they're down, gone, or we've had enough
+                foe = null; ag.isStopped = false; ag.speed = baseSpeed > 0f ? baseSpeed : ag.speed; doing = ""; wait = Random.Range(1.5f, 4f);
+                return;
+            }
+            var me = GetComponent<Fighter>();
+            if (dist > 1.05f)
+            {
+                ag.isStopped = false; ag.speed = p.drunk ? 1.6f : 2.6f;
+                if (Time.time > repath) { repath = Time.time + 0.25f; ag.SetDestination(foe.transform.position); }
+            }
+            else
+            {
+                ag.isStopped = true; ag.velocity = Vector3.zero;
+                Vector3 d = (foe.transform.position - transform.position).WithY(0);
+                if (d.sqrMagnitude > 0.01f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(d), 540f * Time.deltaTime);
+                if (Time.time > nextSwing && me != null && !me.Busy)
+                {
+                    float r = Random.value;
+                    me.Attack(r < 0.55f ? Fighter.Move.Punch : r < 0.8f ? Fighter.Move.Hay : Fighter.Move.Kick);
+                    nextSwing = Time.time + (p.drunk ? Random.Range(1.4f, 2.6f) : Random.Range(1.0f, 2.0f));
                 }
             }
         }

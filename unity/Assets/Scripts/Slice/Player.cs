@@ -68,7 +68,7 @@ namespace ASBO.Slice
             if (vcam != null) vcam.PreviousStateIsValid = false;
         }
 
-        bool wasGrounded = true; float fallSpeed;
+        bool wasGrounded = true; float fallSpeed; Fighter fighter;
         public bool InCar => inCar; bool touch;
         Vector2 lookAdd;
         /// <summary>Camera turn from touch drags (degrees).</summary>
@@ -97,7 +97,20 @@ namespace ASBO.Slice
                 ScreenCapture.CaptureScreenshot(dir + "/shot_" + (shotN++) + ".png");
             }
             if (inCar && VehT != null) { transform.position = VehT.position + Vector3.up * 0.2f; transform.rotation = VehT.rotation; }
-            else Move(kb);
+            else if (person != null && person.state != Person.State.Walking) { vel = Vector3.zero; bodyYaw = transform.eulerAngles.y; } // floored: wait to get up
+            else
+            {
+                // fists and feet: F / left click / pad X to punch (twice quickly for a haymaker), Q / pad B to kick
+                fighter ??= GetComponent<Fighter>();
+                bool punch = (kb != null && kb.fKey.wasPressedThisFrame) || (gp != null && gp.buttonWest.wasPressedThisFrame) || (!touch && ms != null && ms.leftButton.wasPressedThisFrame && Cursor.lockState == CursorLockMode.Locked);
+                bool kick = (kb != null && kb.qKey.wasPressedThisFrame) || (gp != null && gp.buttonEast.wasPressedThisFrame);
+                if (fighter != null && showSpeed < 0f)
+                {
+                    if (punch) fighter.PunchButton(); else if (kick) fighter.Attack(Fighter.Move.Kick);
+                    if (punch || kick) bodyYaw = transform.eulerAngles.y;
+                }
+                Move(kb);
+            }
             UpdateCamera();
         }
 
@@ -131,7 +144,9 @@ namespace ASBO.Slice
             bool sprint = fakeSprint || (kb != null && kb.leftShiftKey.isPressed) || (pad != null && pad.leftStickButton.isPressed);
             bool walk = (kb != null && kb.leftCtrlKey.isPressed) || (mag > 0.05f && mag < 0.5f);
             float pace = sprint ? sp.sprint : walk ? sp.walk : sp.run;
+            if (person.hurt) pace = person.HurtSpeed;
             Vector3 want = mag < 0.05f ? Vector3.zero : dir * pace;
+            if (fighter != null && fighter.Busy) want = Vector3.zero;
             bool grounded = cc.isGrounded;
 
             // turn on the spot: from (nearly) standing, a big change of direction plays the turn clip
@@ -206,6 +221,7 @@ namespace ASBO.Slice
             if (camTarget == null || orbit == null) return;
             Transform tgt = inCar && VehT != null ? VehT : transform;
             Vector3 focus = tgt.position + Vector3.up * (inCar ? 1.6f : 1.55f);
+            if (!inCar && person != null && person.state != Person.State.Walking) focus = person.BodyPos + Vector3.up * 0.5f;
             if (spectate && Person.LastHit != null) focus = Person.LastHit.BodyPos + Vector3.up * 0.6f;
             camTarget.position = Vector3.Lerp(camTarget.position, focus, 1f - Mathf.Exp(-14f * Time.deltaTime));
             if (inCar && VehT != null && VehSpeed > 2f && Vector3.Dot(VehVel, VehT.forward) > 0) yaw = Mathf.LerpAngle(yaw, VehT.eulerAngles.y, 2f * Time.deltaTime);

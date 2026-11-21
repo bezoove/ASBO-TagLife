@@ -13,7 +13,7 @@ namespace ASBO.Slice
     /// </summary>
     public class Person : MonoBehaviour
     {
-        public enum State { Walking, Ragdoll, Settled, Carried }
+        public enum State { Walking, Ragdoll, Settled, Carried, GettingUp }
         public bool isPlayer, important, isParamedic, agentDriven;
         public Color shirt = Color.gray, trousers = new Color(0.15f, 0.15f, 0.25f);
         public List<Vector3> route = new List<Vector3>();
@@ -21,6 +21,11 @@ namespace ASBO.Slice
         public State state = State.Walking;
         public bool dead, injured;
         public bool drunk; int variant;
+        /// <summary>Will pick themselves up after going down (light knock from a car, or punched out).</summary>
+        bool getUp;
+        /// <summary>Hurt: bent over and limping (after getting up) until hurtUntil.</summary>
+        public bool hurt; float hurtUntil; RuntimeAnimatorController normalCtrl; static RuntimeAnimatorController hurtCtrl;
+        public float HurtSpeed => 0.66f;
         public string label = "Person";
         public string model; public Color skinTone = Color.white, hairColor = new Color(0.25f, 0.17f, 0.1f); public bool male = true;
         public event Action<Person> Settled;
@@ -41,6 +46,7 @@ namespace ASBO.Slice
         {
             Build();
             All.Add(this);
+            if (isPlayer || (!isParamedic && label != "Paramedic")) gameObject.AddComponent<Fighter>();
         }
         void OnDestroy() { All.Remove(this); }
 
@@ -179,7 +185,15 @@ namespace ASBO.Slice
 
         void LateUpdate()
         {
+            if (state == State.GettingUp && blendBones != null && blendT < blendDur)
+            {
+                // ease from the ragdoll's pose into the get-up animation
+                blendT += Time.deltaTime; float w = Mathf.SmoothStep(0f, 1f, blendT / blendDur);
+                for (int i = 0; i < blendBones.Length; i++) if (blendBones[i] != null) blendBones[i].localRotation = Quaternion.Slerp(blendRot[i], blendBones[i].localRotation, w);
+                hips.position = Vector3.Lerp(blendHips, hips.position, w);
+            }
             if (state != State.Walking || anim == null) return;
+            if (hurt && Time.time > hurtUntil) RestoreNormal();
             if (!moved) { wantSpeed = 0f; wantLocal = Vector2.zero; }
             animSpeed = Mathf.MoveTowards(animSpeed, wantSpeed, 9f * Time.deltaTime);
             if (uma)
@@ -284,21 +298,15 @@ namespace ASBO.Slice
         public void Hit(Vector3 v, Vector3 point, float severity)
         {
             if (state != State.Walking || anim == null) return;
-            state = State.Ragdoll; hitTime = 0; calmTimer = 0; LastHit = this;
+            if (isPlayer && GetComponent<PlayerCtl>() is PlayerCtl pcl && pcl.InCar) return;
+            LastHit = this;
             label = important ? "Important person" : "Passer-by";
             if (severity >= 7f && !important) dead = true; else injured = true;
-            var agent = GetComponent<UnityEngine.AI.NavMeshAgent>(); if (agent != null) agent.enabled = false;
-            if (trigger != null) trigger.enabled = false;
-            anim.enabled = false;
-            BuildRagdoll();
+            // a light knock: down, a moment on the floor, then up and limping off (no ambulance)
+            getUp = !dead && severity < 5.5f;
+            EnterRagdoll(v, severity);
             Vector3 flat = v.normalized;
-            foreach (var b in bones)
-            {
-                float h = b.t.position.y - transform.position.y;
-                b.rb.linearVelocity = v * UnityEngine.Random.Range(0.85f, 1.05f) + Vector3.up * Mathf.Clamp(severity * 0.32f, 1f, 5f) * Mathf.Clamp01(h / 1.2f);
-                b.rb.angularVelocity = UnityEngine.Random.onUnitSphere * Mathf.Clamp(severity * 0.45f, 1f, 6f);
-            }
-            Gore.Burst(point, flat + Vector3.up * 0.3f, 90);
+            Gore.Burst(point, flat + Vector3.up * 0.3f, getUp ? 25 : 90);
             if (GameAudio.I != null)
             {
                 GameAudio.I.CarImpact(point, severity);
@@ -307,7 +315,96 @@ namespace ASBO.Slice
             }
             if (severity >= 8f) StartCoroutine(Dismember(severity));
             StartCoroutine(BleedWhileMoving());
-            Ambulance.Dispatch(this);
+            if (!getUp) Ambulance.Dispatch(this);
+        }
+
+        void EnterRagdoll(Vector3 v, float severity)
+        {
+            state = State.Ragdoll; hitTime = 0; calmTimer = 0;
+            var agent = GetComponent<UnityEngine.AI.NavMeshAgent>(); if (agent != null) agent.enabled = false;
+            if (trigger != null) trigger.enabled = false;
+            var cc = GetComponent<CharacterController>(); if (cc != null) cc.enabled = false;
+            anim.enabled = false;
+            BuildRagdoll();
+            foreach (var b in bones)
+            {
+                float h = b.t.position.y - transform.position.y;
+                b.rb.linearVelocity = v * UnityEngine.Random.Range(0.85f, 1.05f) + Vector3.up * Mathf.Clamp(severity * 0.32f, 1f, 5f) * Mathf.Clamp01(h / 1.2f);
+                b.rb.angularVelocity = UnityEngine.Random.onUnitSphere * Mathf.Clamp(severity * 0.45f, 1f, 6f);
+            }
+        }
+
+        /// <summary>Punched or kicked out: goes limp, falls the way the blow pushed, gets up after a while.</summary>
+        public void Knockout(Vector3 push)
+        {
+            if (state != State.Walking || anim == null) return;
+            injured = false; getUp = true; LastHit = this;
+            EnterRagdoll(push * 0.6f, 1.5f); // crumple rather than fly
+        }
+
+        // ---------------------------------------------------------------- getting back up
+        IEnumerator GetUpAfter(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            if (state != State.Settled || dead || anim == null || !anim.isHuman) yield break;
+            foreach (var b in bones) if (b.severed) yield break;
+            hurtCtrl ??= Resources.Load<RuntimeAnimatorController>("Anim/LocoHurt");
+            if (hurtCtrl == null) yield break;
+            var head = anim.GetBoneTransform(HumanBodyBones.Head);
+            var lUp = anim.GetBoneTransform(HumanBodyBones.LeftUpperLeg); var rUp = anim.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+            // the pose the ragdoll ended in, to blend from
+            blendBones = hips.GetComponentsInChildren<Transform>();
+            blendRot = new Quaternion[blendBones.Length];
+            for (int i = 0; i < blendBones.Length; i++) blendRot[i] = blendBones[i].localRotation;
+            blendHips = hips.position;
+            Vector3 ragDir = (head.position - hips.position).WithY(0);
+            Vector3 bodyFwd = Vector3.Cross(rUp.position - lUp.position, head.position - hips.position);
+            bool faceUp = bodyFwd.y > 0f; // the get-up starts face down: from on the back we roll over during the blend
+            TearDownRagdoll();
+            // stand the root under the hips, on the ground
+            Vector3 root = hips.position;
+            if (Physics.Raycast(root + Vector3.up * 0.5f, Vector3.down, out var gh, 3f, ~((1 << 2) | (1 << 31)), QueryTriggerInteraction.Ignore)) root.y = gh.point.y; else root.y = transform.position.y;
+            transform.position = root;
+            // switch to the hurt set and line its first frame up with the body on the floor
+            if (normalCtrl == null) normalCtrl = anim.runtimeAnimatorController;
+            anim.runtimeAnimatorController = hurtCtrl;
+            anim.enabled = true; anim.applyRootMotion = false;
+            anim.Play("GetUp", 0, 0f); anim.Update(0f);
+            Vector3 animDir = (head.position - hips.position).WithY(0);
+            if (animDir.sqrMagnitude > 1e-4f && ragDir.sqrMagnitude > 1e-4f) transform.rotation = Quaternion.AngleAxis(Vector3.SignedAngle(animDir, ragDir, Vector3.up), Vector3.up) * transform.rotation;
+            anim.Update(0f);
+            Vector3 off = (blendHips - hips.position).WithY(0); transform.position += off;
+            anim.Update(0f);
+            blendT = 0f; blendDur = faceUp ? 0.9f : 0.35f;
+            state = State.GettingUp;
+            yield return new WaitForSeconds(5.4f);
+            if (state != State.GettingUp) yield break;
+            // up: hurt for a while, then back to normal
+            state = State.Walking; hurt = injured || UnityEngine.Random.value < 0.5f; hurtUntil = Time.time + (isPlayer ? 8f : injured ? 60f : 20f);
+            if (!hurt) RestoreNormal();
+            if (trigger != null) trigger.enabled = true;
+            var cc = GetComponent<CharacterController>(); if (cc != null) cc.enabled = true;
+            var agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (agent != null) { agent.enabled = true; if (agent.isOnNavMesh) agent.Warp(transform.position); agent.speed = hurt ? HurtSpeed : agent.speed; }
+            var res = GetComponent<Resident>(); if (res != null) res.enabled = true;
+            var f = GetComponent<Fighter>(); if (f != null) f.Recover();
+            GotUp?.Invoke(this);
+        }
+        public event Action<Person> GotUp;
+        Transform[] blendBones; Quaternion[] blendRot; Vector3 blendHips; float blendT, blendDur;
+
+        void RestoreNormal()
+        {
+            hurt = false;
+            if (normalCtrl != null && anim != null) { anim.runtimeAnimatorController = normalCtrl; foreach (var prm in anim.parameters) if (prm.name == "Variant") { anim.SetFloat("Variant", variant * 0.5f); break; } }
+            var agent = GetComponent<UnityEngine.AI.NavMeshAgent>(); if (agent != null) agent.speed = drunk ? UnityEngine.Random.Range(0.58f, 0.68f) : UnityEngine.Random.Range(1.0f, 1.35f);
+        }
+
+        void TearDownRagdoll()
+        {
+            foreach (var b in bones) { var j = b.t != null ? b.t.GetComponent<CharacterJoint>() : null; if (j != null) DestroyImmediate(j); }
+            foreach (var b in bones) { if (b.col != null) DestroyImmediate(b.col); if (b.rb != null) DestroyImmediate(b.rb); }
+            bones.Clear(); byT.Clear();
         }
 
         void FixedUpdate()
@@ -412,8 +509,9 @@ namespace ASBO.Slice
             state = State.Settled;
             foreach (var b in bones) if (b.rb != null) { b.rb.linearVelocity = Vector3.zero; b.rb.angularVelocity = Vector3.zero; }
             if (hips != null && Physics.Raycast(hips.position + Vector3.up * 0.3f, Vector3.down, out var h, 3f))
-                Gore.Pool(h.point, dead ? 1.15f : 0.55f, 14f);
+                if ((injured && !getUp) || dead) Gore.Pool(h.point, dead ? 1.15f : 0.55f, 14f);
             Settled?.Invoke(this);
+            if (getUp && !dead) StartCoroutine(GetUpAfter(UnityEngine.Random.Range(2.5f, 4.5f)));
         }
 
         public Vector3 BodyPos => hips != null ? hips.position : transform.position;

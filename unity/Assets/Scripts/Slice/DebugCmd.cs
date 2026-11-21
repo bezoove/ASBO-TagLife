@@ -100,6 +100,10 @@ namespace ASBO.Slice
             }
         }
         public static void DrunkShow() { new GameObject("DrunkShow").AddComponent<DrunkShowRun>(); }
+        public static void FightFilm(int clip, float step, float secs) { var r = new GameObject("FightFilm").AddComponent<FightFilmRun>(); r.clip = clip; r.step = step; r.secs = secs; }
+        public static void FightFilmFrom(int clip, float step, float secs, float from) { var r = new GameObject("FightFilm").AddComponent<FightFilmRun>(); r.clip = clip; r.step = step; r.secs = secs; r.from = from; }
+        public static void BrawlTest() { new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); }
+        public static void KnockTest() { new GameObject("KnockTest").AddComponent<KnockTestRun>(); }
         public static void TouchDrive() { new GameObject("TouchDriveTest").AddComponent<TouchDriveTest>().Run(); }
         public static void EditSwitch() { if (TouchControls.I != null) TouchControls.I.SwitchEditSet(); }
         public static void EditPreset() { if (TouchControls.I != null) TouchControls.I.NextPreset(); }
@@ -350,6 +354,114 @@ namespace ASBO.Slice
                 yield return null;
             }
             Time.captureFramerate = 0;
+            Destroy(cg); World.HideHud = false; Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Plays one clip of Anim/FightTest on the player and photographs it every step seconds from the side (Shots/fight/c{clip}_###.png).</summary>
+    public class FightFilmRun : MonoBehaviour
+    {
+        public int clip; public float step = 0.5f; public float secs = 10f, from = 0f;
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>(); var anim = pc != null ? pc.GetComponentInChildren<Animator>() : null;
+            var ctrl = Resources.Load<RuntimeAnimatorController>("Anim/FightTest");
+            if (anim == null || ctrl == null) { Debug.Log("[ASBO] fightfilm: no animator/controller"); Destroy(gameObject); yield break; }
+            var keep = anim.runtimeAnimatorController; anim.runtimeAnimatorController = ctrl; anim.SetInteger("Clip", clip);
+            World.HideHud = true;
+            var cg = new GameObject("FightCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 40f; cam.nearClipPlane = 0.05f;
+            var t = pc.transform; cg.transform.position = t.position + t.right * 4.2f + Vector3.up * 1.2f; cg.transform.LookAt(t.position + Vector3.up * 0.9f);
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/fight"); System.IO.Directory.CreateDirectory(dir);
+            yield return null; yield return null;
+            if (from > 0f) { var info = anim.GetCurrentAnimatorStateInfo(0); anim.Play("C" + clip, 0, from / Mathf.Max(0.01f, info.length)); yield return null; }
+            float t0 = Time.time; int n = 0;
+            while (Time.time - t0 < secs)
+            {
+                ScreenCapture.CaptureScreenshot(dir + "/c" + clip + "_" + (n++).ToString("000") + ".png");
+                yield return new WaitForSeconds(step);
+            }
+            anim.runtimeAnimatorController = keep; Destroy(cg); World.HideHud = false;
+            Debug.Log("[ASBO] fightfilm: clip " + clip + " " + n + " frames");
+            Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Scripted scrap: the player squares up to a resident and throws punches; side camera films it (Shots/brawl/b_###.png every 0.1 s).</summary>
+    public class BrawlTestRun : MonoBehaviour
+    {
+        public float secs = 16f; public bool kickFinish = true;
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>(); var me = pc != null ? pc.GetComponent<Fighter>() : null;
+            Resident foe = null; float bd = 1e9f;
+            for (int tries = 0; tries < 30 && foe == null; tries++)
+            {
+                foreach (var r in FindObjectsByType<Resident>(FindObjectsSortMode.None))
+                {
+                    var pp = r.GetComponent<Person>(); if (pp == null || !pp.male || pp.state != Person.State.Walking || !pp.Ready) continue;
+                    float d = (r.transform.position - pc.transform.position).sqrMagnitude; if (d < bd) { bd = d; foe = r; }
+                }
+                if (foe == null) yield return new WaitForSeconds(0.5f);
+            }
+            if (me == null || foe == null) { int nr = FindObjectsByType<Resident>(FindObjectsSortMode.None).Length, nm = 0; foreach (var r in FindObjectsByType<Resident>(FindObjectsSortMode.None)) { var pp = r.GetComponent<Person>(); if (pp != null && pp.male) nm++; } Debug.Log($"[ASBO] brawltest: pc={(pc != null)} fighter={(me != null)} residents={nr} male={nm}"); Destroy(gameObject); yield break; }
+            var fp = foe.GetComponent<Person>(); var ff = foe.GetComponent<Fighter>();
+            Vector3 spot = pc.transform.position + pc.transform.forward * 1.0f;
+            foe.HoldAt(spot, pc.transform.eulerAngles.y + 180f, 30f);
+            Debug.Log("[ASBO] brawltest: player vs " + foe.name + (fp.drunk ? " (drunk)" : ""));
+            World.HideHud = true;
+            var cg = new GameObject("BrawlCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 45f; cam.nearClipPlane = 0.05f;
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/brawl"); System.IO.Directory.CreateDirectory(dir);
+            foreach (var f in System.IO.Directory.GetFiles(dir, "*.png")) { try { System.IO.File.Delete(f); } catch { } }
+            float t0 = Time.time, nextShot = 0f, nextPunch = 0.6f; int n = 0, throws = 0;
+            while (Time.time - t0 < secs)
+            {
+                float t = Time.time - t0;
+                Vector3 mid = (pc.transform.position + foe.transform.position) * 0.5f;
+                if (fp.state != Person.State.Walking) mid = (pc.transform.position + fp.BodyPos) * 0.5f;
+                Vector3 side = Vector3.Cross(Vector3.up, (foe.transform.position - pc.transform.position).WithY(0).normalized); if (side.sqrMagnitude < 0.1f) side = Vector3.right;
+                cg.transform.position = Vector3.Lerp(cg.transform.position == Vector3.zero ? mid + side * 4f + Vector3.up * 1.4f : cg.transform.position, mid + side * 4f + Vector3.up * 1.4f, n == 0 ? 1f : 0.1f);
+                cg.transform.LookAt(mid + Vector3.up * 1.0f);
+                if (t >= nextPunch && fp.state == Person.State.Walking)
+                {
+                    nextPunch = t + 0.55f;
+                    Vector3 d = (foe.transform.position - pc.transform.position).WithY(0);
+                    if (d.magnitude > 1.15f) { pc.transform.position += d.normalized * Mathf.Min(0.4f, d.magnitude - 1f); }
+                    if (kickFinish && throws == 4) me.Attack(Fighter.Move.Kick); else me.PunchButton();
+                    throws++;
+                    Debug.Log($"[ASBO] brawltest t={t:F1} throw {throws} foeHP={ff.health:F0} myHP={me.health:F0} foe={fp.state}");
+                }
+                if (t >= nextShot) { ScreenCapture.CaptureScreenshot(dir + "/b_" + (n++).ToString("000") + ".png"); nextShot = t + 0.1f; }
+                yield return null;
+            }
+            Debug.Log($"[ASBO] brawltest end: foe={fp.state} hurt={fp.hurt} foeHP={ff.health:F0} myHP={me.health:F0} frames={n}");
+            Destroy(cg); World.HideHud = false; Destroy(gameObject);
+        }
+    }
+
+    /// <summary>A traffic car nudges a resident at low speed: should fall, lie a moment, get up and limp off.</summary>
+    public class KnockTestRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>();
+            Person v = null;
+            foreach (var r in FindObjectsByType<Resident>(FindObjectsSortMode.None)) { var pp = r.GetComponent<Person>(); if (pp != null && pp.state == Person.State.Walking && pp.Ready) { v = pp; break; } }
+            if (v == null) { Destroy(gameObject); yield break; }
+            var res = v.GetComponent<Resident>(); res.HoldAt(pc.transform.position + pc.transform.forward * 2f, 0f, 30f);
+            yield return new WaitForSeconds(0.3f);
+            v.Hit(pc.transform.forward * 4f, v.transform.position + Vector3.up, 4f);
+            World.HideHud = true;
+            var cg = new GameObject("KnockCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 45f;
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/knock"); System.IO.Directory.CreateDirectory(dir);
+            foreach (var f in System.IO.Directory.GetFiles(dir, "*.png")) { try { System.IO.File.Delete(f); } catch { } }
+            for (int i = 0; i < 70; i++)
+            {
+                Vector3 c = v.BodyPos.WithY(v.transform.position.y);
+                cg.transform.position = c + new Vector3(3.2f, 1.6f, 1.6f); cg.transform.LookAt(c + Vector3.up * 0.5f);
+                ScreenCapture.CaptureScreenshot(dir + "/k_" + i.ToString("000") + ".png");
+                if (i % 10 == 0) Debug.Log($"[ASBO] knocktest t={i * 0.2f:F1} state={v.state} hurt={v.hurt}");
+                yield return new WaitForSeconds(0.2f);
+            }
             Destroy(cg); World.HideHud = false; Destroy(gameObject);
         }
     }

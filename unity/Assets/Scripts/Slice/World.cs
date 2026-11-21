@@ -156,13 +156,22 @@ namespace ASBO.Slice
         }
 
         public static bool HideHud;
+        static Fighter pfCache;
+        static Fighter PlayerFighter { get { if (pfCache == null) { var pc = FindFirstObjectByType<PlayerCtl>(); if (pc != null) pfCache = pc.GetComponent<Fighter>(); } return pfCache; } }
         void OnGUI()
         {
             if (HideHud || TouchControls.Editing) return;
+            // your health, while it's down after a scrap
+            var pf = PlayerFighter; if (pf != null && pf.Health01 < 0.995f)
+            {
+                float w = 260f, x = (Screen.width - w) * 0.5f, y = 14f;
+                var old = GUI.color; GUI.color = new Color(0f, 0f, 0f, 0.55f); GUI.DrawTexture(new Rect(x - 2, y - 2, w + 4, 16), Texture2D.whiteTexture);
+                GUI.color = Color.Lerp(new Color(0.85f, 0.1f, 0.08f), new Color(0.2f, 0.75f, 0.25f), pf.Health01); GUI.DrawTexture(new Rect(x, y, w * pf.Health01, 12), Texture2D.whiteTexture); GUI.color = old;
+            }
             string lvl = Gore.Level == 2 ? "Full" : Gore.Level == 1 ? "Reduced" : "Off";
             GUI.Label(new Rect(12, 8, 700, 120), TouchControls.Wanted
                 ? "ASBO — Abbots Wend (Unity test)   Left thumb: move/steer • Drag: look • CAR by a car to drive"
-                : "ASBO — Abbots Wend slice   WASD move/drive • Shift run • E enter/exit car • Space jump/brake • R reset • G gore: " + lvl);
+                : "ASBO — Abbots Wend slice   WASD move/drive • Shift run • F punch (twice: haymaker) • Q kick • E car • Space jump/brake • R reset • G gore: " + lvl);
             if (!string.IsNullOrEmpty(Ambulance.Status)) GUI.Label(new Rect(12, 28, 700, 30), Ambulance.Status);
             GUI.Label(new Rect(12, 46, 900, 30), Mathf.RoundToInt(1f / Time.smoothDeltaTime) + " fps   1-0: visit cottage (Shift = inside)   " + lastHouse + "   " + Resident.Stats() + "  traffic " + TrafficCar.All.Count);
         }

@@ -19,6 +19,7 @@ namespace ASBO.EditorTools
         const string L441 = "Assets/44.1 General Library (Free Sample Pack)/";
         const string SB = "Assets/Libraries/Soundbits_freeSFX_2025/Sounds/";
         const string CF = "Assets/Classic Footstep SFX/";
+        const string DK = "Assets/Deadly Kombat Free version/";
 
         static readonly (string key, Kind kind, string[] paths)[] Map =
         {
@@ -38,6 +39,12 @@ namespace ASBO.EditorTools
             ("crow", Kind.Shot, new[] { SB + "ca_bird_crow_02.wav", SB + "ca_bird_magpie_01.wav" }),
             ("ambTown", Kind.Ambience, new[] { L441 + "Volume I/Ambience_BRT_Morning_C01_Town_LOOP.wav" }),
             ("moped", Kind.Loop, new[] { SB + "sctr_driving-loop_02_m_48khz.wav" }),
+            // fighting (Deadly Kombat sound pack)
+            ("whooshPunch", Kind.Shot, new[] { DK + "punch_short_whoosh*.wav", DK + "punch_long_whoosh*.wav" }),
+            ("whooshKick", Kind.Shot, new[] { DK + "kick_short_whoosh*.wav", DK + "kick_long_whoosh*.wav" }),
+            ("hitFace", Kind.Shot, new[] { DK + "face_hit_small*.wav", DK + "face_hit_Large*.wav" }),
+            ("hitBody", Kind.Shot, new[] { DK + "body_hit_small*.wav", DK + "body_hit_large*.wav" }),
+            ("hitKO", Kind.Shot, new[] { DK + "face_hit_finisher*.wav", DK + "body_hit_finisher*.wav" }),
         };
 
         [MenuItem("ASBO/Audio/Build Sound Bank")]

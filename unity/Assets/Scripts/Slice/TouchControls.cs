@@ -144,6 +144,8 @@ namespace ASBO.Slice
             Button("jump", "JUMP", "<Gamepad>/buttonSouth", true, false, new Vector2(-170, 190), default, 190, dark);
             Button("run", "RUN", "<Gamepad>/leftStickPress", true, false, new Vector2(-380, 130), default, 160, dark);
             Button("car", "CAR", "<Gamepad>/select", true, false, new Vector2(-150, 430), default, 140, blue);
+            Button("punch", "PUNCH", "<Gamepad>/buttonWest", true, false, new Vector2(-400, 330), default, 160, new Color(0.45f, 0.12f, 0.08f, 0.5f));
+            Button("kick", "KICK", "<Gamepad>/buttonEast", true, false, new Vector2(-600, 170), default, 150, new Color(0.45f, 0.25f, 0.06f, 0.5f));
             Button("gas", "GAS", "<Gamepad>/rightTrigger", false, true, default, new Vector2(-160, 200), 210, new Color(0.08f, 0.35f, 0.12f, 0.5f));
             Button("brake", "BRAKE", "<Gamepad>/leftTrigger", false, true, default, new Vector2(-400, 150), 180, new Color(0.45f, 0.08f, 0.06f, 0.5f));
             Button("hb", "H/B", "<Gamepad>/buttonSouth", false, true, default, new Vector2(-400, 380), 130, dark);
@@ -178,8 +180,23 @@ namespace ASBO.Slice
         // ------------------------------------------------------------------ layouts
         Layout Load(string set)
         {
-            try { var j = PlayerPrefs.GetString("asbo_ctl_" + set, ""); if (!string.IsNullOrEmpty(j)) { var l = JsonUtility.FromJson<Layout>(j); if (l != null && l.e != null) return l; } } catch { }
-            return Default(set == "car");
+            var def = Default(set == "car");
+            try
+            {
+                var j = PlayerPrefs.GetString("asbo_ctl_" + set, "");
+                if (!string.IsNullOrEmpty(j))
+                {
+                    var l = JsonUtility.FromJson<Layout>(j);
+                    if (l != null && l.e != null)
+                    {
+                        // controls added since the layout was saved go in at their default spot
+                        foreach (var e in def.e) if (Find(l, e.id) == null) l.e.Add(e);
+                        return l;
+                    }
+                }
+            }
+            catch { }
+            return def;
         }
         void Save() { PlayerPrefs.SetString("asbo_ctl_foot", JsonUtility.ToJson(foot)); PlayerPrefs.SetString("asbo_ctl_car", JsonUtility.ToJson(car)); PlayerPrefs.Save(); }
 

@@ -42,7 +42,7 @@ namespace ASBO.EditorTools
         [System.Serializable] class Speeds { public float walk, run, sprint, turnSecs; }
 
         [MenuItem("ASBO/Test/2 Build Locomotion Controllers")]
-        public static void BuildControllers() { foreach (var ik in new[] { true, false }) { Build("M", "Male", ik); Build("F", "Female", ik); } Build("M", "Male", true, true); Build("F", "Female", true, true); BuildDrunk(); AssetDatabase.SaveAssets(); }
+        public static void BuildControllers() { foreach (var ik in new[] { true, false }) { Build("M", "Male", ik); Build("F", "Female", ik); } Build("M", "Male", true, true); Build("F", "Female", true, true); BuildDrunk(); BuildHurt(); AssetDatabase.SaveAssets(); }
 
         const string MC = "Assets/MoCapCentral/MC_Sample/Animations/";
         /// <summary>A clip from any imported Humanoid file (.fbx or .anim); null with a warning if missing.</summary>
@@ -63,6 +63,98 @@ namespace ASBO.EditorTools
             AssetDatabase.AddObjectToAsset(bt, ac);
             for (int i = 0; i < ok.Length; i++) bt.AddChild(ok[i], i / (float)(ok.Length - 1));
             return bt;
+        }
+
+        const string KO = "Assets/MoCapCentral/MC_Sample/Animations/Fight/MCU_am_Ready_Fight_01_Knockdown_A.FBX";
+        /// <summary>Cut the punch, front kick and fighting stance out of MoCap Central's 25 s fight take (frames picked from a filmed contact sheet).</summary>
+        static void SplitFightClips()
+        {
+            var mi = AssetImporter.GetAtPath(KO) as ModelImporter; if (mi == null) { Debug.LogWarning("[ASBO] no " + KO); return; }
+            var defs = mi.defaultClipAnimations; if (defs.Length == 0) return;
+            var baseC = defs[0];
+            ModelImporterClipAnimation Make(string name, float f0, float f1, bool loop) => new ModelImporterClipAnimation
+            {
+                name = name, takeName = baseC.takeName, firstFrame = f0, lastFrame = f1, loopTime = loop, loopPose = loop,
+                lockRootRotation = true, keepOriginalOrientation = false, lockRootHeightY = true, keepOriginalPositionY = true, lockRootPositionXZ = true, keepOriginalPositionXZ = false,
+                maskType = baseC.maskType
+            };
+            var list = new[] { baseC, Make("ASBO_Punch", 155, 180, false), Make("ASBO_Kick", 102, 139, false), Make("ASBO_Stance", 30, 90, true) };
+            var cur = mi.clipAnimations;
+            if (cur.Length == list.Length && cur.Select(c => c.name + c.firstFrame + c.lastFrame).SequenceEqual(list.Select(c => c.name + c.firstFrame + c.lastFrame))) return;
+            mi.clipAnimations = list; mi.SaveAndReimport();
+            Debug.Log("[ASBO] fight clips cut from " + System.IO.Path.GetFileName(KO));
+        }
+        static AnimationClip KOClip(string name) => AssetDatabase.LoadAllAssetsAtPath(KO).OfType<AnimationClip>().FirstOrDefault(c => c.name == name);
+
+        /// <summary>Punch (jab), Kick, Hay (big swinging haymaker) and Struck (taking a hit): any-state triggers back to Move.</summary>
+        static void AddFight(AnimatorController ac, AnimatorStateMachine sm, AnimatorState move)
+        {
+            SplitFightClips();
+            foreach (var n in new[] { "Punch", "Kick", "Hay", "Struck" }) if (!ac.parameters.Any(q => q.name == n)) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
+            var clips = new (string trig, AnimationClip c)[] {
+                ("Punch", KOClip("ASBO_Punch")), ("Kick", KOClip("ASBO_Kick")),
+                ("Hay", AnyClip(KevBase + "Male/Combat/1H/HumanM@Attack1H01_R.fbx")),
+                ("Struck", AnyClip(KevBase + "Male/Combat/HumanM@CombatDamage01.fbx")) };
+            int i = 0;
+            foreach (var (trig, c) in clips)
+            {
+                if (c == null) { Debug.LogWarning("[ASBO] no clip for " + trig); continue; }
+                var st = sm.AddState("F" + trig, new Vector3(650, 60 * i++)); st.motion = c; st.iKOnFeet = true;
+                var tin = sm.AddAnyStateTransition(st); tin.AddCondition(AnimatorConditionMode.If, 0, trig); tin.hasExitTime = false; tin.duration = trig == "Struck" ? 0.05f : 0.08f; tin.canTransitionToSelf = trig == "Struck";
+                var tout = st.AddTransition(move); tout.hasExitTime = true; tout.exitTime = 0.88f; tout.duration = 0.18f;
+            }
+        }
+
+        /// <summary>Hurt: getting up off the floor, then bent over holding the belly (idle and limping walk). MoCap Central injured set.</summary>
+        static void BuildHurt()
+        {
+            string ctrlPath = Out + "LocoHurt.controller";
+            if (File.Exists(ctrlPath)) AssetDatabase.DeleteAsset(ctrlPath);
+            var idle = AnyClip(MC + "Injured/MCU_am_InjuredBelly_Idle_01.FBX"); var walk = AnyClip(MC + "Injured/MCU_am_InjuredBelly_Loco_Walk_Fwd.FBX"); var up = AnyClip(MC + "Injured/MCU_am_InjuredBelly_DropToFloor_GetUp.FBX");
+            if (idle == null || walk == null || up == null) return;
+            var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
+            foreach (var n in new[] { "MoveX", "MoveZ", "Variant" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
+            foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
+            foreach (var n in new[] { "Jump", "TurnL", "TurnR" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
+            var sm = ac.layers[0].stateMachine;
+            var move = ac.CreateBlendTreeInController("Move", out BlendTree tree, 0);
+            tree.blendType = BlendTreeType.FreeformDirectional2D; tree.blendParameter = "MoveX"; tree.blendParameterY = "MoveZ";
+            tree.AddChild(idle, Vector2.zero);
+            float sp = Mathf.Max(0.4f, walk.averageSpeed.magnitude); tree.AddChild(walk, new Vector2(0f, sp));
+            sm.defaultState = move;
+            var gu = sm.AddState("GetUp", new Vector3(300, -80)); gu.motion = up;
+            var t = gu.AddTransition(move); t.hasExitTime = true; t.exitTime = 0.7f; t.duration = 0.5f;
+            var talk = sm.AddState("Talk", new Vector3(300, 140)); talk.motion = Clip("Male/Social/Conversation/HumanM@Talk01");
+            var ti = move.AddTransition(talk); ti.AddCondition(AnimatorConditionMode.If, 0, "Talk"); ti.hasExitTime = false; ti.duration = 0.3f;
+            var to = talk.AddTransition(move); to.AddCondition(AnimatorConditionMode.IfNot, 0, "Talk"); to.hasExitTime = false; to.duration = 0.3f;
+            AddFight(ac, sm, move);
+            foreach (var cs in sm.states) cs.state.iKOnFeet = cs.state != gu;
+            var ls = ac.layers; ls[0].iKPass = true; ac.layers = ls;
+            EditorUtility.SetDirty(ac);
+            Debug.Log($"[ASBO] LocoHurt: limp {sp:F2} m/s, get-up {up.length:F2}s");
+        }
+
+        /// <summary>Test controller: one state per fight clip (int "Clip"), to film them and pick out the punches.</summary>
+        [MenuItem("ASBO/Test/7 Build Fight Test Controller")]
+        public static void BuildFightTest()
+        {
+            string ctrlPath = Out + "FightTest.controller";
+            if (File.Exists(ctrlPath)) AssetDatabase.DeleteAsset(ctrlPath);
+            var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
+            ac.AddParameter("Clip", AnimatorControllerParameterType.Int);
+            var sm = ac.layers[0].stateMachine;
+            string[] files = { MC + "Fight/MCU_am_Ready_Fight_01_Knockdown_A.FBX", MC + "Fight/MCU_af_Ready_Fight_01_Knockdown_B.FBX", MC + "Fight/MCU_am_Ready_Fight_02_Kickdown_A.FBX", MC + "Fight/MCU_af_Ready_Fight_02_Kickdown_B.FBX",
+                KevBase + "Male/Combat/HumanM@CombatIdle01.fbx", KevBase + "Male/Combat/HumanM@CombatDamage01.fbx", KevBase + "Male/Combat/1H/HumanM@Attack1H01_R.fbx", "Assets/DoubleL/FBX Unity/Enemy Attack/Enemy_Attack_1.fbx",
+                MC + "Injured/MCU_am_InjuredBelly_DropToFloor.FBX", MC + "Injured/MCU_am_InjuredBelly_DropToFloor_Loop.FBX", MC + "Injured/MCU_am_InjuredBelly_DropToFloor_GetUp.FBX", MC + "Injured/MCU_am_InjuredBelly_Loco_Walk_Fwd.FBX", MC + "Injured/MCU_am_InjuredBelly_Idle_01.FBX" };
+            var empty = sm.AddState("Empty"); sm.defaultState = empty;
+            for (int i = 0; i < files.Length; i++)
+            {
+                var c = AnyClip(files[i]); if (c == null) continue;
+                var st = sm.AddState("C" + i, new Vector3(300, 60 * i)); st.motion = c;
+                var t = sm.AddAnyStateTransition(st); t.AddCondition(AnimatorConditionMode.Equals, i, "Clip"); t.duration = 0f; t.canTransitionToSelf = false;
+                Debug.Log($"[ASBO] fight clip {i}: {c.name} {c.length:F2}s loop {c.isLooping}");
+            }
+            EditorUtility.SetDirty(ac); AssetDatabase.SaveAssets();
         }
 
         /// <summary>The estate drunk: MoCap Central's drunk idle and stagger (imported Asset Store pack), same parameters as the others.</summary>
@@ -87,6 +179,7 @@ namespace ASBO.EditorTools
             var talk = sm.AddState("Talk", new Vector3(300, 140)); talk.motion = Variants(ac, "Talks", talkClip, AnyClip(MC + "Emotions/MCU_am_Stand_Emotion_ThisGuy_01.FBX"), AnyClip(MC + "Idle/MCU_am_Stand_Conv_Talk_05_Generic.FBX"));
             var ti = move.AddTransition(talk); ti.AddCondition(AnimatorConditionMode.If, 0, "Talk"); ti.hasExitTime = false; ti.duration = 0.3f;
             var to = talk.AddTransition(move); to.AddCondition(AnimatorConditionMode.IfNot, 0, "Talk"); to.hasExitTime = false; to.duration = 0.3f;
+            AddFight(ac, sm, move);
             foreach (var cs in sm.states) cs.state.iKOnFeet = true;
             var ls = ac.layers; ls[0].iKPass = true; ac.layers = ls;
             EditorUtility.SetDirty(ac);
@@ -178,6 +271,7 @@ namespace ASBO.EditorTools
             if (ik) talk.motion = Variants(ac, "Talks", (AnimationClip)talk.motion, AnyClip("Assets/DoubleL/Demo/Anim/Dialogue_1.anim"), AnyClip(MC + "Idle/MCU_am_Stand_Conv_Talk_05_Generic.FBX"));
             var ti = move.AddTransition(talk); ti.AddCondition(AnimatorConditionMode.If, 0, "Talk"); ti.hasExitTime = false; ti.duration = 0.3f;
             var to = talk.AddTransition(move); to.AddCondition(AnimatorConditionMode.IfNot, 0, "Talk"); to.hasExitTime = false; to.duration = 0.3f;
+            if (ik) AddFight(ac, sm, move);
             // paramedic kneel and a wave: CMU mocap clips (retargeted through Humanoid like the pack's)
             foreach (var (nm, y) in new[] { ("Kneel", 220f), ("Wave", 300f) })
             {
