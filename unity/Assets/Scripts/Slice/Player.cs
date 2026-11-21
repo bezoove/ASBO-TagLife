@@ -22,9 +22,10 @@ namespace ASBO.Slice
         bool inCar, spectate; int shotN;
         LocoSpeeds sp = new LocoSpeeds();
 
-        Transform VehT => rcc != null ? rcc.transform : car != null ? car.transform : null;
-        float VehSpeed => rcc != null ? rcc.Speed : car != null ? car.Speed : 0f;
-        Vector3 VehVel => rcc != null ? rcc.Velocity : car != null ? car.Velocity : Vector3.zero;
+        PlayerCar PCar => PlayerCar.I;
+        Transform VehT => PCar != null ? PCar.transform : rcc != null ? rcc.transform : car != null ? car.transform : null;
+        float VehSpeed => PCar != null ? PCar.Speed : rcc != null ? rcc.Speed : car != null ? car.Speed : 0f;
+        Vector3 VehVel => PCar != null ? PCar.Velocity : rcc != null ? rcc.Velocity : car != null ? car.Velocity : Vector3.zero;
 
         public void Setup(Car c)
         {
@@ -74,7 +75,8 @@ namespace ASBO.Slice
         /// <summary>Camera turn from touch drags (degrees).</summary>
         public void AddLook(Vector2 deg) { lookAdd += deg; }
 
-        void SetVisible(bool v) { foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = v; }
+        Renderer[] hidden;
+        void SetVisible(bool v) { hidden = null; foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = v; }
 
         void Update()
         {
@@ -96,7 +98,13 @@ namespace ASBO.Slice
                 string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots"); System.IO.Directory.CreateDirectory(dir);
                 ScreenCapture.CaptureScreenshot(dir + "/shot_" + (shotN++) + ".png");
             }
-            if (inCar && VehT != null) { transform.position = VehT.position + Vector3.up * 0.2f; transform.rotation = VehT.rotation; }
+            if (inCar && VehT != null)
+            {
+                transform.position = VehT.position + Vector3.up * 0.2f; transform.rotation = VehT.rotation;
+                // stay hidden while driving (the character system can switch renderers back on when it rebuilds)
+                if (hidden == null) hidden = GetComponentsInChildren<Renderer>(true);
+                foreach (var r in hidden) if (r != null && r.enabled) r.enabled = false;
+            }
             else if (person != null && person.state != Person.State.Walking) { vel = Vector3.zero; bodyYaw = transform.eulerAngles.y; } // floored: wait to get up
             else
             {
@@ -202,14 +210,16 @@ namespace ASBO.Slice
             {
                 if ((vt.position - transform.position).sqrMagnitude > 4.5f * 4.5f) return;
                 inCar = true; cc.enabled = false; SetVisible(false);
-                if (rcc != null && rcc.Car != null) { RCCP.RegisterPlayerVehicle(rcc.Car, true, true); rcc.driven = true; }
+                if (PCar != null) PCar.driven = true;
+                else if (rcc != null && rcc.Car != null) { RCCP.RegisterPlayerVehicle(rcc.Car, true, true); rcc.driven = true; }
                 else if (car != null) car.occupied = true;
             }
             else
             {
                 inCar = false;
                 Vector3 exit;
-                if (rcc != null && rcc.Car != null) { rcc.driven = false; RCCP.SetControl(rcc.Car, false); RCCP.DeRegisterPlayerVehicle(); exit = vt.position - vt.right * 1.9f; }
+                if (PCar != null) { PCar.driven = false; TouchCar.Clear(); exit = PCar.ExitPoint; }
+                else if (rcc != null && rcc.Car != null) { rcc.driven = false; RCCP.SetControl(rcc.Car, false); RCCP.DeRegisterPlayerVehicle(); exit = vt.position - vt.right * 1.9f; }
                 else { car.occupied = false; exit = car.exitPoint.position; }
                 exit.y = vt.position.y; transform.position = exit; cc.enabled = true; SetVisible(true);
                 bodyYaw = vt.eulerAngles.y; vel = Vector3.zero;

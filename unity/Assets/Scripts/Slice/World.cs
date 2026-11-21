@@ -38,7 +38,7 @@ namespace ASBO.Slice
             {
                 // no saved scene: build the static world procedurally (fallback / sandbox)
                 Look.Apply(Root);
-                GameAudio.Create(Root);
+                GameAudio.Create(Root); Perf.Create(Root);
                 BuildGround(Root); BuildStatic(Root);
                 Physics.SyncTransforms();
                 Nav.Build(new Bounds(new Vector3(0, 4f, 10f), new Vector3(240f, 12f, 96f)));
@@ -47,7 +47,7 @@ namespace ASBO.Slice
             {
                 // the Abbots Wend scene holds the static world (prefabs, terrain, baked lighting, baked NavMesh)
                 Look.ApplyPost(Root);
-                GameAudio.Create(Root);
+                GameAudio.Create(Root); Perf.Create(Root);
                 Estate.Attach();
                 Nav.UseBaked();
             }
@@ -88,6 +88,15 @@ namespace ASBO.Slice
         void BuildCars()
         {
             car = FreePackTest.On ? null : Car.Create(Root, new Vector3(-14f, 0.6f, -26.3f), 90f, new Color(0.55f, 0.08f, 0.1f));
+            if (FreePackTest.On)
+            {
+                // the player's car drives like the old game's: our arcade car, parked where the RCC demo car stood
+                var rccCar = FindFirstObjectByType<RccVehicle>();
+                Vector3 at = rccCar != null ? rccCar.transform.position : new Vector3(-14f, 0f, -26.3f); float yaw = rccCar != null ? rccCar.transform.eulerAngles.y : 90f;
+                if (rccCar != null) rccCar.gameObject.SetActive(false);
+                if (Physics.Raycast(at + Vector3.up * 2f, Vector3.down, out var gh, 5f, ~((1 << 2) | (1 << 31)), QueryTriggerInteraction.Ignore)) at.y = gh.point.y;
+                PlayerCar.Create(at, yaw, new Color(0.1f, 0.2f, 0.42f)).transform.SetParent(Root, true);
+            }
             var pl = MakePerson(new Vector3(-17f, 0, -23.9f), new Color(0.2f, 0.4f, 0.8f), new Color(0.12f, 0.12f, 0.2f), "Player", true);
             pl.transform.rotation = Quaternion.Euler(0, 90f, 0);
             pl.gameObject.AddComponent<PlayerCtl>().Setup(car);
@@ -156,6 +165,7 @@ namespace ASBO.Slice
         }
 
         public static bool HideHud;
+        string hud1 = "", hud3 = ""; float hudT;
         static Fighter pfCache;
         static Fighter PlayerFighter { get { if (pfCache == null) { var pc = FindFirstObjectByType<PlayerCtl>(); if (pc != null) pfCache = pc.GetComponent<Fighter>(); } return pfCache; } }
         void OnGUI()
@@ -168,12 +178,19 @@ namespace ASBO.Slice
                 var old = GUI.color; GUI.color = new Color(0f, 0f, 0f, 0.55f); GUI.DrawTexture(new Rect(x - 2, y - 2, w + 4, 16), Texture2D.whiteTexture);
                 GUI.color = Color.Lerp(new Color(0.85f, 0.1f, 0.08f), new Color(0.2f, 0.75f, 0.25f), pf.Health01); GUI.DrawTexture(new Rect(x, y, w * pf.Health01, 12), Texture2D.whiteTexture); GUI.color = old;
             }
-            string lvl = Gore.Level == 2 ? "Full" : Gore.Level == 1 ? "Reduced" : "Off";
-            GUI.Label(new Rect(12, 8, 700, 120), TouchControls.Wanted
-                ? "ASBO — Abbots Wend (Unity test)   Left thumb: move/steer • Drag: look • CAR by a car to drive"
-                : "ASBO — Abbots Wend slice   WASD move/drive • Shift run • F punch (twice: haymaker) • Q kick • E car • Space jump/brake • R reset • G gore: " + lvl);
+            // the text is rebuilt twice a second, not every frame (string building every frame fed the garbage collector)
+            if (Time.unscaledTime > hudT)
+            {
+                hudT = Time.unscaledTime + 0.5f;
+                string lvl = Gore.Level == 2 ? "Full" : Gore.Level == 1 ? "Reduced" : "Off";
+                hud1 = TouchControls.Wanted
+                    ? "ASBO — Abbots Wend (Unity test)   Left thumb: move • Drag: look • PUNCH / KICK • CAR by a car to drive"
+                    : "ASBO — Abbots Wend slice   WASD move/drive • Shift run • F punch (twice: haymaker) • Q kick • E car • Space jump/brake • R reset • G gore: " + lvl;
+                hud3 = "1-0: visit cottage (Shift = inside)   " + lastHouse + "   " + Resident.Stats() + "  traffic " + TrafficCar.All.Count;
+            }
+            GUI.Label(new Rect(12, 8, 760, 40), hud1);
             if (!string.IsNullOrEmpty(Ambulance.Status)) GUI.Label(new Rect(12, 28, 700, 30), Ambulance.Status);
-            GUI.Label(new Rect(12, 46, 900, 30), Mathf.RoundToInt(1f / Time.smoothDeltaTime) + " fps   1-0: visit cottage (Shift = inside)   " + lastHouse + "   " + Resident.Stats() + "  traffic " + TrafficCar.All.Count);
+            GUI.Label(new Rect(12, 46, 900, 30), hud3);
         }
     }
 }

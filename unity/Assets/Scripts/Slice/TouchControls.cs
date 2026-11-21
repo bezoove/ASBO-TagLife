@@ -107,6 +107,19 @@ namespace ASBO.Slice
             AddCover(c);
         }
 
+        /// <summary>A driving button that holds a TouchCar flag while pressed (FORWARD also boosts when dragged upwards).</summary>
+        void Hold(string id, string text, bool bottomLeft, Vector2 pos, float size, Color tint, Action<bool> set)
+        {
+            var c = AddCtl(id, text, false, true, bottomLeft, default, pos, size);
+            var face = Rect("Face", c.rt, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size, size)); Stretch(face);
+            Img(face, disc, tint);
+            var ring2 = Rect("Ring", face, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); Stretch(ring2); Img(ring2, ring, new Color(1, 1, 1, 0.55f), false);
+            var hb = face.gameObject.AddComponent<HoldButton>(); hb.set = set; hb.boost = id == "vfwd";
+            Label(face, text, Mathf.RoundToInt(size * 0.15f)).rectTransform.sizeDelta = new Vector2(size, size);
+            c.onScreen = new Behaviour[] { hb };
+            AddCover(c);
+        }
+
         void AddCover(Ctl c)
         {
             c.cover = Rect("EditCover", c.rt, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); Stretch(c.cover);
@@ -131,7 +144,7 @@ namespace ASBO.Slice
 
             // stick (both layouts): static base, knob with a large invisible grab area
             {
-                var c = AddCtl("stick", "Stick", true, true, true, new Vector2(270, 270), new Vector2(270, 270), 300f);
+                var c = AddCtl("stick", "Stick", true, false, true, new Vector2(270, 270), default, 300f);
                 var b = Rect("Base", c.rt, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); Stretch(b); Img(b, ring, new Color(1, 1, 1, 0.45f), false);
                 var knob = Rect("Knob", c.rt, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(150, 150));
                 Img(knob, disc, new Color(1, 1, 1, 0.38f));
@@ -146,10 +159,14 @@ namespace ASBO.Slice
             Button("car", "CAR", "<Gamepad>/select", true, false, new Vector2(-150, 430), default, 140, blue);
             Button("punch", "PUNCH", "<Gamepad>/buttonWest", true, false, new Vector2(-400, 330), default, 160, new Color(0.45f, 0.12f, 0.08f, 0.5f));
             Button("kick", "KICK", "<Gamepad>/buttonEast", true, false, new Vector2(-600, 170), default, 150, new Color(0.45f, 0.25f, 0.06f, 0.5f));
-            Button("gas", "GAS", "<Gamepad>/rightTrigger", false, true, default, new Vector2(-160, 200), 210, new Color(0.08f, 0.35f, 0.12f, 0.5f));
-            Button("brake", "BRAKE", "<Gamepad>/leftTrigger", false, true, default, new Vector2(-400, 150), 180, new Color(0.45f, 0.08f, 0.06f, 0.5f));
-            Button("hb", "H/B", "<Gamepad>/buttonSouth", false, true, default, new Vector2(-400, 380), 130, dark);
-            Button("out", "OUT", "<Gamepad>/select", false, true, default, new Vector2(-150, 460), 140, blue);
+            // driving, laid out like the old game: pedals on the left, steering buttons on the right
+            Hold("vfwd", "FORWARD", true, new Vector2(192, 475), 250, new Color(0.08f, 0.35f, 0.12f, 0.5f), v => TouchCar.fwd = v);
+            Hold("vrev", "REVERSE", true, new Vector2(173, 151), 175, dark, v => TouchCar.rev = v);
+            Hold("vbrake", "BRAKE", true, new Vector2(470, 216), 210, new Color(0.45f, 0.08f, 0.06f, 0.5f), v => TouchCar.brake = v);
+            Hold("vleft", "LEFT", false, new Vector2(-595, 216), 265, dark, v => TouchCar.left = v);
+            Hold("vright", "RIGHT", false, new Vector2(-221, 216), 265, dark, v => TouchCar.right = v);
+            Hold("vhorn", "HORN", false, new Vector2(-499, 486), 135, dark, v => { if (v) TouchCar.horn = true; });
+            Button("out", "OUT", "<Gamepad>/select", false, true, default, new Vector2(-192, 540), 170, blue);
 
             // edit button and the editor's bars
             UiButton(root, "EDIT", new Vector2(1f, 1f), new Vector2(-90, -60), new Vector2(130, 64), ToggleEdit, out _);
@@ -326,6 +343,17 @@ namespace ASBO.Slice
             public void OnDrag(PointerEventData e) { moved += e.delta.magnitude; owner.Dragged(c, e.delta); }
             public void OnPointerUp(PointerEventData e) { if (moved < 12f) owner.Tapped(c); }
         }
+    }
+
+    /// <summary>Press-and-hold button for driving; lets go cleanly if the finger slides off or the button is disabled.</summary>
+    public class HoldButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDragHandler
+    {
+        public Action<bool> set; public bool boost; float downY; bool held;
+        public void OnPointerDown(PointerEventData e) { held = true; downY = e.position.y; set?.Invoke(true); }
+        public void OnPointerUp(PointerEventData e) { Release(); }
+        public void OnDrag(PointerEventData e) { if (boost && held) TouchCar.boost = e.position.y - downY > Screen.height * 0.035f; }
+        void OnDisable() { Release(); }
+        void Release() { if (!held) return; held = false; set?.Invoke(false); if (boost) TouchCar.boost = false; }
     }
 
     /// <summary>Drag anywhere not covered by a control to turn the camera.</summary>

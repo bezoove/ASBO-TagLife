@@ -19,10 +19,45 @@ namespace ASBO.Slice
 
         void Awake() { p = GetComponent<Person>(); }
 
+        // fighting back, for people who don't have a Resident brain (paramedics, passers-by)
+        Fighter foe; float angryUntil, nextSwing;
+        public bool Fighting => foe != null;
+
         void Update()
         {
             if (p == null || p.state != Person.State.Walking) return;
             if (Time.time - lastHurt > 4f && health < maxHealth) health = Mathf.Min(maxHealth, health + 6f * Time.deltaTime);
+            if (foe != null) BrawlStep();
+        }
+
+        public void ProvokedBy(Fighter by)
+        {
+            if (by == null || p == null || p.isPlayer || p.state != Person.State.Walking) return;
+            bool fight = p.isParamedic || p.label == "Paramedic" ? Random.value < 0.8f : p.male ? Random.value < 0.6f : Random.value < 0.15f;
+            if (foe == by) { angryUntil = Time.time + 20f; return; }
+            if (!fight) return;
+            foe = by; angryUntil = Time.time + 25f; nextSwing = Time.time + Random.Range(0.3f, 0.7f);
+            p.SetKneel(false);
+            if (GameAudio.I != null) GameAudio.I.PlayVoice("hostile", transform.position + Vector3.up * 1.6f, 0.2f);
+        }
+
+        void BrawlStep()
+        {
+            var fb = foe.Body;
+            float dist = fb != null ? (foe.transform.position - transform.position).WithY(0).magnitude : 999f;
+            if (fb == null || fb.state != Person.State.Walking || dist > 25f || Time.time > angryUntil || p.hurt) { foe = null; return; }
+            if (dist > 1.05f) { if (!Busy) p.Step(foe.transform.position, 2.8f); }
+            else
+            {
+                Vector3 d = (foe.transform.position - transform.position).WithY(0);
+                if (d.sqrMagnitude > 0.01f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(d), 540f * Time.deltaTime);
+                if (Time.time > nextSwing && !Busy)
+                {
+                    float r = Random.value;
+                    Attack(r < 0.55f ? Move.Punch : r < 0.8f ? Move.Hay : Move.Kick);
+                    nextSwing = Time.time + Random.Range(0.7f, 1.5f);
+                }
+            }
         }
 
         /// <summary>Called after getting back up.</summary>
@@ -30,13 +65,13 @@ namespace ASBO.Slice
 
         static readonly (float dur, float impact, float reach, float dmg, float push)[] spec =
         {
-            (0.75f, 0.38f, 1.2f, 22f, 2.6f),   // jab
-            (1.0f, 0.45f, 1.35f, 38f, 3.6f),   // haymaker
-            (1.15f, 0.62f, 1.45f, 32f, 4.2f),  // front kick
+            (0.42f, 0.21f, 1.2f, 22f, 2.6f),   // jab (anim at 1.9x)
+            (0.6f, 0.26f, 1.35f, 38f, 3.6f),   // haymaker (1.75x)
+            (0.72f, 0.38f, 1.45f, 32f, 4.2f),  // front kick (1.65x)
         };
 
         /// <summary>The player's punch button: a second press soon after a jab throws the big swing.</summary>
-        public void PunchButton() { Attack(Time.time - lastPunch < 0.9f ? Move.Hay : Move.Punch); }
+        public void PunchButton() { Attack(Time.time - lastPunch < 0.6f ? Move.Hay : Move.Punch); }
 
         public bool Attack(Move m)
         {
@@ -103,7 +138,9 @@ namespace ASBO.Slice
                 if (p.anim != null && p.anim.enabled) p.anim.SetTrigger("Struck");
                 StartCoroutine(Stagger(push.normalized * 0.25f));
             }
-            var res = GetComponent<Resident>(); if (res != null && from != null) res.Provoked(from);
+            var res = GetComponent<Resident>();
+            if (res != null && from != null) res.Provoked(from);
+            else if (from != null && !p.isPlayer) ProvokedBy(from);
         }
 
         IEnumerator Stagger(Vector3 shove)

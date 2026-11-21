@@ -23,59 +23,65 @@ namespace ASBO.Slice
             a.StartCoroutine(a.Run(victim));
         }
 
+        Transform[] wheels; float wheelSpin, wheelR = 0.33f; Vector3 lastPos;
+
+        /// <summary>
+        /// The old game's panel van, scaled up, in ambulance yellow with the green and yellow Battenburg chequer down the
+        /// sides and across the back, a blue light bar, and AMBULANCE mirrored on the bonnet.
+        /// </summary>
         void BuildVehicle()
         {
-            var white = Gfx.Mat(new Color(0.93f, 0.93f, 0.92f), null, 0.55f, 0.1f);
-            var yellow = Gfx.Mat(new Color(0.98f, 0.85f, 0.05f), null, 0.5f);
-            var green = Gfx.Mat(new Color(0.05f, 0.62f, 0.3f), null, 0.5f);
-            var black = Gfx.Mat(new Color(0.05f, 0.05f, 0.05f), null, 0.3f);
-            var glass = Gfx.Mat(new Color(0.08f, 0.1f, 0.14f), null, 0.9f);
-            Gfx.Box(transform, new Vector3(0, 1.25f, -0.3f), new Vector3(2.1f, 1.9f, 4.4f), white, 0, "Box", false);
-            Gfx.Box(transform, new Vector3(0, 0.95f, 2.2f), new Vector3(2.05f, 1.3f, 1.4f), white, 0, "Cab", false);
-            Gfx.Box(transform, new Vector3(0, 1.4f, 2.3f), new Vector3(1.9f, 0.7f, 1.3f), glass, 0, "Windscreen", false);
-            Gfx.Box(transform, new Vector3(0, 0.4f, 0f), new Vector3(2.0f, 0.4f, 5.4f), black, 0, "Chassis", false);
-            // battenburg chequer on both sides, front chequer stripe too
-            for (int i = 0; i < 10; i++)
-                foreach (int s in new[] { -1, 1 })
+            const float S = 1.14f;
+            var spec = CarBody.Get("van_a");
+            var vis = new GameObject("Body").transform; vis.SetParent(transform, false); vis.localScale = Vector3.one * S;
+            wheels = CarBody.Build(vis, spec, new Color(0.97f, 0.84f, 0.06f), true, 777, false);
+            wheelR = spec.m.rad * S;
+            var m = spec.m; float hw = m.hw * S, Le = m.L * 0.5f * S, roof = (m.gh.roof + m.gh.crown) * S;
+            var yellow = Gfx.Mat(new Color(0.98f, 0.86f, 0.05f), null, 0.6f);
+            var green = Gfx.Mat(new Color(0.03f, 0.5f, 0.24f), null, 0.6f);
+            var white = Gfx.Mat(new Color(0.93f, 0.93f, 0.92f), null, 0.55f);
+            // Battenburg: two rows of squares from the back to the front wheel arch, both sides
+            float sq = 0.26f, zA = -Le + 0.18f, zB = (m.wxF - m.archR) * S - 0.05f; int n = Mathf.Max(4, Mathf.FloorToInt((zB - zA) / sq));
+            for (int i = 0; i < n; i++)
+                foreach (int sd in new[] { -1, 1 })
                     for (int r = 0; r < 2; r++)
-                    {
-                        var m = ((i + r) % 2 == 0) ? yellow : green;
-                        Gfx.Box(transform, new Vector3(s * 1.07f, 0.95f + r * 0.32f, -2.3f + i * 0.5f), new Vector3(0.04f, 0.32f, 0.5f), m, 0, "Batten", false);
-                    }
-            for (int i = 0; i < 4; i++)
-                Gfx.Box(transform, new Vector3(-0.75f + i * 0.5f, 0.78f, 2.92f), new Vector3(0.5f, 0.3f, 0.04f), (i % 2 == 0) ? yellow : green, 0, "BattenFront", false);
-            // wheels
-            foreach (float z in new[] { 1.8f, -1.5f }) foreach (int s in new[] { -1, 1 })
-                    Gfx.Prim(PrimitiveType.Cylinder, transform, new Vector3(s * 0.98f, 0.45f, z), new Vector3(0.9f, 0.14f, 0.9f), black, "Wheel", false).transform.localRotation = Quaternion.Euler(0, 0, 90f);
+                        Gfx.Box(transform, new Vector3(sd * (hw - 0.012f), 0.66f + r * sq, zA + (i + 0.5f) * sq), new Vector3(0.012f, sq, sq), ((i + r) % 2 == 0) ? green : yellow, 0, "Batten", false);
+            for (int i = 0; i < 6; i++)
+                for (int r = 0; r < 2; r++)
+                    Gfx.Box(transform, new Vector3(-hw * 0.82f + (i + 0.5f) * (hw * 1.64f / 6f), 0.7f + r * 0.22f, -Le - 0.006f), new Vector3(hw * 1.64f / 6f, 0.22f, 0.012f), ((i + r) % 2 == 0) ? green : yellow, 0, "BattenRear", false);
             // light bar
             lightOn = Gfx.Emissive(new Color(0.1f, 0.3f, 1f), 4f); lightOff = Gfx.Mat(new Color(0.05f, 0.1f, 0.3f));
-            var a = Gfx.Box(transform, new Vector3(-0.45f, 2.3f, 1.9f), new Vector3(0.8f, 0.14f, 0.2f), lightOff, 0, "BarA", false);
-            var b = Gfx.Box(transform, new Vector3(0.45f, 2.3f, 1.9f), new Vector3(0.8f, 0.14f, 0.2f), lightOff, 0, "BarB", false);
-            var a2 = Gfx.Box(transform, new Vector3(-0.45f, 2.3f, -2.3f), new Vector3(0.8f, 0.14f, 0.2f), lightOff, 0, "BarA2", false);
-            var b2 = Gfx.Box(transform, new Vector3(0.45f, 2.3f, -2.3f), new Vector3(0.8f, 0.14f, 0.2f), lightOff, 0, "BarB2", false);
+            float barZ = m.gh.fr * S - 0.25f;
+            Gfx.Box(transform, new Vector3(0, roof + 0.03f, barZ), new Vector3(1.3f, 0.05f, 0.26f), white, 0, "BarBase", false);
+            var a = Gfx.Box(transform, new Vector3(-0.36f, roof + 0.11f, barZ), new Vector3(0.62f, 0.11f, 0.22f), lightOff, 0, "BarA", false);
+            var b = Gfx.Box(transform, new Vector3(0.36f, roof + 0.11f, barZ), new Vector3(0.62f, 0.11f, 0.22f), lightOff, 0, "BarB", false);
+            var a2 = Gfx.Box(transform, new Vector3(-0.45f, roof - 0.05f, -Le + 0.05f), new Vector3(0.22f, 0.12f, 0.08f), lightOff, 0, "BarA2", false);
+            var b2 = Gfx.Box(transform, new Vector3(0.45f, roof - 0.05f, -Le + 0.05f), new Vector3(0.22f, 0.12f, 0.08f), lightOff, 0, "BarB2", false);
             barA = new[] { a.GetComponent<Renderer>(), a2.GetComponent<Renderer>() }; barB = new[] { b.GetComponent<Renderer>(), b2.GetComponent<Renderer>() };
-            blueA = MakeLight(new Vector3(-0.5f, 2.6f, 1.9f)); blueB = MakeLight(new Vector3(0.5f, 2.6f, 1.9f));
-            // mirrored AMBULANCE lettering on the front so drivers see it correctly in their mirrors
+            blueA = MakeLight(new Vector3(-0.5f, roof + 0.4f, barZ)); blueB = MakeLight(new Vector3(0.5f, roof + 0.4f, barZ));
+            // mirrored AMBULANCE on the bonnet front so drivers read it in their mirrors
             try
             {
                 var f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 var tgo = new GameObject("Lettering"); tgo.transform.SetParent(transform, false);
-                tgo.transform.localPosition = new Vector3(0, 1.45f, 2.93f); tgo.transform.localRotation = Quaternion.Euler(0, 180f, 0);
-                tgo.transform.localScale = new Vector3(-0.1f, 0.1f, 0.1f);
+                tgo.transform.localPosition = new Vector3(0, 0.98f, Le + 0.015f); tgo.transform.localRotation = Quaternion.Euler(0, 180f, 0);
+                tgo.transform.localScale = new Vector3(-0.07f, 0.07f, 0.07f);
                 var tm = tgo.AddComponent<TextMesh>(); tm.text = "AMBULANCE"; tm.font = f; tm.fontSize = 64; tm.characterSize = 0.6f;
-                tm.anchor = TextAnchor.MiddleCenter; tm.color = new Color(0.05f, 0.5f, 0.25f);
+                tm.anchor = TextAnchor.MiddleCenter; tm.color = new Color(0.03f, 0.4f, 0.2f);
                 tgo.GetComponent<MeshRenderer>().sharedMaterial = f.material;
             }
             catch { }
+            foreach (var c in GetComponentsInChildren<Collider>()) Destroy(c);
             var au = gameObject.AddComponent<AudioSource>();
             au.clip = SirenClip(); au.loop = true; au.spatialBlend = 1f; au.minDistance = 10f; au.maxDistance = 160f; au.rolloffMode = AudioRolloffMode.Linear; au.volume = 0.5f;
             au.Play();
+            lastPos = transform.position;
         }
 
         Light MakeLight(Vector3 p)
         {
             var g = new GameObject("Blue"); g.transform.SetParent(transform, false); g.transform.localPosition = p;
-            var l = g.AddComponent<Light>(); l.type = LightType.Point; l.color = new Color(0.2f, 0.4f, 1f); l.range = 14f; l.intensity = 0f;
+            var l = g.AddComponent<Light>(); l.type = LightType.Point; l.color = new Color(0.2f, 0.4f, 1f); l.range = 9f; l.intensity = 0f; l.shadows = LightShadows.None; l.renderMode = LightRenderMode.ForceVertex;
             return l;
         }
 
@@ -94,6 +100,10 @@ namespace ASBO.Slice
 
         void Update()
         {
+            // wheels roll with however far we moved
+            float moved = Vector3.Dot(transform.position - lastPos, transform.forward); lastPos = transform.position;
+            wheelSpin += moved / Mathf.Max(0.2f, wheelR) * Mathf.Rad2Deg;
+            if (wheels != null) foreach (var w in wheels) w.localRotation = Quaternion.Euler(wheelSpin, 0f, 90f);
             bool a = ((int)(Time.time * 5f)) % 2 == 0;
             blueA.intensity = a ? 40f : 0f; blueB.intensity = a ? 0f : 40f;
             foreach (var r in barA) r.sharedMaterial = a ? lightOn : lightOff;
@@ -128,7 +138,7 @@ namespace ASBO.Slice
             yield return WalkAll(crew, new[] { vp + new Vector3(-0.9f, 0, 0.6f), vp + new Vector3(0.9f, 0, 0.6f) }, 1.9f);
             Status = victim.dead ? "Paramedics confirm death" : "Paramedics treating casualty";
             if (GameAudio.I != null) GameAudio.I.PlayVoice("medic", vp, 0.3f, 1f, 0);
-            foreach (var c in crew) { c.SetKneel(true); c.transform.rotation = Quaternion.LookRotation((vp - c.transform.position).WithY(0)); }
+            foreach (var c in crew) { if (Busy(c)) continue; c.SetKneel(true); c.transform.rotation = Quaternion.LookRotation((vp - c.transform.position).WithY(0)); }
             yield return new WaitForSeconds(2.5f);
             if (GameAudio.I != null) { if (victim.dead) GameAudio.I.PlayVoice("medicdead", vp, 0f, 1f, 0); else GameAudio.I.PlayVoice("medic", vp, 0f, 1f, 1); }
             yield return new WaitForSeconds(2.5f);
@@ -150,7 +160,7 @@ namespace ASBO.Slice
             var tw = StartCoroutine(MoveTrolley(trolley, rear, crew));
             yield return tw;
             trolley.gameObject.SetActive(false);
-            foreach (var c in crew) c.gameObject.SetActive(false);
+            foreach (var c in crew) if (c != null && !Busy(c)) c.gameObject.SetActive(false); // anyone still scrapping gets left behind
             Status = "En route to Wend Valley Hospital";
             float v2 = 0;
             while (transform.position.x < parkX + 260f)
@@ -159,7 +169,7 @@ namespace ASBO.Slice
                 transform.position += Vector3.right * (v2 * Time.deltaTime);
                 yield return null;
             }
-            Destroy(trolley.gameObject); foreach (var c in crew) if (c != null) Destroy(c.gameObject);
+            Destroy(trolley.gameObject); foreach (var c in crew) if (c != null && !c.gameObject.activeSelf) Destroy(c.gameObject);
             Destroy(gameObject);
         }
 
@@ -176,12 +186,15 @@ namespace ASBO.Slice
                 trolley.rotation = Quaternion.Slerp(trolley.rotation, Quaternion.LookRotation(d.normalized), 4f * Time.deltaTime);
                 for (int i = 0; i < crew.Count; i++)
                 {
+                    if (Busy(crew[i])) continue;
                     Vector3 side = trolley.right * (i == 0 ? -0.9f : 0.9f);
                     crew[i].Step(trolley.position + side, 1.5f);
                 }
                 yield return null;
             }
         }
+
+        static bool Busy(Person c) { if (c == null || c.state != Person.State.Walking) return true; var f = c.GetComponent<Fighter>(); return f != null && f.Fighting; }
 
         IEnumerator WalkAll(List<Person> crew, Vector3[] targets, float spd)
         {
@@ -191,6 +204,7 @@ namespace ASBO.Slice
                 guard += Time.deltaTime; bool all = true;
                 for (int i = 0; i < crew.Count; i++)
                 {
+                    if (Busy(crew[i])) continue; // fighting or floored: leave them to it
                     if ((targets[i] - crew[i].transform.position).WithY(0).magnitude > 0.35f) { crew[i].Step(targets[i], spd); all = false; }
                 }
                 if (all) break;

@@ -16,11 +16,15 @@ namespace ASBO.Slice
         static void Init()
         {
             if (bloodMat != null) return;
-            bloodMat = Gfx.Mat(Color.white, SplatTex(), 0.6f);
-            bloodMat.SetFloat("_AlphaClip", 1f); bloodMat.EnableKeyword("_ALPHATEST_ON"); bloodMat.SetFloat("_Cutoff", 0.5f); bloodMat.renderQueue = 2450;
-            bloodGloss = Gfx.Mat(new Color(0.28f, 0.01f, 0.02f), null, 0.95f);
-            particleMat = new Material(Gfx.ParticleUnlit);
-            particleMat.SetColor("_BaseColor", new Color(0.5f, 0.02f, 0.04f));
+            // saved templates (Resources/GoreMats) keep their shader variants in phone builds: alpha-cut splats and round,
+            // soft droplets. Built at runtime they lost the cut-out and showed up as dark squares.
+            var tSplat = Resources.Load<Material>("GoreMats/BloodSplat"); var tDrop = Resources.Load<Material>("GoreMats/BloodDrop"); var tPool = Resources.Load<Material>("GoreMats/BloodPool");
+            if (tSplat != null) bloodMat = tSplat;
+            else { bloodMat = Gfx.Mat(Color.white, SplatTex(), 0.6f); bloodMat.SetFloat("_AlphaClip", 1f); bloodMat.EnableKeyword("_ALPHATEST_ON"); bloodMat.SetFloat("_Cutoff", 0.5f); bloodMat.renderQueue = 2450; }
+            bloodMat.enableInstancing = true;
+            bloodGloss = tPool != null ? tPool : Gfx.Mat(new Color(0.28f, 0.01f, 0.02f), null, 0.95f);
+            bloodGloss.enableInstancing = true;
+            if (tDrop != null) particleMat = tDrop; else { particleMat = new Material(Gfx.ParticleUnlit); particleMat.SetColor("_BaseColor", new Color(0.5f, 0.02f, 0.04f)); }
             decalRoot = new GameObject("BloodDecals").transform;
         }
 
@@ -50,13 +54,19 @@ namespace ASBO.Slice
             bloodMat = null; decals = new GameObject[MaxDecals]; decalIdx = 0;
         }
 
+        static Mesh quadMesh;
         public static void Splat(Vector3 point, Vector3 normal, float size)
         {
             if (Level == 0) return;
             Init();
-            if (decals[decalIdx] != null) Object.Destroy(decals[decalIdx]);
-            var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            Object.Destroy(q.GetComponent<Collider>());
+            // a ring of reused decals (no create/destroy churn, instanced into a few draw calls)
+            var q = decals[decalIdx];
+            if (q == null)
+            {
+                if (quadMesh == null) { var tmp = GameObject.CreatePrimitive(PrimitiveType.Quad); quadMesh = tmp.GetComponent<MeshFilter>().sharedMesh; Object.Destroy(tmp); }
+                q = new GameObject("Splat"); q.AddComponent<MeshFilter>().sharedMesh = quadMesh;
+                var mr = q.AddComponent<MeshRenderer>(); mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off; mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            }
             q.transform.SetParent(decalRoot, true);
             q.transform.position = point + normal * 0.012f;
             q.transform.rotation = Quaternion.LookRotation(-normal) * Quaternion.Euler(0, 0, Random.Range(0, 360f));
@@ -79,11 +89,16 @@ namespace ASBO.Slice
             main.startSize = new ParticleSystem.MinMaxCurve(0.035f, 0.09f);
             main.gravityModifier = 1.1f;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.maxParticles = Level == 1 ? 150 : 400;
+            main.maxParticles = Level == 1 ? 80 : 160;
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.55f, 0.03f, 0.04f), new Color(0.32f, 0.01f, 0.02f));
             var em = ps.emission; em.enabled = true; em.rateOverTime = 0;
             var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Cone; sh.angle = 22f; sh.radius = 0.02f;
             var col = ps.collision; col.enabled = true; col.type = ParticleSystemCollisionType.World; col.mode = ParticleSystemCollisionMode.Collision3D;
-            col.dampen = 0.9f; col.bounce = 0.02f; col.lifetimeLoss = 0.6f; col.sendCollisionMessages = true;
+            // drops die where they land (they used to stop dead and hang in mid-air on people and cars)
+            col.dampen = 1f; col.bounce = 0f; col.lifetimeLoss = 1f; col.sendCollisionMessages = true;
+            col.collidesWith = 1; // the world (Default layer) only: not ragdolls, cars or triggers
+            col.quality = ParticleSystemCollisionQuality.Medium; col.maxCollisionShapes = 64;
+            var sol = ps.sizeOverLifetime; sol.enabled = true; sol.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0.6f));
             var rend = go.GetComponent<ParticleSystemRenderer>();
             rend.sharedMaterial = particleMat;
             go.AddComponent<BloodCollider>();
@@ -119,7 +134,8 @@ namespace ASBO.Slice
             if (Level == 0) return;
             Init();
             var g = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            Object.Destroy(g.GetComponent<Collider>());
+            Object.DestroyImmediate(g.GetComponent<Collider>());
+            var pr = g.GetComponent<Renderer>(); pr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             g.transform.SetParent(decalRoot, true);
             g.transform.position = groundPos + Vector3.up * 0.014f;
             g.transform.localScale = new Vector3(0.2f, 0.004f, 0.2f);
@@ -136,9 +152,10 @@ namespace ASBO.Slice
         void Awake() { ps = GetComponent<ParticleSystem>(); }
         void OnParticleCollision(GameObject other)
         {
+            if (other == null || other.GetComponentInParent<Person>() != null || other.GetComponentInParent<IVehicle>() != null) return;
             int n = ps.GetCollisionEvents(other, ev);
             for (int i = 0; i < n; i++)
-                if (Random.value < 0.35f) Gore.Splat(ev[i].intersection, ev[i].normal, Random.Range(0.08f, 0.28f));
+                if (Random.value < 0.35f && ev[i].normal.y > 0.3f) Gore.Splat(ev[i].intersection, ev[i].normal, Random.Range(0.08f, 0.28f));
         }
     }
 

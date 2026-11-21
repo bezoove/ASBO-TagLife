@@ -46,7 +46,7 @@ namespace ASBO.Slice
         {
             Build();
             All.Add(this);
-            if (isPlayer || (!isParamedic && label != "Paramedic")) gameObject.AddComponent<Fighter>();
+            gameObject.AddComponent<Fighter>(); // everyone can scrap, paramedics included
         }
         void OnDestroy() { All.Remove(this); }
 
@@ -228,11 +228,15 @@ namespace ASBO.Slice
             Hit(car.Velocity, other.ClosestPoint(transform.position + Vector3.up), sp);
         }
 
+        public const int RagdollLayer = 29, VehicleLayer = 28;
         Bone AddBone(Transform t, Bone parent, float mass, Collider c)
         {
             var rb = t.gameObject.AddComponent<Rigidbody>();
             rb.mass = mass; rb.linearDamping = 0.1f; rb.angularDamping = 0.8f; rb.interpolation = RigidbodyInterpolation.Interpolate;
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            // stability: more solver passes and gentle depenetration stop limbs being pulled apart (the "stretched" bodies)
+            rb.solverIterations = 12; rb.solverVelocityIterations = 4; rb.maxDepenetrationVelocity = 3f;
+            t.gameObject.layer = RagdollLayer;
             var b = new Bone { t = t, rb = rb, col = c, parent = parent };
             bones.Add(b); byT[t] = b; return b;
         }
@@ -256,6 +260,7 @@ namespace ASBO.Slice
             j.axis = b.t.InverseTransformDirection(twistWorld); j.swingAxis = b.t.InverseTransformDirection(swingWorld);
             j.lowTwistLimit = new SoftJointLimit { limit = lo }; j.highTwistLimit = new SoftJointLimit { limit = hi };
             j.swing1Limit = new SoftJointLimit { limit = s1 }; j.swing2Limit = new SoftJointLimit { limit = s2 };
+            j.projectionDistance = 0.02f; j.projectionAngle = 4f;
         }
 
         void BuildRagdoll()
@@ -287,6 +292,9 @@ namespace ASBO.Slice
                 var bll = AddBone(ll, bul, 4f, CapTo(ll, foot.position + up * -0.06f, 0.06f, 0.04f));
                 Joint(bll, right, fwd, -120, 2, 4, 4);
             }
+            for (int i = 0; i < bones.Count; i++) for (int k = i + 1; k < bones.Count; k++) if (bones[i].col != null && bones[k].col != null) Physics.IgnoreCollision(bones[i].col, bones[k].col);
+            Physics.IgnoreLayerCollision(RagdollLayer, VehicleLayer, true);
+            Physics.IgnoreLayerCollision(RagdollLayer, RagdollLayer, true);
         }
 
         static SphereCollider AddSphere(Transform t, Vector3 centerWorld, float r)
@@ -326,6 +334,7 @@ namespace ASBO.Slice
             var cc = GetComponent<CharacterController>(); if (cc != null) cc.enabled = false;
             anim.enabled = false;
             BuildRagdoll();
+            if (v.magnitude > 14f) v = v.normalized * 14f;
             foreach (var b in bones)
             {
                 float h = b.t.position.y - transform.position.y;

@@ -28,6 +28,7 @@ namespace ASBO.Slice
             var spec = CarBody.Random(r);
             t.L = spec.L;
             t.wheels = CarBody.Build(g.transform, spec, spec.van ? CarBody.VanPaint(r) : CarBody.RandomPaint(r), true, r.Next());
+            g.layer = Person.VehicleLayer; // bodies on the road pass through, not crushed
             var bc = g.AddComponent<BoxCollider>();
             float h = spec.van ? 2.0f : 1.4f;
             bc.center = new Vector3(0, 0.3f + h / 2f, 0); bc.size = new Vector3(1.7f, h, spec.L);
@@ -80,7 +81,14 @@ namespace ASBO.Slice
         }
 
         static Car playerCar;
-        static Car FindPlayerCar() { if (playerCar == null) playerCar = FindFirstObjectByType<Car>(); return playerCar; }
+        // (looked up once: searching the scene every physics step for a car that isn't there was a real cost)
+        static bool lookedForCar;
+        static Component FindPlayerCar()
+        {
+            if (PlayerCar.I != null) return PlayerCar.I;
+            if (!lookedForCar) { lookedForCar = true; playerCar = FindFirstObjectByType<Car>(); }
+            return playerCar;
+        }
         static bool ZebraBusy()
         {
             foreach (var p in Person.All) { if (p == null || p.state != Person.State.Walking) continue; var q = p.BodyPos; if (q.x > 16.2f && q.x < 19.8f && Mathf.Abs(q.z - World.RoadZ) < 5.2f) return true; }

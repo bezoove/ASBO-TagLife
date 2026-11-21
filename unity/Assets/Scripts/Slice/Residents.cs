@@ -212,7 +212,7 @@ namespace ASBO.Slice
                 {
                     float r = Random.value;
                     me.Attack(r < 0.55f ? Fighter.Move.Punch : r < 0.8f ? Fighter.Move.Hay : Fighter.Move.Kick);
-                    nextSwing = Time.time + (p.drunk ? Random.Range(1.4f, 2.6f) : Random.Range(1.0f, 2.0f));
+                    nextSwing = Time.time + (p.drunk ? Random.Range(1.0f, 1.9f) : Random.Range(0.6f, 1.3f));
                 }
             }
         }

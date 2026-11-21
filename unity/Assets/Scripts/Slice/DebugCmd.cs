@@ -104,6 +104,8 @@ namespace ASBO.Slice
         public static void FightFilmFrom(int clip, float step, float secs, float from) { var r = new GameObject("FightFilm").AddComponent<FightFilmRun>(); r.clip = clip; r.step = step; r.secs = secs; r.from = from; }
         public static void BrawlTest() { new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); }
         public static void KnockTest() { new GameObject("KnockTest").AddComponent<KnockTestRun>(); }
+        public static void CarTest() { new GameObject("CarTest").AddComponent<CarTestRun>(); }
+        public static void HardHit() { var v = Object.FindObjectsByType<Resident>(FindObjectsSortMode.None).Select(r => r.GetComponent<Person>()).FirstOrDefault(p => p != null && p.Ready && p.state == Person.State.Walking); var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (v != null && pc != null) { v.GetComponent<Resident>().HoldAt(pc.transform.position + pc.transform.forward * 3f, 0f, 30f); v.Hit(pc.transform.forward * 9f, v.transform.position + Vector3.up, 9f); } }
         public static void TouchDrive() { new GameObject("TouchDriveTest").AddComponent<TouchDriveTest>().Run(); }
         public static void EditSwitch() { if (TouchControls.I != null) TouchControls.I.SwitchEditSet(); }
         public static void EditPreset() { if (TouchControls.I != null) TouchControls.I.NextPreset(); }
@@ -463,6 +465,37 @@ namespace ASBO.Slice
                 yield return new WaitForSeconds(0.2f);
             }
             Destroy(cg); World.HideHud = false; Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Drive the arcade car with the touch flags: forward, steer right, brake, reverse. Logs speed; films from behind.</summary>
+    public class CarTestRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>(); var car = PlayerCar.I;
+            if (pc == null || car == null) { Debug.Log("[ASBO] cartest: no player or car"); Destroy(gameObject); yield break; }
+            pc.transform.position = car.ExitPoint; yield return new WaitForSeconds(0.3f);
+            var m = typeof(PlayerCtl).GetMethod("ToggleCar", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic); m.Invoke(pc, null);
+            yield return new WaitForSeconds(0.3f);
+            Debug.Log("[ASBO] cartest: inCar=" + pc.InCar);
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/cartest"); System.IO.Directory.CreateDirectory(dir);
+            foreach (var f in System.IO.Directory.GetFiles(dir, "*.png")) { try { System.IO.File.Delete(f); } catch { } }
+            float t0 = Time.time; int n = 0; float nextShot = 0f, nextLog = 0f; Vector3 p0 = car.transform.position;
+            while (Time.time - t0 < 11f)
+            {
+                float t = Time.time - t0;
+                TouchCar.Clear();
+                if (t < 4f) TouchCar.fwd = true;
+                if (t > 2.5f && t < 4f) TouchCar.right = true;
+                if (t >= 4f && t < 5.5f) TouchCar.brake = true;
+                if (t >= 6f && t < 9f) { TouchCar.rev = true; if (t > 7f) TouchCar.left = true; }
+                if (t >= nextLog) { nextLog = t + 0.5f; Debug.Log($"[ASBO] cartest t={t:F1} speed={car.SignedSpeed * 3.6f:F0} km/h yaw={car.transform.eulerAngles.y:F0} moved={(car.transform.position - p0).magnitude:F1}m"); }
+                if (t >= nextShot) { nextShot = t + 0.25f; ScreenCapture.CaptureScreenshot(dir + "/c_" + (n++).ToString("000") + ".png"); }
+                yield return null;
+            }
+            TouchCar.Clear(); m.Invoke(pc, null);
+            Destroy(gameObject);
         }
     }
 

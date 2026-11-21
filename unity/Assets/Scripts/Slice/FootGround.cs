@@ -10,7 +10,7 @@ namespace ASBO.Slice
     public class FootGround : MonoBehaviour
     {
         public float rayUp = 0.55f, rayDown = 0.75f, maxDrop = 0.32f;
-        const int Mask = ~((1 << 2) | (1 << 31));
+        const int Mask = ~((1 << 2) | (1 << 31) | (1 << 28) | (1 << 29)); // not cars or ragdolls
         Animator anim; float pelvis, lOff, rOff, lW, rW;
 
         public void Bind(Animator a) { anim = a; }

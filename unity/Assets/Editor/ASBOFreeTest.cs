@@ -100,6 +100,8 @@ namespace ASBO.EditorTools
             {
                 if (c == null) { Debug.LogWarning("[ASBO] no clip for " + trig); continue; }
                 var st = sm.AddState("F" + trig, new Vector3(650, 60 * i++)); st.motion = c; st.iKOnFeet = true;
+                // snappy: street punches, not a choreographed film fight
+                st.speed = trig == "Punch" ? 1.9f : trig == "Kick" ? 1.65f : trig == "Hay" ? 1.75f : 1.4f;
                 var tin = sm.AddAnyStateTransition(st); tin.AddCondition(AnimatorConditionMode.If, 0, trig); tin.hasExitTime = false; tin.duration = trig == "Struck" ? 0.05f : 0.08f; tin.canTransitionToSelf = trig == "Struck";
                 var tout = st.AddTransition(move); tout.hasExitTime = true; tout.exitTime = 0.88f; tout.duration = 0.18f;
             }
@@ -229,6 +231,12 @@ namespace ASBO.EditorTools
             }
             var eight = new[] { "Forward", "ForwardLeft", "ForwardRight", "Left", "Right", "Backward", "BackwardLeft", "BackwardRight" };
             Dirs("Walk", eight); Dirs("Run", eight); Dirs("Sprint", new[] { "Forward", "ForwardLeft", "ForwardRight", "Left", "Right" });
+            // quicker running than the clips' own pace: play them faster and move faster to match (feet stay planted)
+            {
+                var kids0 = tree.children; const float k = 1.3f;
+                for (int q = 0; q < kids0.Length; q++) if (kids0[q].position.magnitude > 2.6f) { kids0[q].position *= k; kids0[q].timeScale *= k; }
+                tree.children = kids0; sp.run *= k; sp.sprint *= k;
+            }
             if (sa)
             {
                 // forward walk and run from Starter Assets, played at the speed our walk/run move at so the feet don't slide
