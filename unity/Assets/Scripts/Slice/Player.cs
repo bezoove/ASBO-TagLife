@@ -187,14 +187,14 @@ namespace ASBO.Slice
             {
                 if ((vt.position - transform.position).sqrMagnitude > 4.5f * 4.5f) return;
                 inCar = true; cc.enabled = false; SetVisible(false);
-                if (rcc != null && rcc.Car != null) RCCP.RegisterPlayerVehicle(rcc.Car, true, true);
+                if (rcc != null && rcc.Car != null) { RCCP.RegisterPlayerVehicle(rcc.Car, true, true); rcc.driven = true; }
                 else if (car != null) car.occupied = true;
             }
             else
             {
                 inCar = false;
                 Vector3 exit;
-                if (rcc != null && rcc.Car != null) { RCCP.SetControl(rcc.Car, false); RCCP.DeRegisterPlayerVehicle(); exit = vt.position - vt.right * 1.9f; }
+                if (rcc != null && rcc.Car != null) { rcc.driven = false; RCCP.SetControl(rcc.Car, false); RCCP.DeRegisterPlayerVehicle(); exit = vt.position - vt.right * 1.9f; }
                 else { car.occupied = false; exit = car.exitPoint.position; }
                 exit.y = vt.position.y; transform.position = exit; cc.enabled = true; SetVisible(true);
                 bodyYaw = vt.eulerAngles.y; vel = Vector3.zero;

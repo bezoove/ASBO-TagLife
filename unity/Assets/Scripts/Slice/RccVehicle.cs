@@ -21,6 +21,66 @@ namespace ASBO.Slice
                 var pr = t.GetProperty("drawSkid", F); if (pr != null && pr.CanWrite) pr.SetValue(mb, false);
             }
         }
+        // RCC switches itself to its own on-screen controller on phones (and in the editor when the target is Android),
+        // which ignores our touch controls. Our buttons drive a virtual gamepad, so keep RCC on gamepad/keyboard input.
+        static System.Reflection.FieldInfo mobF; static System.Reflection.PropertyInfo mobP; static object rccSettings; static bool mobLooked;
+        static void KeepGamepadInput()
+        {
+            if (!mobLooked)
+            {
+                mobLooked = true;
+                const System.Reflection.BindingFlags F = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+                foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    var t = asm.GetType("RCCP_Settings"); if (t == null) continue;
+                    rccSettings = t.GetProperty("Instance", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public)?.GetValue(null);
+                    mobF = t.GetField("mobileControllerEnabled", F);
+                    if (mobF == null) mobP = t.GetProperty("mobileControllerEnabled", F);
+                    var mc = t.GetField("mobileController", F); if (mc != null && rccSettings != null && mc.FieldType == typeof(bool)) mc.SetValue(rccSettings, false);
+                    Debug.Log("[ASBO] RCC input: mobile controller " + (mobF != null ? "field" : mobP != null ? (mobP.CanWrite ? "property" : "read-only property") : "not found") + ", forcing gamepad/keyboard");
+                    break;
+                }
+            }
+            if (rccSettings == null) return;
+            if (mobF != null) { if ((bool)mobF.GetValue(rccSettings)) mobF.SetValue(rccSettings, false); }
+            else if (mobP != null && mobP.CanWrite && (bool)mobP.GetValue(rccSettings)) mobP.SetValue(rccSettings, false);
+        }
+        /// <summary>
+        /// Set while the player is in the driving seat. We feed RCC our own inputs (keyboard, a real gamepad, or the
+        /// touch buttons' virtual gamepad) instead of relying on its input manager, which ignores the touch pad.
+        /// </summary>
+        public bool driven;
+        RCCP_Input rin; readonly RCCP_Inputs feed = new RCCP_Inputs(); bool overriding;
+        void Update()
+        {
+            KeepGamepadInput();
+            if (rin == null) rin = GetComponentInChildren<RCCP_Input>(true);
+            if (rin == null) return;
+            if (!driven)
+            {
+                if (overriding) { feed.Clear(); feed.handbrakeInput = 1f; rin.OverrideInputs(feed); rin.DisableOverrideInputs(); rin.overridePlayerInputs = false; overriding = false; }
+                return;
+            }
+            float thr = 0f, brk = 0f, steer = 0f, hb = 0f;
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null)
+            {
+                if (kb.wKey.isPressed || kb.upArrowKey.isPressed) thr = 1f;
+                if (kb.sKey.isPressed || kb.downArrowKey.isPressed) brk = 1f;
+                steer += (kb.dKey.isPressed || kb.rightArrowKey.isPressed ? 1f : 0f) - (kb.aKey.isPressed || kb.leftArrowKey.isPressed ? 1f : 0f);
+                if (kb.spaceKey.isPressed) hb = 1f;
+            }
+            foreach (var pad in UnityEngine.InputSystem.Gamepad.all) // real pads and the on-screen one
+            {
+                thr = Mathf.Max(thr, pad.rightTrigger.ReadValue());
+                brk = Mathf.Max(brk, pad.leftTrigger.ReadValue());
+                float sx = pad.leftStick.ReadValue().x; if (Mathf.Abs(sx) > Mathf.Abs(steer)) steer = sx;
+                if (pad.buttonSouth.isPressed) hb = 1f;
+            }
+            feed.throttleInput = thr; feed.brakeInput = brk; feed.steerInput = Mathf.Clamp(steer, -1f, 1f); feed.handbrakeInput = hb;
+            rin.overridePlayerInputs = true; rin.OverrideInputs(feed); overriding = true;
+        }
+
         public bool reskin = true;
         public Color paint = new Color(0.1f, 0.2f, 0.42f);
 

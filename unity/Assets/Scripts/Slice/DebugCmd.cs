@@ -85,6 +85,21 @@ namespace ASBO.Slice
         /// <summary>Line up ten generic residents on the road and photograph them (Shots/people_*.png).</summary>
         public static void PeopleShow() { new GameObject("PeopleShow").AddComponent<PeopleShowRun>(); }
         public static void EditControls() { if (TouchControls.I != null) TouchControls.I.ToggleEdit(); }
+        public static void DumpType(string name)
+        {
+            foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                var t = asm.GetType(name); if (t == null) continue;
+                var sb = new System.Text.StringBuilder("[ASBO] type " + t.FullName + " : " + t.BaseType + "\n");
+                const System.Reflection.BindingFlags F = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.DeclaredOnly;
+                foreach (var f in t.GetFields(F)) sb.Append("  field ").Append(f.FieldType.Name).Append(' ').Append(f.Name).Append('\n');
+                foreach (var pr in t.GetProperties(F)) sb.Append("  prop ").Append(pr.PropertyType.Name).Append(' ').Append(pr.Name).Append(pr.CanWrite ? " rw" : " r").Append('\n');
+                foreach (var m in t.GetMethods(F)) if (!m.IsSpecialName) sb.Append("  method ").Append(m.ReturnType.Name).Append(' ').Append(m.Name).Append('(').Append(string.Join(", ", m.GetParameters().Select(q => q.ParameterType.Name + " " + q.Name))).Append(")\n");
+                System.IO.File.WriteAllText(Application.dataPath + "/../Temp/type_" + name + ".txt", sb.ToString());
+                Debug.Log("[ASBO] dumped " + name);
+            }
+        }
+        public static void TouchDrive() { new GameObject("TouchDriveTest").AddComponent<TouchDriveTest>().Run(); }
         public static void EditSwitch() { if (TouchControls.I != null) TouchControls.I.SwitchEditSet(); }
         public static void EditPreset() { if (TouchControls.I != null) TouchControls.I.NextPreset(); }
         public static void Touch(int on) { PlayerPrefs.SetInt("asbo_touch", on); PlayerPrefs.Save(); }
@@ -137,6 +152,54 @@ namespace ASBO.Slice
             Time.captureFramerate = 0;
             pc.showSpeed = -1f; pc.showYaw = float.NaN; pc.showRadius = -1f; pc.showPitch = float.NaN;
             World.HideHud = false;
+            Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Presses the real on-screen buttons (same events a finger sends) to check driving works with touch.</summary>
+    public class TouchDriveTest : MonoBehaviour
+    {
+        static GameObject Face(string id) { var tc = TouchControls.I; if (tc == null) return null; var t = tc.transform.Find(id); return t != null ? (t.Find("Face") != null ? t.Find("Face").gameObject : t.gameObject) : null; }
+        static void Press(string id, bool down)
+        {
+            var go = Face(id); if (go == null) { Debug.Log("[ASBO] touchtest: no control " + id); return; }
+            var ev = new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current) { position = go.transform.position };
+            if (down) UnityEngine.EventSystems.ExecuteEvents.Execute(go, ev, UnityEngine.EventSystems.ExecuteEvents.pointerDownHandler);
+            else UnityEngine.EventSystems.ExecuteEvents.Execute(go, ev, UnityEngine.EventSystems.ExecuteEvents.pointerUpHandler);
+        }
+        public void Run() { StartCoroutine(Go()); }
+        static object RccSettings()
+        {
+            foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies()) { var t = asm.GetType("RCCP_Settings"); if (t == null) continue; var p = t.GetProperty("Instance", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public); if (p != null) return p.GetValue(null); }
+            return null;
+        }
+        static string M(object o, string n)
+        {
+            if (o == null) return "-"; const System.Reflection.BindingFlags F = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+            var t = o.GetType(); var f = t.GetField(n, F); if (f != null) return System.Convert.ToString(f.GetValue(o), System.Globalization.CultureInfo.InvariantCulture);
+            var p = t.GetProperty(n, F); if (p != null) return System.Convert.ToString(p.GetValue(o), System.Globalization.CultureInfo.InvariantCulture);
+            return "?";
+        }
+        System.Collections.IEnumerator Go()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>(); var rcc = FindFirstObjectByType<RccVehicle>();
+            if (pc == null || rcc == null) { Debug.Log("[ASBO] touchtest: no player/rcc"); yield break; }
+            pc.transform.position = rcc.transform.position - rcc.transform.right * 2.2f;
+            yield return new WaitForSeconds(0.3f);
+            Press("car", true); yield return null; yield return null; Press("car", false);
+            yield return new WaitForSeconds(0.5f);
+            var pad = UnityEngine.InputSystem.Gamepad.current;
+            Debug.Log($"[ASBO] touchtest: inCar={pc.InCar} pad={(pad != null ? pad.name : "none")} pads={UnityEngine.InputSystem.Gamepad.all.Count}");
+            var cc = rcc.Car;
+            if (cc != null) Debug.Log($"[ASBO] touchtest: canControl={M(cc, "canControl")} engineRunning={M(cc, "engineRunning")} externalControl={M(cc, "externalControl")} mobile={M(RccSettings(), "mobileControllerEnabled")}");
+            Press("gas", true);
+            for (int i = 0; i < 6; i++)
+            {
+                yield return new WaitForSeconds(0.5f);
+                pad = UnityEngine.InputSystem.Gamepad.current;
+                Debug.Log($"[ASBO] touchtest t={(i + 1) * 0.5f:F1}s speed={rcc.Speed * 3.6f:F1} km/h trigger={(pad != null ? pad.rightTrigger.ReadValue() : -1f):F2} throttleIn={M(cc, "throttleInput_V")} rpm={M(cc, "engineRPM")}");
+            }
+            Press("gas", false);
             Destroy(gameObject);
         }
     }
