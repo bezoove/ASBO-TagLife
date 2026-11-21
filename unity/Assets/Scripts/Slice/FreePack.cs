@@ -40,7 +40,7 @@ namespace ASBO.Slice
             Debug.Log("[ASBO] UMA races: " + (male ? male.raceName : "none") + " / " + (female ? female.raceName : "none") + ", wardrobe recipes: " + all.Count);
         }
 
-        static readonly string[] Banned = { "underwear", "underpants", "bra", "swim", "challenger", "robe", "wrapped", "tights", "anime", "pigtail", "tornado", "pointy", "elf", "orc", "sylvan", "sprite", "glove", "shouder", "shoulder", "lace", "tanktop_zebra", "straps" };
+        static readonly string[] Banned = { "underwear", "underpants", "bra", "swim", "challenger", "robe", "wrapped", "tights", "anime", "pigtail", "tornado", "pointy", "elf", "orc", "sylvan", "sprite", "glove", "shouder", "shoulder", "lace", "tanktop_zebra", "straps", "sportswear_top" };
 
         static List<UMAWardrobeRecipe> Pool(RaceData race, string slot, params string[] mustContainAny)
         {
@@ -153,6 +153,7 @@ namespace ASBO.Slice
             {
                 var a = d.animator != null ? d.animator : d.GetComponentInChildren<Animator>();
                 if (a != null && a.GetComponent<ArmTrim>() == null) a.gameObject.AddComponent<ArmTrim>().Bind(a);
+                if (a != null && a.GetComponent<FootGround>() == null) a.gameObject.AddComponent<FootGround>().Bind(a);
                 TintHair(d, hairCol); TintClothes(d, tints);
                 onReady?.Invoke(d);
             });

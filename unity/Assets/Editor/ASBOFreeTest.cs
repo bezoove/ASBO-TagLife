@@ -107,6 +107,7 @@ namespace ASBO.EditorTools
             }
             // Foot IK on every state: feet go back to where the original mocap put them (fixes wide stance after retargeting onto UMA)
             foreach (var cs in sm.states) cs.state.iKOnFeet = ik;
+            if (ik) { var ls = ac.layers; ls[0].iKPass = true; ac.layers = ls; } // ground-aware feet (FootGround.OnAnimatorIK)
             if (!ik) { EditorUtility.SetDirty(ac); return; }
             EditorUtility.SetDirty(ac);
             File.WriteAllText(Out + "LocoSpeeds" + s + ".json", JsonUtility.ToJson(sp));
@@ -215,6 +216,13 @@ namespace ASBO.EditorTools
             }
             AssetDatabase.SaveAssets();
             Debug.Log("[ASBO] converted " + n + " RCC materials to URP");
+        }
+
+        [MenuItem("ASBO/Test/6 Use Test Scene For Builds")]
+        public static void UseTestSceneForBuilds()
+        {
+            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene("Assets/Scenes/AbbotsWend_Test.unity", true), new EditorBuildSettingsScene("Assets/Scenes/AbbotsWend.unity", false) };
+            Debug.Log("[ASBO] build scenes: AbbotsWend_Test (UMA/mocap/RCC) first");
         }
 
         [MenuItem("ASBO/Test/3 Build Test Scene")]

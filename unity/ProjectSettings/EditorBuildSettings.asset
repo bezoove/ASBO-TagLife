@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/AbbotsWend_Test.unity
+    guid: c1ec0520761a21449b160d7f2a1d2571
+  - enabled: 0
     path: Assets/Scenes/AbbotsWend.unity
     guid: 42e66da48a7188744bff8b65dd1c2ec2
   m_configObjects:

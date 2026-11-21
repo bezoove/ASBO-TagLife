@@ -50,7 +50,7 @@ namespace ASBO.Slice
         void BuildUma()
         {
             uma = true;
-            int h = Mathf.Abs(GetInstanceID() * 7919 + (int)(transform.position.x * 13f));
+            int h = isPlayer ? 20261120 : Mathf.Abs(GetInstanceID() * 7919 + (int)(transform.position.x * 13f)); // the player always looks the same
             male = isPlayer || (string.IsNullOrEmpty(model) ? (h % 2) == 1 : model.StartsWith("m_"));
             if (isParamedic || label == "Paramedic") male = (h % 3) != 0;
             UmaBody.Create(this, male, h, isPlayer, d =>
