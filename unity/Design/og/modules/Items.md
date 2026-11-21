@@ -1,0 +1,219 @@
+# Items (old game, v95)
+
+Part of: Pockets and items
+
+Source in game.pretty.js: 107224-108436, 108889-108889, 108893-108893, 108944-108982, 109013-109013, 109018-109018, 109399-109409, 109411-109417, 112909-112909, 113392-113420, 113422-113429, 113431-113438, 113440-113447, 113449-113452, 113457-113457, 116241-116241, 137317-137324, 137383-137385, 138313-138326, 139513-139524, 139526-139529, 139673-139675, 139914-139930, 140061-140109, 141490-141497, 141947-141954, 142755-142755, 143269-143271, 143273-143275, 143277-143280, 143283-143290, 144113-144113, 145454-145456, 154815-154817, 154861-154863, 156689-156734, 175570-175572, 175574-175576
+
+## Behaviours (59)
+
+- p (`P`, line 107231)
+- it (`it`, line 107234)
+- indoors (`indoors`, line 107237)
+- front (`front`, line 107241)
+- cam dist (`camDist`, line 107249, 137383)
+- has light (`hasLight`, line 107253)
+- can act (`canAct`, line 107256)
+- equippable (`equippable`, line 107260, 143269)
+- throwable (`throwable`, line 107264, 143273)
+- usable (`usable`, line 107268, 139526)
+- cat of (`catOf`, line 107272)
+- offence (`offence`, line 107279, 154861)
+- witnesses (`witnesses`, line 107292, 145454, 154815)
+- use (`use`, line 107305, 139513, 143277, 156689)
+- equip (`equip`, line 107369)
+- unequip (`unequip`, line 107391, 113449)
+- equipped (`equipped`, line 107397)
+- drop (`drop`, line 107401, 175570)
+- box kind (`boxKind`, line 107418)
+- give (`give`, line 107430, 175574)
+- throw it (`throwIt`, line 107440)
+- drawn (`drawn`, line 107444)
+- sheathed (`sheathed`, line 107464)
+- torch (`torch`, line 107468)
+- torch light (`torchLight`, line 107476, 109403)
+- torch tick (`torchTick`, line 107488, 109411)
+- light firework (`lightFirework`, line 107512, 113392, 138313)
+- panic (`panic`, line 107562)
+- sparkler (`sparkler`, line 107571)
+- fw top (`fwTop`, line 107587)
+- fw update (`fwUpdate`, line 107594)
+- fw go (`fwGo`, line 107899, 113422, 137317)
+- fw done (`fwDone`, line 107973)
+- burst (`burst`, line 107987, 113431)
+- eat (`eat`, line 108083)
+- drink soft (`drinkSoft`, line 108095)
+- drink can (`drinkCan`, line 108102)
+- drink vodka (`drinkVodka`, line 108110)
+- pills (`pills`, line 108123)
+- plasters (`plasters`, line 108137)
+- lottery (`lottery`, line 108149)
+- airhorn (`airhorn`, line 108157)
+- water pistol (`waterPistol`, line 108178)
+- squirt tick (`squirtTick`, line 108188)
+- smoke (`smoke`, line 108232)
+- smoke tick (`smokeTick`, line 108255)
+- roll (`roll`, line 108266)
+- superglue (`superglue`, line 108273)
+- glued tick (`gluedTick`, line 108288)
+- whoopee (`whoopee`, line 108309)
+- whoopee tick (`whoopeeTick`, line 108322)
+- itching (`itching`, line 108339)
+- itch tick (`itchTick`, line 108355)
+- wear (`wear`, line 108367, 139914)
+- worn (`worn`, line 108387)
+- update (`update`, line 108390, 113440, 140061, 141490, 141947, 143283)
+- stub shop (`stubShop`, line 108417)
+- splat (`splat`, line 108944)
+- park torch (`parkTorch`, line 109399)
+
+## Everything it says or shows (91)
+
+- Brenda: "Oi! Not in my pub!"
+- You haven't got one.
+- Not right now.
+- You feel oddly calm about doubles.
+- You strike one. It goes out. Satisfying.
+- Click. A little flame. You feel like a wizard.
+- Zing. Your teeth are humming. You walk faster now.
+- Cold water. The room steadies a little.
+- Put the … down first.
+- Finish the one in your hand first.
+- Torch in hand. Use it again to switch it on.
+- You drop the spent sparkler.
+- Best keep hold of that.
+- … is too far away.
+- … is in no state for presents.
+- … is in the middle of a game.
+- … in hand. Hold Throw and let go.
+- … in hand. Hold G to aim, let go to throw.
+- Brenda: "Put that … away or you're out. I mean it."
+- People have noticed the ….
+- Torch on.
+- Torch off.
+- You've nothing to light it with. The shop sells lighters.
+- One at a time. Stand back.
+- Your hands are full.
+- No room to set it down here.
+- You've nothing to light it with.
+- One is plenty.
+- It fizzes into life. Wave it about.
+- The sparkler fizzles out.
+- … goes over like a sack of spuds.
+- Cheese and onion. Half the bag is air. Lines the stomach.
+- Pork scratchings. A tooth creaks. Lines the stomach.
+- The pasty. Lukewarm, pastry like a wet paper bag, and exactly what you needed.
+- …. Lines the stomach.
+- Put that down first.
+- Psssht. Can in hand. Tap Sip.
+- Psssht. Can in hand. F to sip.
+- One drink at a time, you animal.
+- A swig. That burns. The bottle is empty. You feel both proud and worried.
+- A swig straight from the bottle. That burns. … left in it.
+- Two paracetamol, dry. The thump in your head backs off.
+- Nothing to patch up. You're fine. For now.
+- A plaster across the worst of it. Very dignified.
+- The draw is at eleven. It's …. Patience.
+- Lottery: …you win …!
+- Lottery: one number. The dream dies quietly.
+- Brenda: "What in God's name was THAT?!"
+- A last wheeze. The can is empty.
+- BWAAAAP. … blasts left in it.
+- Still squirting.
+- No cigarettes. The shop sells twenty.
+- Nothing to light it with.
+- One at a time.
+- You light up. A nod from the other smokers. Kinship.
+- You light up. Deep breath. Terrible for you.
+- Brenda: "Not in here! Outside with it!"
+- Papers but no baccy. Like a car with no engine.
+- Baccy but no papers. Tragic.
+- Rolled one. That was the last of the pouch.
+- Rolled one. Last paper. Ruined the next one trying.
+- You roll a cigarette. A thin, sad one. It counts.
+- Nowhere to glue it.
+- You need a coin to glue down.
+- Glued a 50p to the floor
+- You glue a 50p to the floor and step back. Now we wait.
+- … bends down for the 50p. Tugs. Tugs again.
+- Planted under the cushion. Now, nonchalance.
+- Stand next to an empty seat to plant it.
+- A long, wet raspberry. … goes scarlet. The room erupts.
+- Get right behind somebody first.
+- … sees exactly what you did there.
+- Down the back of …'s collar. They haven't noticed. Yet.
+- Two eyes and a mouth. Harder to recognise. Also: obviously up to something.
+- Hi-vis on. You look like you are meant to be here.
+- Brass on the fingers. Your punches will land heavier.
+- The zing wears off. You feel like a wrung flannel.
+- See what the shop has
+- The Roman candle is spent.
+- You can't pocket a lit firework. You drop it.
+- The moustache goes on. You look like a 1970s detective. Or a 1970s suspect.
+- "KISS ME QUICK". Bold. Flirting will go a little better tonight.
+- Hold Use to paint. Keep holding and drag to move the dot.
+- Hold E or the left mouse button to spray where the dot is. N changes the pattern.
+- A stick of chalk in hand. Hold Use / E to draw on the ground.
+- Rattle rattle. Hold Use to paint where the dot is.
+- Rattle rattle. Hold E or the left mouse button to spray at the dot; N for tags.
+- …% of the box left.
+- Found in 
+- …: "What would I want with a ladder?"
+- Nobody wants a ladder.
+
+## Labels and names (4)
+
+- chaos lit · chaos go · chaos burst · letting off fireworks
+
+## States and modes
+
+- mode: explore, down, getup, stand, sit, title
+- state: gone, offstage, match, walk
+- kind: torch, sparkler, rocket, banger, candle, fountain, smoke
+- phase: fuse, rocket, candle, fountain, done
+
+## Tuning numbers (44)
+
+- _acc: 0
+- dist: .9, 0
+- lookW: 1, .6
+- speed: 1.5, 1.3, 1.2, .9, 1.6, 1.1
+- cool: .25
+- dur: .6, .9, .8, .7, 1.4, .5
+- lookT: 2, 1.5, 3, 2.5
+- backT: 1.1
+- intensity: 0
+- shots: 0
+- acc: 0, .6, 1
+- life: 20, .08, .07, 2.5, .1, 2.2
+- kind: 1, 0, 2
+- drag: 2, 2.5, 1.5, 1, .8, .7
+- grav: -5, -4, -3, -6, -6.5, -2.2
+- fin: .02, .01, .1, .05
+- fout: .5, .4, .3, .6, .92
+- spread: .6
+- dir: 1
+- scale: 1
+- drinkLeft: 1
+- vodkaLeft: 0
+- hangover: 0
+- hornBlasts: 0
+- floor: .01
+- vol: .05
+- mates: 0
+- cigMate: 1
+- smokingT: 0
+- baccyRolls: 0
+- amount: .5
+- _itchN: 0
+- itchT: 0
+- wary: 30
+- zingT: 0
+- speedMul: 1
+- koT: 0
+- radius: 1.3
+- bubblesLeft: 0
+- fun: .5, .6
+- bumpGood: 1
+- turb: .5
+- _ebT: 4
+- eggBreath: 1

@@ -1,0 +1,207 @@
+# Swat (old game, v95)
+
+Part of: Armed police
+
+Source in game.pretty.js: 195244-196803, 196805-196805, 196949-196956
+
+## Behaviours (69)
+
+- arrive (`_arrive`, line 196949)
+- armed (`armed`, line 195346)
+- record (`record`, line 195355)
+- score (`score`, line 195370)
+- violence (`violence`, line 195380)
+- top why (`topWhy`, line 195390)
+- scene busy (`sceneBusy`, line 195397)
+- can trigger (`canTrigger`, line 195401)
+- banner el (`bannerEl`, line 195407)
+- banner (`banner`, line 195425)
+- banner tick (`bannerTick`, line 195430)
+- siren (`siren`, line 195436)
+- siren loop (`sirenLoop`, line 195461)
+- pseudo (`pseudo`, line 195521)
+- make ofc (`makeOfc`, line 195541)
+- ensure ofc (`ensureOfc`, line 195589)
+- hide ofc (`hideOfc`, line 195601)
+- release ofc (`releaseOfc`, line 195605)
+- van pt (`vanPt`, line 195622)
+- place at (`placeAt`, line 195630)
+- go to (`goTo`, line 195635)
+- move ofc (`moveOfc`, line 195652)
+- frame q (`frameQ`, line 195723)
+- arm (`arm`, line 195727)
+- aim (`aim`, line 195767)
+- aim err (`aimErr`, line 195800)
+- update ofc (`updateOfc`, line 195811)
+- sight (`sight`, line 195823)
+- outdoor at (`outdoorAt`, line 195835)
+- slots (`slots`, line 195840)
+- centre (`centre`, line 195884)
+- assign (`assign`, line 195889)
+- van model (`vanModel`, line 195913)
+- target (`target`, line 195938)
+- spawn spot (`spawnSpot`, line 195956)
+- dispatch (`dispatch`, line 195974)
+- replan (`replan`, line 196026)
+- unseat driver (`unseatDriver`, line 196047)
+- seat driver (`seatDriver`, line 196064)
+- arrive (`arrive`, line 196070)
+- leave (`leave`, line 196088)
+- drop (`drop`, line 196124)
+- call (`call`, line 196140)
+- shout (`shout`, line 196149)
+- speed (`speed`, line 196169)
+- in veh (`inVeh`, line 196176)
+- commands (`commands`, line 196181)
+- standoff (`standoff`, line 196193)
+- fire taser (`fireTaser`, line 196224)
+- fire baton (`fireBaton`, line 196267)
+- wire tick (`wireTick`, line 196310)
+- comply (`comply`, line 196330)
+- start cuff (`startCuff`, line 196341)
+- hands up (`handsUp`, line 196370)
+- cuff (`cuff`, line 196394)
+- start pursuit (`startPursuit`, line 196441)
+- pursuit (`pursuit`, line 196452)
+- wait outside (`waitOutside`, line 196484)
+- lost (`lost`, line 196495)
+- stand down (`standDown`, line 196502)
+- go back (`goBack`, line 196514)
+- finish (`finish`, line 196530)
+- take in (`takeIn`, line 196537)
+- update (`update`, line 196600)
+- deploy late (`deployLate`, line 196729)
+- reset (`reset`, line 196743)
+- prewarm (`prewarm`, line 196750)
+- can surrender (`canSurrender`, line 196766)
+- surrender (`surrender`, line 196770)
+
+## Everything it says or shows (17)
+
+- Armed officer
+- Armed police officer
+- stops short (no kerb route)
+- Armed police are outside
+- Armed police
+- They will not come in. They are waiting for you to come out.
+- Do exactly what they say.
+- Control: armed response requested. 
+- Cuffed. They walk you to the van.
+- swat takeIn
+- The armed unit has stood down
+- For now. PC Hargreaves still wants a word.
+- You have lost the armed unit
+- For now. The police still want you.
+- … a ride in the back of the armed unit's van. A night in the cells. Charge: ….
+- van lost from the traffic
+- no way to send the van
+
+## Labels and names (21)
+
+- serious violence · swat officer · swat spot · swat plan · van arrived after  · player went in · swat taser · taser by officer 
+- swat baton · baton round by officer  · cuff watchdog · player came out ·  recovered as stolen · time limit · swat van · swat dispatch
+- van hurried · van re-sent · swat prewarm van · swat prewarm · swat arrive
+
+## States and modes
+
+- mode: explore, title, stand, down, talk, cutscene
+- kind: carbine, taser
+- state: drive, parked
+- goal: out, slot
+- type: car
+
+## Tuning numbers (93)
+
+- cool: -1e9
+- want: 0
+- sirenLvl: 0, .06, .05
+- stillT: 0
+- runT: 0
+- warnN: 0
+- lostT: 0
+- attacked: 0
+- cuffT: 0
+- inT: 0
+- shoutT: 0, 1
+- shoutI: 0
+- losT: 0
+- replanT: 0, 4, 5
+- deployI: 0, 1
+- deployT: 0, .45, .6
+- mountT: 0
+- armedAt: -1e9
+- buildWait: 0
+- calls: 0
+- arrivals: 0
+- arrests: 0
+- tasers: 0
+- batons: 0
+- escapes: 0
+- standDowns: 0
+- builds: 0
+- buildMs: 0
+- reused: 0
+- maxOfc: 0
+- arriveT: 0
+- routeLen: 0
+- spawnD: 0
+- frameMs: 0
+- frameN: 0
+- THRESH: 4.5
+- WARN: 3
+- WINDOW: 300
+- COOL: 420
+- TASER: 9
+- BATON: 28
+- WAIT_IN: 75
+- LOSE: 12
+- STILL: 3.5
+- CRUISE: 13.5
+- MAXT: 240
+- left: 50, 0
+- top: 13, 0
+- index: 60
+- shadow: 0
+- font: 700, 500
+- bottom: 0
+- right: 0
+- radius: 0
+- until: 0
+- dur: 4.8, 2
+- tri: 4
+- vol: .075, .045, .025, .1, .18, .12
+- freq: 1900, 300, 3200, 4200, 700, 3e3
+- temper: .4
+- honesty: 1
+- spd: 0
+- aimW: 0, 1
+- ikW: 0
+- dPl: 99
+- speed: 0
+- _stk: 0
+- _unw: 0
+- low: .75, .9
+- lookW: .95
+- rack: 0
+- ladder: 0
+- tow: 0
+- alloy: 1
+- sticker: 0
+- clutter: 0
+- tax: 1
+- lit: 0
+- cap: 1
+- seed: 7707
+- steer: 0
+- flee: 20, 14
+- cruise: 9, 15
+- sweepTo: 500
+- _bw: 0
+- _reT: 1.2
+- tasT: 0
+- slide: -60
+- cash: 0
+- mins: 0
+- tickT: 0, .5
+- _loT: .25
+- _losT: .2

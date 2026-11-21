@@ -1,0 +1,537 @@
+# LINES (old game, v95)
+
+Part of: Talking to people
+
+Source in game.pretty.js: 100400-100595, 101678-101678, 114002-114036, 115187-115187, 131429-131450, 147330-147340, 150396-150417, 195228-195243, 197620-197632, 214682-214688
+
+## Everything it says or shows (525)
+
+- Alright? Don't think I've seen you in here before.
+- New face. You lost, or just thirsty?
+- Evening. You're not from round here, are you?
+- Who let you in? Only joking. Mostly.
+- You again.
+- Now then.
+- Here they are!
+- Oi oi! Pull up a stool.
+- My favourite person in here. Don't tell anyone.
+- What do you want?
+- Thought I smelled something.
+- Oi. What are you creeping about for?
+- Why are you skulking?
+- Can I help you? You're hovering.
+- Stop lurking, will you?
+- I can see you, you know.
+- Thought I heard something.
+- You after something?
+- Oi! That's my pocket you've got your hand in!
+- Get your hands off me!
+- What do you think you're doing?!
+- Oi! He's got your wallet!
+- Mate! Check your pockets!
+- I saw that! I saw that!
+- My wallet! Where's my wallet?!
+- Hang on... I've been done!
+- Someone's had my pockets!
+- Oh, you're joking. It's gone!
+- It was you. You were stood right behind me.
+- You. I saw you hovering. Hand it over.
+- I know it was you. Don't make this ugly.
+- ...Hm. Maybe I dropped it. Sorry.
+- Right. Sorry. Long day.
+- Hm. Fair enough. Sorry.
+- Do I look stupid?
+- Don't give me that.
+- ...Right. Lucky for you you've got a conscience.
+- Hand it over. And don't do it again.
+- I'll let it go. This once.
+- Brenda's had the carpet in here since 1987. You can tell by the way your shoes stick.
+- My missus thinks I'm at night school. Night school of life, mate.
+- That jukebox has played the same four songs since Christmas.
+- Saw a fox in the beer garden last week. Had more manners than half the people in here.
+- They want to put a gastropub in on the high street. Small plates. Small plates! I want a big plate.
+- Don't have the scampi. Trust me.
+- Best thing about this place? Nobody asks questions.
+- I came in here for one in 2009.
+- Go on then. Get your arrows out.
+- Thought you'd never ask.
+- Lovely. {g} it is.
+- Yeah, go on. Don't cry when you lose.
+- Dunno... what's in it for me?
+- I might. Convince me.
+- Maybe. I've had a long day.
+- Hmm. I don't really know you, do I?
+- Not tonight.
+- Nah. Not feeling it.
+- Ask me later. Or never.
+- I'm skint, mate. Unless you fancy a friendly.
+- Wallet's empty. Spent it all on that bloody machine.
+- I've seen you throw. I'm not a mug.
+- Word gets round, you know. You're a shark.
+- Play you? I'd rather set fire to my own money.
+- Cheers! You're a gent.
+- Oh, go on then. Ta very much.
+- Now that's how you make friends round here.
+- Lovely stuff. I'll get the next one. Probably.
+- I've already got one on the go, but I'll take it.
+- Two-fisting it. Don't tell Brenda.
+- Better luck next time.
+- Pay up, then.
+- Should've stayed at home.
+- Fair play. Well thrown.
+- You jammy so-and-so.
+- Yeah, alright, you win. Don't go on about it.
+- Here's your money. Choke on it.
+- That was luck, that.
+- I want a rematch. Now.
+- You've been practising, haven't you? Sneaky.
+- I love you, mate. I mean it. I love this pub.
+- Is it me or is the floor moving?
+- I'm not drunk. You're drunk. Everyone's drunk.
+- Shhh. Shhh. Listen. ...No, forgot it.
+- Ha! Smooth. Keep going.
+- You're trouble, you are.
+- Buy me another and we'll see.
+- Not a chance.
+- Did that line work on anyone, ever?
+- I'll pretend you didn't say that.
+- For me? Oh, you shouldn't have! Seriously, nobody ever gets me anything.
+- That's perfect. How did you know?
+- Ta. That's nice of you.
+- What am I supposed to do with that?
+- Is this a joke?
+- See you.
+- Mind how you go.
+- Don't be a stranger.
+- Not now, I'm in the middle of something.
+- I owe you one. Remember that.
+- Leave it. Not worth it.
+- Well, if you're buying... go on then.
+- A free pint? I'm in.
+- I can buy my own drinks, ta.
+- Now you're talking my language.
+- Double it? Go on, you're on.
+- That's too rich for me.
+- Scared? Of you? Right, get up there.
+- Oh, it's like that, is it? You're on.
+- Nice try. I'm not rising to it.
+- Call me what you want. Still no.
+- Just for fun? Yeah, alright.
+- No money? Fine. Bragging rights only.
+- What's the point of that?
+- A head start? Now we're talking.
+- Generous. Daft, but generous.
+- I don't need your charity.
+- Go on, because it's you.
+- Alright, alright. For you.
+- We're not that close, mate.
+- Oh, go on. Just because you asked nicely.
+- When you put it like that...
+- That's not going to work on me.
+- Fair enough. I owe you. Let's play.
+- Paid to play darts? Easiest money I'll make all week.
+- A tenner just to throw? Done.
+- I'm not a performing seal.
+- You're skulking, love. Stop it. You'll put the customers off.
+- I can see you creeping about. Cut it out.
+- NOT in my pub!
+- Are you robbing my customers?! In MY pub?!
+- New face. I'm Brenda, I run this place. Pay for your drinks, mind your language, and don't bring trouble in here and we'll get on fine.
+- What can I get you, love?
+- You behaving yourself?
+- There's my favourite customer. Don't let it go to your head.
+- Twenty-eight years I've had this pub. Bill used to say I'd outlive the carpet. He was right.
+- If you see Mickey's lot causing bother, you tell me. Not him. Me.
+- Thursday's darts night. Proper competition. Ten pound entry.
+- That Terry. Heart of gold, liver of a man twice his age.
+- Don't feed that machine. It's got more of my regulars' wages than the bookies.
+- I've barred better people than you, love. Remember that.
+- I'm working, love. Ask me after closing. Actually, don't.
+- I don't play for money. Never have.
+- Go on then, one game. Loser buys the round. Don't tell anyone I'm soft.
+- One minute, love, I'm serving.
+- Alright? I'm Callum. I'm on the bar Thursday to Sunday. If Brenda shouts, I'm changing a barrel.
+- What'll it be?
+- Look who it is.
+- I'm saving up to open a cocktail bar. Brenda says I'm wasted pulling pints. She also says I'm wasted generally.
+- You get to know people, working a bar. Everyone tells you everything after their fourth.
+- Kev tips in fifty pence pieces. Every time. Like it's a gesture.
+- I clock off at eleven. After that I'm a free man.
+- Deano's barred from two other pubs. We're the last resort.
+- Not while I'm on shift. Brenda would have my head on a pump.
+- Careful, I might start pouring you bigger measures.
+- You trying to get a free drink out of me? ...Is it working? Maybe.
+- Terry. Terry Bassett. They call me Two Pints because I always have... well. You'll see. What are you drinking? You're buying? Lovely.
+- Here he is! Or she is! Whoever you are!
+- Mate. Mate. Have I told you about my knee?
+- I used to be a proper darts player, me. Then I discovered drinking. Then I discovered drinking more.
+- Don't tell Mickey I'm in. I owe him a bit. A bit a lot.
+- Friday's payday. Fridays are beautiful.
+- My ex-wife got the house. I got the darts. I think I won, to be honest.
+- Saw a man in here once drink a pint out of a boot. Was me. It was me.
+- A game? Mate, I've been waiting all night for someone to ask!
+- Darts? Yes. Absolutely. What are we playing for? A pint? Two pints?
+- You beautiful human being.
+- Mate. Mate. You're the best mate I've ever had. Since Gary. Gary was great.
+- I WON! Did everyone see that? Brenda! I won!
+- Fair play. You're better than me. Most people are.
+- Sharon. Shaz. Don't call me Sharon. If you're here for the darts, you're in the right pub. If you're here for Deano, you're in the wrong one.
+- Back for more?
+- There they are. Was hoping you'd be in.
+- I've been throwing since I was twelve. My dad had a board in the kitchen. Mum hated it.
+- Deano and me went out for two years. Biggest mistake since the perm.
+- Dave's good, but he gets twitchy on sixteens. Watch him.
+- Don't let Kev wind you up. He's all tracksuit and no trousers.
+- I'm only in here for the darts. And the company. Some of it.
+- I don't play strangers for money. Friendly, if you want.
+- Oh, you're good now? Let's see it then. Friendly first.
+- Don't feel bad. I'm better than most of the men in here.
+- Well thrown. Seriously. I'm impressed. Don't let it go to your head.
+- Ha! Go on then, keep talking.
+- You've got a nerve. I like that.
+- Buy me a drink first, at least.
+- Behave. I've had enough of smooth talkers.
+- What you looking at? ...Deano. Don't wear it out.
+- You've got some front coming over here.
+- Walk away while you still can.
+- I do eight hundred press-ups a day. Sometimes nine.
+- Shaz'll come round. She always does.
+- If anyone touches my pint, I'll know.
+- I was nearly a semi-pro footballer. Nearly.
+- Darts? I'll destroy you. Twenty quid says so.
+- Go on then. Hope you brought your wallet.
+- That was a fluke. Do it again. Go on.
+- You got lucky, that's all.
+- Told you. Told everyone.
+- Reg Whitlow. County champion, 1986 and 1987. You won't find my name on the internet but it's on that board over there. Sit down, sit down.
+- Ah. Sit yourself down.
+- Evening. Mind my stick.
+- Darts is all in the elbow. Keep it still. Let the forearm do the work.
+- In my day the board was elm, and you soaked it in water overnight. Smelled like a pond.
+- Rhythm. That's the secret. Same speed every time.
+- Don't go chasing trebles when you're on a finish. Take what the board gives you.
+- The Duke? Lionel Fairweather. I beat him once. 1991. He's never forgiven me.
+- Leave the bull alone unless you need it. It's a small target and a big ego.
+- For a pint? Go on, I'll give you a lesson.
+- One game. I tire easy these days, mind.
+- Still got it. Just about.
+- Elbow, son. Keep the elbow still.
+- Well thrown. Proper well thrown. You've got something.
+- Kev. Flash Kev. You might've heard of me. You definitely will.
+- Come to watch a master?
+- These darts cost more than your car. Ninety-seven percent tungsten, mate.
+- I'm going pro next year. Probably.
+- My dad owns three car washes. I mean, I'll own three car washes.
+- Dave's past it. Everyone knows it but him.
+- The Duke's a legend, but legends get old.
+- You want some of this? Fifty quid, minimum.
+- Sure. I need a warm-up.
+- Double or nothing. Now. Unless you're scared.
+- Easy. Too easy. Next.
+- Hi. Priya. I design darts, sort of. Barrels, grips, balance. If you want to throw better, half of it's equipment. The other half's you, sorry.
+- Hi! Good timing.
+- Hello. Want to talk about grip patterns? Joke. Unless?
+- Front-loaded barrels are more forgiving if your release is a bit sloppy.
+- Tungsten's denser, so the barrel's thinner, so you can group tighter. Physics.
+- I don't really drink. I come for the darts and stay for the... no, just the darts.
+- Ron sells 'tungsten' darts that are basically painted brass. Don't.
+- Shark-fin grips are brilliant if your fingers sweat. Sorry. Too much information.
+- Sure, small stakes. I like collecting data.
+- Okay! Fair warning, I'm better than I look.
+- Ha! Sorry. Not sorry.
+- Interesting. Your release is really consistent. Annoyingly.
+- Sunshine. You have just made a very expensive mistake.
+- My pocket. You're in my pocket.
+- Michael Doyle. My friends call me Mickey. My enemies call me Mr Doyle, eventually. You owe me money, don't you? I never forget a face. Or a debt.
+- Ah. My favourite investment.
+- Come in. Close the door.
+- Talk to me.
+- Everybody in this pub owes somebody something. I just make sure the somebody is me.
+- Brenda doesn't like me. Brenda doesn't have to like me. Brenda has to like her licence.
+- I don't play darts. I own the people who play darts.
+- Terry thinks I don't know he's in. I always know.
+- I don't play. I bet. Talk to Tank if you want a game in here.
+- Step back.
+- ...I like darts.
+- My nan taught me. She was hard as nails.
+- Mickey says I'm not allowed to play people out there. Scares them.
+- ...Nice shoes.
+- Mickey says no.
+- Not without Mickey's say-so.
+- ...Okay. Mickey says it's fine.
+- Moira, love. Don't stand there, you're blocking my luck. That machine's been eating money all night. It's due. I can feel it in my waters.
+- Ooh, it's you! Got a pound?
+- Not now, love, I'm on a nudge.
+- I won a hundred pound on that machine in 2014. Been chasing it ever since.
+- Don't hold the cherries. Never hold the cherries.
+- My second husband was a darts player. Couldn't hit a barn door. Still can't, he's dead.
+- When nobody's won for ages, that's when it pays. That's the secret.
+- I don't do arrows, love. That machine's my sport.
+- Ron. Entrepreneur. Whatever you need, I can get. Watches, perfume, a ride to the airport, no questions. And I take bets on the gee-gees, if you're that way inclined.
+- What can I do you for?
+- Psst. Come here.
+- Supply and demand. People demand, I supply. Simple.
+- Everything's genuine. Genuinely something.
+- I'd stay away from Mickey's back room if I were you. Unless you like owing people.
+- Fancy a flutter? Next race is on the telly.
+- Ah, you got me. Fancy another? Make it more interesting?
+- Dave. People call me The Anvil. Club champion, five times. If you want a game, you'd better have won something first.
+- Darts is simple. Hit the twenty. Then hit it again.
+- Reg taught me everything. Don't tell him I said that.
+- The Duke's the only man who's beaten me in this pub in five years. Smug sod.
+- My brother's got himself in with Mickey. Idiot.
+- I've thrown nine darts at that board more times than I've had hot dinners.
+- Come back when you've won something.
+- You're not ready, son.
+- Right. Let's see what you've got. Proper money, mind.
+- Well thrown. Didn't think you had it in you.
+- ...Good darts. I'll want that back.
+- Keep practising. You'll get there.
+- Lionel Fairweather. People call me The Duke, which is ridiculous, and which I have never once discouraged. You look like someone with ambitions.
+- Good evening.
+- Ah. The ambitious one.
+- I've never had a proper job. I've had a proper dart.
+- Reginald beat me in 1991. I think about it most days.
+- The secret to hustling is to lose beautifully until the stakes are worth winning.
+- This pub is the last honest dishonest place in England.
+- I don't play nobodies, I'm afraid. Make yourself a somebody.
+- Come back on a Saturday with a reputation and a thick wallet.
+- Very well. Let's make it interesting, shall we?
+- ...Extraordinary. Well thrown. I mean that.
+- Don't feel bad. Everyone loses to me eventually.
+- RIGHT. That is ENOUGH.
+- NOT in my pub, you animal!
+- Evening. PC Hargreaves. Everyone calls me Bobby, which I've given up fighting. Quiet little town. I'd like to keep it that way.
+- All quiet, so far.
+- Evening, {p}! Good to see a friendly face.
+- Now then, {p}. Keeping out of trouble?
+- Ah. {p}. I was hoping our paths would cross.
+- Hello, hello. Hands where I can see them, eh?
+- Twenty-six years on this beat. Never had my helmet nicked. Well. Not since 1998.
+- I like the quiet nights. Quiet nights mean the pub's doing its job.
+- People think the job's all chases. It's mostly doors. Trying doors. You'd be amazed what's left unlocked.
+- My wife says I should retire. My feet agree with her. My conscience doesn't.
+- Keep it tidy.
+- Goodnight, {p}. Straight home, mind.
+- Well. That's very kind. Quite improper, of course, but kind.
+- For me? ...Is this a bribe? No. No, I can see it isn't. Thank you.
+- Thank you. Very decent of you.
+- I'll pretend I never saw that. Take it back.
+- Not on duty, I'm afraid.
+- Darts? I'm on the clock, {p}.
+- Now then, {p}. I'm keeping an eye on you.
+- Evening, {p}. I'd steady on, if I were you.
+- I've had my eye on you tonight. Don't give me a reason.
+- Word gets round, {p}. I'd keep my hands in my pockets.
+- Bit unsteady, aren't we? I'd think about home, if I were you.
+- Steady on, {p}. Don't make me come over there.
+- Oi! You there. Stop right there.
+- Hello, hello, hello. What's all this, then?
+- Just a moment, please.
+- Evening, {p}. A word. I've had a report of {crime}. Mind if I have a look in your pockets?
+- Now then. What's all this about {crime}? Care to turn out your pockets?
+- I won't keep you. Someone mentioned {crime}. Pockets, please.
+- Hm. All in order. Mind how you go, then.
+- Nothing there. Sorry to trouble you. Off you go.
+- Well. That's that. Don't let me catch you at it.
+- Right. And where did all this come from?
+- Well, well. I'll have those. And you'll be paying a fine.
+- I'm arresting you on suspicion of {crime}. You do not have to say anything...
+- That's quite enough. {p}, I'm arresting you. You'll be coming with me to the station.
+- Right. You're nicked. Don't make this harder than it needs to be.
+- Got you. Right, that's enough running about.
+- Not so fast. Not so fast at all.
+- Right. Let's have a look round.
+- Somebody's reported something. I'll take a look.
+- On my way.
+- Hm. Gone. I'll be about, mind.
+- Lost him. Never mind. Night's young.
+- I'll be keeping my eyes open.
+- Excuse me. Seen {p} about?
+- Have you seen someone come this way?
+- Anyone come past in a hurry?
+- Over there.
+- That way. Went that way.
+- Haven't seen anyone, officer.
+- Not me.
+- Is that a bribe? Put it away. Right now.
+- I'll forget I saw that. Now put it away.
+- Attempting to bribe a police officer. That's an offence, you know.
+- That's an offence in itself. Right.
+- Evening, Raj. Everything in order?
+- Raj. Quiet night?
+- Quiet as the grave, Bobby. Shall I put the kettle on?
+- Bobby! Tea? It's not a bribe. It's tea.
+- All quiet. One man bought forty fireworks, but he seemed sensible.
+- Evening all.
+- Evening, Brenda. Just having a look round.
+- Evening all. Don't mind me.
+- Evening, Bobby. Orange squash?
+- Hello, Bobby. Sit down, you're making the place look untidy.
+- Evening, Bobby. Nothing to see here. Mostly.
+- Lights on. Good.
+- Tax's up to date, anyway.
+- Nothing amiss.
+- Just an orange juice, Brenda. Off duty. Nearly.
+- Right then. Time, ladies and gentlemen. That means you. Out we go.
+- Come along now. Brenda's closing up, and so are you.
+- Now then. The lady has asked nicely. I'm asking a bit less nicely.
+- Straight home, now.
+- Nice and easy. That's it.
+- Goodnight. Don't make me come back.
+- Off you go. Goodnight.
+- Evening, evening! New face. I'm Raj, this is my shop, and I know everything that happens on this road. Everything. What can I get you?
+- Evening, my friend!
+- Ah! You again. Good, good.
+- Come in, come in. Mind the step.
+- What's the news from across the road?
+- My favourite customer! Don't tell the others.
+- Here he is! Come in, come in.
+- Oh. You. Don't touch anything.
+- I'm watching you. The camera is watching you. The camera doesn't work, but still.
+- Brenda came in for milk once. 1998. Bought a scratchcard. Won twenty quid. Never came back. I think about it a lot.
+- Terry owes me four pounds sixty for a pasty. Since March. I'm not angry. I'm keeping a list.
+- Mickey's lot buy the expensive cigarettes. Cash. Always cash. I ask no questions. I have a lot of questions.
+- I sell more fireworks on a Tuesday than you'd believe. I don't ask why. Nobody asks why.
+- My wife says I gossip. I don't gossip. I report.
+- Had a fox in the stockroom last week. Ate a whole pasty. Better than most of my customers, that fox.
+- You know what sells? Eggs. Not for eating, I think.
+- Mind how you go. Mind the step.
+- Come back soon. I'll be here. I'm always here.
+- Ta-ra! Say hello to Brenda. She won't say it back.
+- For me? Oh, you're a good one. A good one.
+- Well, now! Nobody brings the shopkeeper anything.
+- Very kind. Very kind.
+- Hmm. Is this stolen? It looks stolen.
+- No. No thank you. Keep it.
+- I can't leave the shop! Who'd mind the shop?
+- I don't play darts. I sell darts. Different thing.
+- Have a look round. Everything's priced. Mostly.
+- Knives, fireworks, pasties. A full life, in one shop.
+- What'll it be? No rush. Well, a bit of rush.
+- Shout if you want anything from the top shelf.
+- Cash is king. Cards are also fine. Cash is king.
+- Lovely. Anything else?
+- There you go. Mind how you go with that.
+- Good choice. Well, a choice.
+- Ta very much. Say hello to Brenda.
+- And that's... yes. That's right. Lovely.
+- For... opening parcels. Yes. Of course.
+- I didn't see you buy that. You didn't buy that.
+- Don't bring it back in here. I mean that.
+- Outside. OUTSIDE. Not in the pub. I've seen what happens.
+- Stand well back. Read the box. Nobody reads the box.
+- Light the blue touch paper and run, my friend.
+- Drink it somewhere I can't see you. Brenda hates me selling these.
+- Careful with that, you've got a pub right there.
+- No. Look at you. Come back when you can see straight.
+- Not to you, not tonight. I've got a licence to think about.
+- You're swaying, my friend. No knives, no fireworks, no vodka. Pasty?
+- Absolutely not. You can barely stand. Have a bottle of water.
+- Your money's no good here. Because you haven't got any.
+- Come back with some money. I take money.
+- A little short, I think. Sell something to Ron.
+- Come again! Mind the step.
+- Ta-ra. Don't let the fireworks off in the pub.
+- Cheerio. I'll tell Brenda you said hello.
+- Oh! Hello, love. Are you the new one? I'm Pat. Number twelve. Mind the step.
+- Ooh, it's you again.
+- Dennis has had that chair since 1979. I've stopped asking.
+- They want twelve pound for a bag of coal now. Twelve!
+- I don't go in that pub. Brenda's mother and me fell out in 1986.
+- Dennis. Number twelve. Don't park there.
+- Forty years at the gasworks. Not one day off.
+- That lot over the road. Noise till all hours.
+- Don't talk to me while the snooker's on.
+- Shut the door on your way.
+- Stan. Stan's Motors. MOT, service, tyres, and whatever you did to that wheel. What can I do you for?
+- Don't lean on the counter, it's wet. It's always wet. Stan. Pleased to meet you.
+- Alright. Mind the oil.
+- Go on, then. What's it doing? Noise? Smoke? Smell?
+- Don't touch anything. Everything's hot or sharp.
+- Morning. Or afternoon. I lose track under a car.
+- Here he is! Kettle's on. Don't sit on the Astra.
+- Alright {p}! Want a brew?
+- Oh. You. I've got a wheel brace, you know.
+- Keep your hands where I can see them.
+- Everyone thinks a garage is about cars. It's about people lying to me about when they last had the oil changed.
+- The pit's older than the council. Don't fall in. Terry did. Twice.
+- I can tell what's wrong from the noise. People think it's magic. It's mostly guessing, loudly.
+- That Cavalier in the yard? Burnt out at the pub in '09. Kept the radio. Kept the radio and nothing else.
+- MOT's a cheap day out for the car. Not for the owner. Never for the owner.
+- Do I do the pub's cars? No. The pub's cars do themselves, mostly onto the verge.
+- Right. Cheers. Mind the shutter.
+- Mind how you go. And don't touch my ramp.
+- See you. Bring me a pasty.
+- Well, now. That's nice. That's very nice. Thanks.
+- What am I meant to do with that? I fix cars.
+- Darts? I've got a customer. I mean I haven't. But I've got a car on the ramp.
+- Pass us that spanner. No, the other one.
+- Twelve-millimetre. Where's the twelve-millimetre?
+- That'll need a new gasket. They always need a new gasket.
+- Oi. Mind the pit.
+- Kettle's gone cold again.
+- Ah, give over. Cross-threaded.
+- Radio's on the blink and so am I.
+- What d'you need? Plugs, leads, oil. The good stuff's behind the counter.
+- Have a look. Everything has a price on it. Mostly.
+- There you go. Mind the oil.
+- Good choice. Cheap, too, for once.
+- That'll be more than you've got.
+- Scrap's scrap. That's a fair price.
+- You've nothing I want.
+- Right, I'll have a look at the cars outside. Give me a minute with the T-cut and a bit of filler.
+- Smashed glass, cracks, crazing... I've seen worse. Not often.
+- Shut. Come back tomorrow.
+- You're under arrest. You do not have to say anything.
+- Hands behind your back. Now.
+- Stay down. Cuffing.
+- Suspect lost. Standing down.
+- Lost visual. Back to the van.
+- Who's a good boy? You are, Cashmere!
+- Go on then, Cashmere. Just one.
+- No, you're not having my scratchings.
+- Look at them eyes. He knows what he's doing.
+- He's softer than a cushion, this one.
+- Cashmere! Where's your ball, eh?
+- Don't you be feeding him, he'll be sick on my carpet.
+- He's had three packets off the regulars already.
+- Spoilt rotten, that dog.
+- Mind your fingers! He nibbles. Never hurt nobody though.
+- That's him saying hello. Soppy thing.
+- That cat's caught more mice than the council ever has.
+- Olly, get down off there.
+- He's hunting again. Look at him go.
+- Olly! Not on my floor!
+- Oh, he's brought you a present. You're honoured.
+- Lovely. Another mouse. Somebody get the dustpan.
+- Told you. Don't touch Chewie.
+- He does that. Everyone gets bit once.
+- Little sod, isn't he? Lovely till you touch him.
+- That's Chewie. He's nobody's and everybody's.
+- Don't stroke him, he'll have your fingers.
+- Oi! Don't you be feeding him crisps, he'll be sick on my carpet.
+- He's on a diet. Allegedly.
+- Go on, but that's his last one tonight.
+- Olly! Not by my bar!
+- Oh, for... Olly! Who's picking that up? Not me.
+- He thinks he's paying his rent, that cat.
+- He's only playing, love. He nibbles. Never broke skin in his life.
+- Ambulance! Let us through, please.
+- Right, let's have a look at you.
+- Mind your backs, coming through.
+- Can you hear me? Squeeze my hand.
+- Stay with me, mate. Stay with me.
+- Pressure on that. Harder.
+- Pulse is weak. Get a line in.
+- You're alright, we've got you.
+- No output. Nothing we can do.
+- I'm calling it. Get the sheet.
+- He's gone. Police are on their way.
+- Mind the head.
+- Give us some room, please.
+- Stand back, please.
+
+## Labels and names (1)
+
+- {p}'s right there.

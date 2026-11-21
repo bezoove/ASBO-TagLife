@@ -1,0 +1,1066 @@
+# World (old game, v95)
+
+Part of: Props everywhere
+
+Source in game.pretty.js: 3489-3495, 3497-3511, 3513-3919, 3921-4336, 4497-4745, 5181-5205, 5222-5240, 5249-5281, 5813-5830, 6794-6809, 6863-6863, 6906-6906, 6919-6978, 7050-7063, 7352-7686, 7869-8147, 8192-8313, 8470-8910, 9438-9445, 9463-9911, 9913-9932, 9934-9949, 9952-10041, 10262-10271, 10285-11205, 11278-11297, 11677-11924, 12562-13068, 14074-14074, 14642-14838, 15237-15245, 15657-15665, 15971-17041, 17178-17178, 19006-19044, 19047-19058, 19060-19070, 19274-19282, 19284-19284, 19286-19313 …
+
+## Behaviours (325)
+
+- mat4 (`mat4`, line 3520)
+- add static (`addStatic`, line 3523, 9913, 28864, 153907, 155507, 175433)
+- merge geos (`mergeGeos`, line 3549, 153919, 155521, 163976)
+- flush static (`flushStatic`, line 3627, 9934, 15237, 15657, 19047, 42463)
+- box geo (`boxGeo`, line 3638)
+- round box geo (`roundBoxGeo`, line 3656)
+- box (`box`, line 3709, 201379)
+- geo (`geo`, line 3718, 201389)
+- cyl (`cyl`, line 3726)
+- sphere (`sphere`, line 3734)
+- wall face (`wallFace`, line 3737)
+- floor rect (`floorRect`, line 3764)
+- add box collider (`addBoxCollider`, line 3779)
+- add rect (`addRect`, line 3794, 49064)
+- add circle (`addCircle`, line 3807)
+- stand of (`standOf`, line 3817)
+- ground at (`groundAt`, line 3823, 60691, 60875, 137721, 159652, 168346)
+- ceil at (`ceilAt`, line 3840)
+- collide (`collide`, line 3844, 60708, 137703, 153953, 159668)
+- segment blocked (`segmentBlocked`, line 3886, 94240)
+- point blocked (`pointBlocked`, line 3894, 137717, 153966)
+- add interact (`addInteract`, line 3907)
+- area at (`areaAt`, line 3915)
+- make materials (`makeMaterials`, line 3921)
+- pic mat (`picMat`, line 4287, 19786)
+- picture (`picture`, line 4301)
+- build (`build`, line 4497, 19843, 20304, 20381, 20387, 32633)
+- build shell (`buildShell`, line 4590, 20216)
+- jambs (`jambs`, line 4676, 155877)
+- window (`window`, line 4692, 20147)
+- chair parts (`chairParts`, line 5181)
+- chair (`chair`, line 5222)
+- round table (`roundTable`, line 5230)
+- square table (`squareTable`, line 5249)
+- seats around (`seatsAround`, line 5261)
+- armchair (`armchair`, line 5813)
+- ao blob (`aoBlob`, line 6800)
+- ceil rect (`ceilRect`, line 6919)
+- build floor ao (`buildFloorAO`, line 6929)
+- build decor (`buildDecor`, line 7050)
+- build games (`buildGames`, line 7352)
+- upright (`upright`, line 7607)
+- quiz machine (`quizMachine`, line 7640)
+- hall bookcase (`hallBookcase`, line 7869)
+- build annex west (`buildAnnexWest`, line 7882)
+- frost mat (`frostMat`, line 7884)
+- frost pane (`frostPane`, line 7914)
+- booth (`booth`, line 7920)
+- screen (`screen`, line 8023)
+- post (`post`, line 8074)
+- leaf geo (`leafGeo`, line 8089)
+- big plant (`bigPlant`, line 8109)
+- build cover (`buildCover`, line 8192)
+- cask (`cask`, line 8233)
+- keg (`keg`, line 8258)
+- crate (`crate`, line 8265)
+- wine rack (`wineRack`, line 8288)
+- build stash (`buildStash`, line 8470)
+- fence run (`fenceRun`, line 8676)
+- build yard (`buildYard`, line 8695)
+- update yard (`updateYard`, line 8886)
+- build annex east (`buildAnnexEast`, line 8908, 9952, 24994, 28896, 110126)
+- outside mats (`outsideMats`, line 9463, 19274, 203294)
+- o face (`oFace`, line 9844)
+- o ground (`oGround`, line 9852, 44675)
+- o roof (`oRoof`, line 9862)
+- o poly (`oPoly`, line 9874)
+- o decal (`oDecal`, line 9887, 19286)
+- o tint (`oTint`, line 9893)
+- o box (`oBox`, line 9900, 209181)
+- o label (`oLabel`, line 9902)
+- o facade (`oFacade`, line 9979)
+- o plates (`oPlates`, line 10010)
+- o bollard (`oBollard`, line 10262)
+- o tree (`oTree`, line 10285, 19006, 28876, 42594, 200786)
+- o hedge run (`oHedgeRun`, line 10307, 19009)
+- o railings (`oRailings`, line 10321, 60802)
+- build outside (`buildOutside`, line 10351, 19315, 20279, 156012)
+- outside cull (`outsideCull`, line 11278, 20315, 21395, 24224, 25196, 29007)
+- o terrace (`oTerrace`, line 11677, 20531)
+- o takeaway (`oTakeaway`, line 11792, 22773)
+- prod geo (`prodGeo`, line 12562)
+- uv to (`uvTo`, line 12565)
+- cell box (`cellBox`, line 12572)
+- cell cyl (`cellCyl`, line 12589)
+- cell lathe (`cellLathe`, line 12593)
+- cell pillow (`cellPillow`, line 12600)
+- prod kinds (`prodKinds`, line 12613)
+- shelf run (`shelfRun`, line 12920)
+- shelf edge (`shelfEdge`, line 12954)
+- atlas sign (`atlasSign`, line 12971)
+- o gondola (`oGondola`, line 12978)
+- o shrub (`oShrub`, line 19042)
+- glass atlas (`glassAtlas`, line 19859, 20725)
+- glass mats (`glassMats`, line 20046)
+- glass plane (`glassPlane`, line 20074)
+- add pane (`addPane`, line 20088, 117302)
+- flush glass (`flushGlass`, line 20101, 117319)
+- dress curtain (`dressCurtain`, line 20119)
+- merge backdrop (`mergeBackdrop`, line 20365)
+- house layout (`houseLayout`, line 20531, 23025)
+- house mats (`houseMats`, line 20609)
+- build houses (`buildHouses`, line 20758)
+- h areas (`hAreas`, line 20772, 23127)
+- h exterior (`hExterior`, line 20805, 23193)
+- h plates (`hPlates`, line 21032)
+- h block ends (`hBlockEnds`, line 21069)
+- h wall (`hWall`, line 21101)
+- h interior (`hInterior`, line 21151, 23268)
+- h vc mats (`hVcMats`, line 21294)
+- h back window (`hBackWindow`, line 21315)
+- h back win mat (`hBackWinMat`, line 21348)
+- house theme (`houseTheme`, line 21644)
+- h u (`hU`, line 22192)
+- h shade mat (`hShadeMat`, line 22211)
+- h loot (`hLoot`, line 22226)
+- h furnish front (`hFurnishFront`, line 22236, 24260)
+- h furnish kitchen (`hFurnishKitchen`, line 22461, 24473)
+- h furnish bedroom (`hFurnishBedroom`, line 22601)
+- h furnish bathroom (`hFurnishBathroom`, line 22702)
+- h up layout (`hUpLayout`, line 23029)
+- h up areas (`hUpAreas`, line 23133)
+- h back upper (`hBackUpper`, line 23225)
+- h up windows out (`hUpWindowsOut`, line 23241)
+- h up lifted (`hUpLifted`, line 23439)
+- h stairs (`hStairs`, line 23477)
+- h upstairs (`hUpstairs`, line 23552)
+- h furnish up bedroom (`hFurnishUpBedroom`, line 23730)
+- h furnish box room (`hFurnishBoxRoom`, line 23828)
+- h furnish up bath (`hFurnishUpBath`, line 23860, 64512)
+- h furnish landing (`hFurnishLanding`, line 23914)
+- h furnish loo (`hFurnishLoo`, line 23997, 64579)
+- house at (`houseAt`, line 24158)
+- level route (`levelRoute`, line 24163, 62491, 161463)
+- est mats (`estMats`, line 24605)
+- est win mat (`estWinMat`, line 24776)
+- est win (`estWin`, line 24874)
+- est fence (`estFence`, line 24908)
+- est wall (`estWall`, line 24954, 44697)
+- est bench (`estBench`, line 24968, 168524)
+- build estate (`buildEstate`, line 25070)
+- est graffiti (`estGraffiti`, line 25210)
+- est sign (`estSign`, line 25232)
+- build flats (`buildFlats`, line 25239, 61612, 63396, 66031, 156083)
+- est mesh (`estMesh`, line 25647)
+- build green (`buildGreen`, line 25703)
+- garage mats (`garageMats`, line 26169)
+- build garage (`buildGarage`, line 26261, 27370, 27396)
+- garage ground sheets (`garageGroundSheets`, line 27051)
+- garage detail (`garageDetail`, line 27405)
+- town mats (`townMats`, line 28066)
+- town win mat (`townWinMat`, line 28230)
+- town sign atlas (`townSignAtlas`, line 28475)
+- town sign alloc (`townSignAlloc`, line 28507, 60572)
+- town quad (`townQuad`, line 28525)
+- town sign (`townSign`, line 28535)
+- town fascia (`townFascia`, line 28550)
+- town graffiti (`townGraffiti`, line 28576)
+- face (`face`, line 28617)
+- face pt (`facePt`, line 28647)
+- town win (`townWin`, line 28655, 49066)
+- town win row (`townWinRow`, line 28680)
+- quad geo (`quadGeo`, line 28726)
+- tri geo (`triGeo`, line 28751)
+- t add (`tAdd`, line 28754)
+- town roof (`townRoof`, line 28759)
+- town box (`townBox`, line 28812, 49062)
+- town flat roof (`townFlatRoof`, line 28821, 49124, 175715)
+- town ground (`townGround`, line 28837)
+- town bin (`townBin`, line 28852)
+- town bench (`townBench`, line 28859)
+- town detail (`townDetail`, line 28885)
+- build town (`buildTown`, line 28915)
+- build town0 (`buildTown0`, line 28922, 40272, 44468, 44765, 49002, 59480)
+- town areas (`townAreas`, line 28958, 30460)
+- disc geo (`discGeo`, line 29542)
+- town kerb (`townKerb`, line 29571, 30128)
+- build town roads (`buildTownRoads`, line 29580, 44730)
+- town road markings (`townRoadMarkings`, line 29633)
+- town beacon (`townBeacon`, line 29704)
+- town road furniture (`townRoadFurniture`, line 29721)
+- town road signs (`townRoadSigns`, line 29777)
+- town bus stop (`townBusStop`, line 29896)
+- build town corners (`buildTownCorners`, line 30182)
+- build town parade (`buildTownParade`, line 30474, 68132)
+- town skip (`townSkip`, line 30921, 208823)
+- town semi (`townSemi`, line 30945, 37670, 38429)
+- build town semis (`buildTownSemis`, line 31171)
+- town deck block (`townDeckBlock`, line 31227, 31997, 32584, 35661)
+- town link bridge (`townLinkBridge`, line 31351, 32477)
+- town garages (`townGarages`, line 31380, 34805)
+- build town deck (`buildTownDeck`, line 31416, 32554)
+- town shed (`townShed`, line 35792)
+- town container (`townContainer`, line 35805, 208893)
+- town pallets (`townPallets`, line 35810, 209030)
+- town secure fence (`townSecureFence`, line 35817)
+- town flood (`townFlood`, line 35833)
+- town cctv (`townCCTV`, line 35850)
+- town scrap (`townScrap`, line 35861)
+- build town industry (`buildTownIndustry`, line 35898)
+- town railing (`townRailing`, line 36392)
+- town rail runs (`townRailRuns`, line 36425)
+- build town church (`buildTownChurch`, line 36430)
+- build town park (`buildTownPark`, line 36720)
+- build town canal (`buildTownCanal`, line 37101, 53558)
+- build town edges (`buildTownEdges`, line 39647, 44486, 65542)
+- land mats (`landMats`, line 39856)
+- land hedge (`landHedge`, line 40049, 42806)
+- land runs (`landRuns`, line 40057)
+- land board fence (`landBoardFence`, line 40062)
+- land palisade (`landPalisade`, line 40094)
+- land blob tree (`landBlobTree`, line 40187, 40207, 42601)
+- land reeds (`landReeds`, line 40216, 42786)
+- land scrub (`landScrub`, line 40228, 42848)
+- land ground (`landGround`, line 40247)
+- build land (`buildLand`, line 40284)
+- land clear old (`landClearOld`, line 40323)
+- land areas (`landAreas`, line 40339)
+- build land north (`buildLandNorth`, line 40356, 42377)
+- build land cutting (`buildLandCutting`, line 40657)
+- build terrace (`buildTerrace`, line 40860)
+- build land river (`buildLandRiver`, line 40926)
+- land glass mat (`landGlassMat`, line 41305)
+- land track (`landTrack`, line 41328)
+- land tip (`landTip`, line 41338)
+- land shell (`landShell`, line 41462)
+- build land waste (`buildLandWaste`, line 41513)
+- build land gasworks (`buildLandGasworks`, line 41698)
+- build land south (`buildLandSouth`, line 41807)
+- land path seg (`landPathSeg`, line 42188)
+- land stile (`landStile`, line 42195)
+- land pylon (`landPylon`, line 42209)
+- build land edges (`buildLandEdges`, line 42273)
+- land yew (`landYew`, line 42613)
+- land foliage ball (`landFoliageBall`, line 42648)
+- land tufts (`landTufts`, line 42775)
+- build hwy (`buildHwy`, line 43259)
+- hwy clear (`hwyClear`, line 43273)
+- hwy punch (`hwyPunch`, line 43316)
+- hwy land (`hwyLand`, line 43348)
+- hwy road (`hwyRoad`, line 43489)
+- hwy edges (`hwyEdges`, line 43620)
+- hwy structures (`hwyStructures`, line 43716, 197047)
+- hwy tunnel (`hwyTunnel`, line 43953)
+- hwy signs (`hwySigns`, line 44028)
+- hwy water (`hwyWater`, line 44181)
+- hwy prefab (`hwyPrefab`, line 44215)
+- hwy trees near (`hwyTreesNear`, line 44227)
+- hwy areas (`hwyAreas`, line 44424)
+- build civic (`buildCivic`, line 44777)
+- civic road head (`civicRoadHead`, line 44788)
+- civic areas (`civicAreas`, line 44892)
+- build civic hospital (`buildCivicHospital`, line 45953)
+- build civic fire (`buildCivicFire`, line 47319)
+- build civic police (`buildCivicPolice`, line 47938)
+- build industry interiors (`buildIndustryInteriors`, line 49014)
+- build ind canal (`buildIndCanal`, line 49876)
+- build ind high (`buildIndHigh`, line 51662)
+- build ind land (`buildIndLand`, line 54045, 58106, 59011, 59434)
+- build ind school (`buildIndSchool`, line 57145)
+- build ind church (`buildIndChurch`, line 58155)
+- build ind park (`buildIndPark`, line 59021)
+- add climb (`addClimb`, line 60646)
+- make climb (`makeClimb`, line 60672)
+- surface at (`surfaceAt`, line 60674, 60881, 137725)
+- climb setup (`climbSetup`, line 60808, 60888)
+- add over (`addOver`, line 60848)
+- climb high (`climbHigh`, line 60897)
+- lv of (`lvOf`, line 60986)
+- add floor (`addFloor`, line 60988)
+- add ramp (`addRamp`, line 60990)
+- ramp at (`rampAt`, line 60992)
+- ramp y (`rampY`, line 60996)
+- in hole (`inHole`, line 61000)
+- level ground (`levelGround`, line 61004)
+- base y (`baseY`, line 61012)
+- in levels (`inLevels`, line 61018)
+- col lists (`colLists`, line 61022)
+- at lv (`atLv`, line 61036)
+- with y (`withY`, line 61061)
+- add box3 (`addBox3`, line 61141)
+- in3 (`in3`, line 61143)
+- fl mats (`flMats`, line 61319)
+- fl atlas (`flAtlas`, line 61403)
+- fl decal (`flDecal`, line 61527, 165960, 168539)
+- fl wall (`flWall`, line 61538)
+- fl paint (`flPaint`, line 61560)
+- fl rect (`flRect`, line 61574)
+- fl tube (`flTube`, line 61587)
+- fl rail (`flRail`, line 61599)
+- build flats in (`buildFlatsIn`, line 61677)
+- fl anchors (`flAnchors`, line 62388)
+- fl route (`flRoute`, line 62418)
+- fl cam volumes (`flCamVolumes`, line 62540, 66237)
+- fl cam ok (`flCamOK`, line 62615)
+- build party flat (`buildPartyFlat`, line 62697, 63626)
+- fl party tick (`flPartyTick`, line 63379, 63986)
+- party atlas (`partyAtlas`, line 63498)
+- party decal (`partyDecal`, line 63612)
+- build party detail (`buildPartyDetail`, line 63635)
+- bw mats (`bwMats`, line 64185)
+- bw kit (`bwKit`, line 64273)
+- bw vinyl (`bwVinyl`, line 64503)
+- bw party bath (`bwPartyBath`, line 64626)
+- build phonebox (`buildPhonebox`, line 65049)
+- build locks (`buildLocks`, line 110134)
+- h loot geo (`hLootGeo`, line 147597)
+- h dynamic (`hDynamic`, line 147737, 149140)
+- h dyn up (`hDynUp`, line 149156)
+- h up imp merge (`hUpImpMerge`, line 149232)
+- h up imp show (`hUpImpShow`, line 149255)
+- win glass (`winGlass`, line 156070)
+- brk inline (`brkInline`, line 171348)
+- ladder roofs (`ladderRoofs`, line 175727)
+- ladder setup (`ladderSetup`, line 175768)
+- ladder loot meshes (`ladderLootMeshes`, line 175871)
+- hv trailer (`hvTrailer`, line 177136)
+- sack (`sack`, line 186169)
+- rotary dryer (`rotaryDryer`, line 186498)
+- kit skip (`kitSkip`, line 208825)
+- town forklift (`townForklift`, line 209037)
+- town grab (`townGrab`, line 209067)
+- kit van detail (`kitVanDetail`, line 209132)
+- kit eurobin (`kitEurobin`, line 209149)
+- kit slide tower (`kitSlideTower`, line 209187)
+
+## Everything it says or shows (451)
+
+- Public Bar
+- Back Room
+- Beer Garden
+- Games Room
+- The Snug
+- Back Store
+- Play pool
+- Winner stays on
+- No standing on the table
+- Coins on the cushion
+- Teams of four
+- Which bird lays the
+- Run a hand along the books
+- Push the bookcase shut
+- Crack the safe
+- Read the ledger
+- Go through the shelves
+- SAFE: ask Stan
+- Doyle Removals & Finance
+- Ring Stan
+- Slip out the back gate
+- Back gate
+- "We move anything. Ring Stan."
+- Pick the lock
+- Car Park
+- The Street
+- Corner Shop
+- No job too small. Ask for Terry.
+- Vehicles left entirely at
+- owner's risk · No overnight parking
+- Clamping in operation (allegedly)
+- Pickled eggs £1
+- Mind the step
+- glass only · no hopes
+- Town Centre · Hospital · Retail Park
+- then every 30 min until
+- Last bus 17:45
+- Times subject to driver
+- Last collection
+- Phone box (Duckett Street)
+- Hackney carriages only
+- Walk home for the night
+- Retail unit · 62 m²
+- Cavalier saloon
+- No more than 2 schoolchildren
+- CCTV in operation
+- Duckett Street
+- Hawthorn Court
+- Community Green
+- No ball games
+- Residents only
+- Hawthorn Estate Residents' Association
+- Adults supervise
+- Report faults: 0300 555 0101
+- Go down the slide
+- Scrap yard
+- Closed Sun
+- Retest free in 10 days
+- Full service from £120
+- Dogs loose
+- Rummage in the skip
+- Speak to Stan
+- The till
+- Customer door
+- Service from £120
+- with any MOT
+- Dunlop - fitted free
+- The Eggy Duck (pub)
+- Bits & Bobs (corner shop)
+- Hawthorn Court (flats)
+- Ashby Road
+- Ashgrove Estate
+- Canalside Trading Estate
+- Coronation Estate
+- Victoria Park
+- Brindley Canal
+- ↑ Canal Road
+- → Town Centre
+- ← Duckett Street
+- Ashgrove Parade
+- Bus stop: Ashgrove Parade
+- Bus stop: St Michael's Church
+- Traditional Fish & Chips
+- Launderette · Service Washes
+- Chinese Takeaway
+- Empty shop unit (Ashgrove Parade)
+- Phone box (Ashgrove Parade)
+- The Royal Oak
+- painted by the young people of Ashgrove · 1998
+- Ashby Community Centre
+- Ashby Library
+- Mill Lane Health Centre
+- Doctors' Surgery · Nurse Clinic
+- Open Mon - Fri 8.00 - 6.30
+- Elm Close
+- Rowan Close
+- The jitty (Coronation Green footpath)
+- Coronation Green
+- Coronation Avenue
+- Kestrel House
+- Merlin House
+- Falcon House
+- Ashgrove garage court
+- Ashgrove car park
+- Ashgrove Tower
+- Kestrel · Merlin · Falcon · Ashgrove Tower
+- No ball games · No unauthorised parking
+- Ashgrove Lane
+- Scrap bought · Cars collected · Cash paid*
+- Kelly's Metals (scrap yard)
+- Unsafe structure
+- The derelict print works
+- Hargreaves Builders' Merchants
+- Brindley Plastics (factory)
+- Units 1 - 3 · Goods in: bays 1 - 3
+- Northway Distribution (warehouse)
+- CASH & CARRY · Trade & Public Welcome
+- Price Star Cash & Carry
+- TreadRight Tyres & Exhausts
+- Pawnbrokers · We Buy Gold
+- Quick Cash Pawnbrokers
+- Cloud Nine Vapes
+- Sparkle Hand Car Wash
+- Enterprise Way
+- Parish Church of Ashby
+- Sunday: Holy Communion 10.30am
+- Wednesday: Morning Prayer 9.30am
+- Vicar: The Revd Anne Okafor
+- All welcome
+- St Michael & All Angels (church)
+- The lychgate
+- Ashby Borough Council
+- Gates locked at dusk · Dogs on leads
+- Victoria Park (Mill Lane gate)
+- Victoria Park (Southgate gate)
+- The duck pond (Victoria Park)
+- The bandstand (Victoria Park)
+- The park shelter
+- The football pitch (Victoria Park)
+- The MUGA (games cage)
+- The children's playground
+- Southgate Primary School
+- Headteacher: Mrs J. Patel
+- Learning together · Growing together
+- Brindley Bridge (Mill Lane over the canal)
+- The canal footbridge
+- Brindley Rose
+- The narrowboat "Brindley Rose"
+- The towpath
+- Members only · Please shut the gate
+- Brindley Allotments
+- Offenders will be
+- The wasteland (off Mill Lane)
+- Allotment car park (end of Mill Lane)
+- Side passage
+- Duckett Back Lane
+- Hawthorn Court (rear)
+- Green Lane garages
+- Wharf Lane
+- Lock-up garages
+- Railway Terrace
+- Railway path
+- Wend Works (wasteland)
+- The Sidings (wasteland)
+- Riverside Walk
+- River Wend (south bank)
+- Wend Lock
+- Wend Lock towpath
+- Lock meadow
+- The Bottoms (wasteland)
+- Wend water meadow
+- Wend Bridge
+- The river footbridge
+- The ginnel
+- Back gardens
+- Back alley
+- Duckett Rec
+- The old gasworks (wasteland)
+- Spinney Fields
+- Wend Scrub
+- Behind the garage
+- Stan's overspill lot
+- Above Ashby Tunnel
+- Back Lane →
+- The side passage (pub car park to the back lane)
+- Extensions · Roofing · No job too small
+- Lock-up garages (Back Lane)
+- Hawthorn Court drying green
+- Hawthorn Court garages
+- Green Lane recycling point
+- The kissing gate (Back Lane to the Community Green)
+- The railway path
+- Do not trespass
+- on the railway · £1000
+- Overhead cables? No.
+- Trains: yes. Keep out.
+- The railway footbridge
+- The railway cutting (old Wend branch)
+- Ashby Tunnel (portal)
+- The ginnel (Railway Terrace to the back lane)
+- Weir · deep water
+- Wend River Authority
+- Wend Weir
+- Wend Bridge (Wharf Lane over the river)
+- The river footbridge (Wend Rec path)
+- The stepping stones (Wend ford)
+- Brindley Canal · No. 1
+- The lock-keeper's cottage (boarded up)
+- Wend Lock (canal meets river)
+- The fishing pegs (River Wend)
+- ← Riverside Walk
+- The Riverside Walk
+- River Wend
+- Demolition site
+- Unsafe structures · Keep out
+- Guard dogs patrol (no)
+- Wend Works (burnt-out works)
+- The shell of Wend Engineering
+- The den (the Sidings)
+- The Sidings (old railway sidings)
+- The Bottoms (camps on the north bank)
+- The gasholder frame (old gasworks)
+- The den (old gasworks)
+- Contaminated land
+- No public access
+- Ashby Gas Board (closed 1987)
+- The retort house (shell)
+- to Ashby · Canal Rd
+- Bus stop: Duckett Street (towards Ashby)
+- Footpath to the Rec
+- The ginnel (Duckett Street to the back alley)
+- Bits & Bobs (the yard)
+- The back gardens (Duckett Street)
+- The back alley (behind Duckett Street)
+- The swings (Duckett Rec)
+- No dogs in the play area
+- Duckett Rec (pocket park)
+- The spinney
+- The pylon (Wend Scrub)
+- Railway · report damage: 0800 000 000
+- The viaduct (main line)
+- Private property · No entry
+- Severn Wend Water
+- , new THREE.Float32BufferAttribute(uv, 2)), g.setAttribute(
+- Wend Valley
+- Town Centre (E)
+- Town Centre
+- High Street
+- A4113  Wend Valley
+- Use dipped headlights
+- Wend Valley Road
+- Wend Hill Tunnel
+- Lay-by (Wend Valley Road)
+- Ashby Road (link)
+- Wend Valley Road (A4113)
+- Gorse Gill bridge
+- Bridge 114 (main line)
+- Farm-track overbridge
+- Brindley Way
+- Ashby General Hospital
+- Emergency Department (A&E)
+- Spinney Ward
+- NHS Foundation Trust
+- Ashby General
+- Main Entrance  ←
+- Spinney Ward  ←
+- Car Park (P)  ←
+- H  Ashby General Hospital
+- ← A&E  ·  Infirmary Road
+- Blue badge holders free
+- A&E ambulance bay
+- Ashby General Hospital (main entrance)
+- Infirmary Road
+- Hospital car park
+- Ashby General Hospital (grounds)
+- Ashby General: main reception
+- Ashby General: corridor (mortuary)
+- Ashby General: lifts
+- Ashby General: staff room
+- Ashby General: gents
+- Ashby General: ladies
+- Ashby General: pharmacy
+- A&E: waiting room
+- Spinney Ward: corridor
+- Spinney Ward: bay A
+- Spinney Ward: bay B
+- Spinney Ward: nurses' station
+- Main entrance, Infirmary Road
+- Ashby General: A&E
+- Ashby General: Spinney Ward
+- Ashby Fire Station (appliance bay)
+- Ashby Fire Station
+- Reception · Ring bell
+- Ashby Fire & Rescue Service
+- Ashby Fire Station (apron)
+- Ashby Fire Station (yard)
+- Ashby Fire Station: appliance bay
+- Ashby Fire Station: watch room
+- Ashby Fire Station: kit room
+- Ashby Fire Station: mess
+- Ashby Fire Station: crew room
+- Ashby Police Station
+- Use the phone if closed
+- Ashby Police Station (yard)
+- Ashby Police Station: front office
+- Ashby Police Station: behind the counter
+- Ashby Police Station: custody
+- Ashby Police Station: canteen
+- Ashby Police Station: corridor
+- Ashby Police Station: cell 1
+- Ashby Police Station: cell 2
+- Ashby Police Station: cell 3
+- Ashby Police Station: interview room
+- Ashby Police Station: evidence store
+- Ashby Police Station: briefing room
+- Kelly's Metals (weighbridge office)
+- TODAY'S SCRAP PRICES (per kg)
+- Copper bright
+- Copper mixed
+- Cat converters
+- Sell scrap to Kelly's
+- The print works (front office)
+- The print works (press hall)
+- The print works (paper store)
+- Est. 1921 · Jobbing printers
+- Hargreaves (trade counter)
+- Hargreaves' trade counter
+- Brindley Plastics (production hall)
+- Brindley Plastics (moulding hall)
+- Brindley Plastics (extrusion & packing)
+- Brindley Plastics (offices)
+- Brindley Plastics (reception)
+- Brindley Plastics (open-plan office)
+- Reception · Visitors sign in
+- 412 days since the last incident
+- (the incident was a biscuit)
+- Northway Distribution
+- Northway (goods-in office)
+- Northway Distribution (west hall)
+- Northway Distribution (east hall)
+- Price Star (manager)
+- Price Star Cash & Carry (tills)
+- Price Star Cash & Carry (aisles)
+- Trade & public welcome · Please return trolleys
+- Price Star: shop the aisles
+- TreadRight (waiting room)
+- TreadRight (tyre store)
+- Puncture repair
+- TreadRight counter
+- Quick Cash (back room)
+- Quick Cash: sell or buy
+- Cloud Nine counter
+- A1 Taxis (control room)
+- A1 Taxis (waiting room)
+- Town centre
+- Ashby Hospital
+- Sick on seat
+- Book a cab (hatch)
+- Sparkle Hand Car Wash (cabin)
+- Small car
+- Full valet
+- Sparkle: ask about a wash
+- Back Lane lock-up
+- Hawthorn Court garage
+- D. Kelly Building (site cabin)
+- The lock-keeper's cottage (kitchen)
+- The lock-keeper's cottage (parlour)
+- Tolls per boat: 3d
+- Canal & River Trust
+- Knock on the Brindley Rose
+- Learning Intention: I can add to 20
+- Wednesday · Mrs Okafor
+- Today we are looking for minibeasts
+- Ducklings Class · Miss Brandt
+- WALT: write a Roman invasion diary
+- Southgate Primary: 
+- Southgate Primary (corridor)
+- Southgate Primary (entrance)
+- Staff room
+- Resources store
+- Library corner
+- sign in at the office
+- 50p a week. Derek, this means you
+- Sign in at the office desk
+- Southgate Primary hall
+- Southgate Primary (hall porch)
+- School kitchen
+- Parish room
+- Pte W. Hargreaves · Cpl J. Kelly · Pte A. Patel
+- In loving memory of Edith Mary Pugh
+- Thomas Brindley, churchwarden 1887-1921
+- To the glory of God and in memory of the Ashby Choral Society
+- BELL RINGERS · Wednesdays 7.30pm · all welcome
+- Donation box
+- Light a candle
+- The altar
+- Bell tower (ringers' lobby)
+- Bell tower (ringing room)
+- Plain Bob Doubles
+- Plain Bob Major
+- Ring a bell
+- Victoria Park Pavilion
+- Victoria Park Pavilion Café
+- Park toilets (gents)
+- Park toilets (ladies)
+- Tea 90p · Coffee £1.40 · Hot chocolate £1.60
+- Bacon roll £2.80 · Sausage roll £1.50
+- Ice cream £1.20 · Cake £1.40 · Crisps 80p
+- Please take your rubbish with you · Cash only
+- Cleaned daily · Ashby BC
+- Pavilion Café hatch
+- Pavilion Café
+- Ashby Silver Band
+- Summer concerts · free
+- Bins out TUESDAY
+- not Monday. Not
+- The lift will be
+- Hawthorn Court, the entrance hall
+- Hawthorn Court, the stairs
+- Hawthorn Court, first-floor landing
+- Hawthorn Court, second-floor landing
+- Press a buzzer
+- Read the noticeboard
+- Look at the post boxes
+- Flat 6, the front room
+- Flat 6, the kitchen
+- Flat 6, the bedroom
+- Flat 6, the bathroom
+- Flat 6, the hall
+- Phone box
+- Open the phone box door
+- Use the payphone
+- Phone box (Ashgrove Lane)
+- Phone box (Mill Lane, Victoria Park)
+- Phone box (Coronation Avenue)
+- Draw the bolts
+- Shoot the bolts home
+- Go home and sleep
+- Take the …
+- Switch the light on
+- Try the stairs door
+- No. …'s front door
+- the bin store on the back lane
+- Stan's scrap yard
+- the Ashgrove garage court
+- Pick up the football
+- Look in the carrier bag
+- A carrier bag, tied off, stuffed under the felt. Twenty-five quid in fivers and a betting slip.
+- Open the old biscuit tin
+- A Quality Street tin wedged behind the timber. Sixty quid and a note: 'GARY - DON'T'.
+- Take in the view
+
+## Labels and names (68)
+
+- largest egg? · who cleans · the cellar? · having had his tea · front room · front bedroom · box room · house windows
+- for vehicles · no ball games ? · outside the cage · after hours · garage ground · garage detail · while you wait · bold 15px sans-serif
+- bold 14px sans-serif · bold 26px sans-serif · 14px sans-serif · bold 16px sans-serif · bold 22px sans-serif · est glass · walls railgap · home shell
+- homes finish · homes lod · then every 30 min · last bus 23:10 · land corners · hwy forest · anywhere on hospital grounds · bold …px sans-serif
+- …px monospace · bold …px serif · …px serif · …px sans-serif · italic bold …px sans-serif · 9ct · cash today · before service · smoking shelter
+- bus shelter · the stairs. · repaired shortly. · in the common parts · flats inside · party flat · flats glass · party detail
+- bathware (party flat) · hc shell · home takeaway fit · pub sign · house dynamic · front door · house upstairs dynamic · house pictures
+- doorfit garage · garage fit · flat roof · timber store canopy · the pub yard · the lock-up garages · the allotments · the back gardens
+- the church's vestry side · ladder setup · walls lintels · walls gorge verge
+
+## States and modes
+
+- type: obb, circle, PlaneGeometry, BoxGeometry, SphereGeometry
+- kind: in, out, gym, gym2, open, keys, ball, stash, mast, pigeons
+- state: built
+- mode: explore
+
+## Tuning numbers (257)
+
+- vCount: 0
+- iCount: 0
+- len: 0, .5, 1, 1.65
+- uvScale: 1, 1.2
+- uOff: 0
+- top: 3, 1, 2.3, 2, 2.45, 2.2
+- pad: .06, 0, 2, .05, .03, 4
+- best: 0
+- iter: 0
+- minTop: 2, 0
+- radius: 1.2, 1.6, 1.15, 1.1, 1.5, 1
+- height: 1.2, 2.15, 2.05, 6.4, 2.06, 2.04
+- seed: 3, 6, 41, 12, 13, 14
+- bumpScale: .004, .006, .0035
+- contrast: 1.3, 1.4, 1.2, .3, .18, .5
+- vScale: 2, 1
+- rings: 16, 9, 20, 12, 10, 8
+- envMapIntensity: 2.2, 2, 1.4, 2.5, 1.3, 1.8
+- emissiveIntensity: .25, .95, .4, .22, 1.6, 1.4
+- soot: .65, .3, .25, .45, .18, .12
+- emissive: 0, .55, .75, .9, .4, .85
+- rough: .85, .2, .6, .5, .9, .4
+- depth: .03, .22, .26, .25, .3, .02
+- frameW: .045, .03
+- indoor: 1, 0
+- bottom: 0, .95, 3.7, 1, 3.6, .6
+- width: 1.5, .95
+- swing: -1, 1
+- startA: 0
+- rad: .66, .45, .3, .29, .28, .275
+- hall: 3
+- corridor: 2.7
+- back: 2.8
+- gents: 2.6
+- ladies: 2.6
+- rot: 0
+- OFF: 2e4
+- shadowOffsetY: 0
+- shadowBlur: 0
+- shadowOffsetX: 0
+- anisotropy: 2
+- polygonOffsetFactor: -2, -3, -1
+- polygonOffsetUnits: -2, -3, -1
+- renderOrder: 1, 5, 6
+- games: 2.9
+- snug: 2.5
+- cellar: 2.45
+- stash: 2.4
+- size: 36, 22, 20, 38, 28, 34
+- weight: 600, 700, 800, 900
+- yaw: 0, -2.5, .6, .4, -.4, 2.6
+- lineWidth: 1, 10, 2, 1.2, 9, 3
+- seg: 6, 8, 10, 9, 7, 16
+- seg2: 5, 6, 8, 7, 4
+- rows: 6, 2, 1, 18, 40
+- bend: .3
+- tilt: .22, .3, -.02, -.1, .05
+- nSeats: 2
+- open: 1, -1
+- gap: 8, .008, .15
+- shop: 2.7
+- row2: 0
+- fixed: 0
+- dark: 0
+- plateIdx: 0
+- hgt: 1.1
+- wallH: .5
+- railH: .95
+- wear: 0, 1, 2
+- left: 2
+- SHOP_CCTV_DT: .25
+- waist: .95, .92, 1.28, 1.12
+- roof: 1.46, 1.5, 1.42, 2, 1.78, 1.395
+- doors: 4, 2
+- hatch: 0, 6
+- aerial: 1
+- perm: 1
+- alloy: 1, 0
+- dice: 0, 1
+- estate: 1
+- rails: 1
+- box: 1
+- tow: 1
+- childseat: 1
+- tax: 1
+- saloon: 2, 8
+- ticket: 1
+- suv: 3
+- tint: 1
+- steps: 1, 5
+- van: 4, 3, 1
+- rack: 1
+- ladder: 1
+- sticker: 0, 1
+- clutter: 1, 2
+- city: 5
+- baby: 1
+- banger: 7
+- lit: 1
+- arch: .065, .06, .07
+- sill: .25, .26, .33, 1.5, 1.2, .8
+- endY: .33, .4
+- rcF: .42, .3, .5, .48, .36
+- rcR: .3, .26, .24, .38, .36, .42
+- floor: .36, .35, .37, .38, .5
+- crease: .1, .08, .06, .05, .09, .07
+- rrx: -1.38, -1, -.88, -1.3, -1.32, -1.36
+- crown: .035, .03, .04, .045, .05
+- curR: .03, .035, .02, 0
+- curF: .03, .025, .035
+- bowF: .07, .06, .08, .05
+- bowR: .05, .03, .04, 0
+- beltIn: .07, .065, 0
+- tumble: .34, .33, .36, .35, .32, .03
+- pTop: .05, .045, .06
+- pBelt: .014, .012
+- seatF: -.3, -.25, -.2, -.35, .02
+- seatR: -1.1, -1.2, -1.15, -1.05
+- out: .05, .045, .06, .055, .07
+- plateY: .42, .36, .38, .4, .44
+- wrap: 1
+- bars: 3, 2, 0, 1, 4
+- chrome: 1
+- fuel: -1, 1
+- badgeY: .67
+- band: 1
+- boot: 1
+- oval: 1
+- tall: 1, .22
+- twin: 1
+- step: 1, 4.3, 3, 2, 4
+- onBumper: 1
+- alphaTest: .45, .5, .4, .04
+- _pud: 1
+- asp: .75
+- dayK: .55, .25, .9, 0
+- globalAlpha: .6, 1.4, .08, .45, 1, .85
+- aniso: 4
+- value: 1
+- tieY: .95
+- SHOP_LOD: 15
+- HOUSE_SEE: 8.5
+- HOUSE_DEEP: 6.5
+- flex: .35, .25, .2, .3
+- BAND: 3.3
+- standPad: 0, .05
+- tLv: 0
+- cols: 4
+- tx0: 35.2
+- tx1: 38.6
+- rec: .7
+- bayX0: 29
+- bayW: 2.5
+- bayZ0: 16.2
+- bayZ1: 21.2
+- ribbon: 1
+- cell: 5, 0, 1, 16, 27
+- drips: 1
+- aspect: .8, .25, .5, .4
+- faults: 0300
+- run: 3.3
+- yBot: .38
+- e_garage: 3.9
+- PPM: 60
+- FX0: 24
+- FZ0: 31.1
+- YX0: 50
+- YZ0: 31.6
+- rowH: 0
+- off: 0
+- over: .3
+- drawn: 0
+- hTrim: 0
+- high: 2
+- ashby: 2
+- canal: 2
+- south: 2
+- east: 2
+- mill: 1
+- side: 1
+- ppm: 300, 200, 150, 140, 60, 120
+- sdK: 0
+- nIn: 0
+- nOut: 0
+- copingH: .8, .6, 0, .25, .2, .4
+- coping: .25, .7, .5, .4, .55, .15
+- garden: 3.5, 3, 6
+- flatNo: 1
+- tower: 1
+- x02: 9
+- treeMs: 0
+- trees: 0
+- carMs: 0
+- cw0: -21.6
+- cw1: -17.4
+- yz0: -25.4
+- gz0: -13.9
+- gz1: -8.4
+- fz0: -48
+- fz1: -42
+- GIN: 2.4, 0
+- speed: .06, .11, .5
+- damage: 0800
+- LAND_CORNER_R: 4
+- corners: 2
+- punched: 0
+- tris: 0
+- verts: 0
+- nCol: 0
+- nFence: 0
+- VX0: -32.6
+- VX1: -24.6
+- _ce: 1
+- plinth: .45, .6, .5, .9, 1, .8
+- mull: 1, 0, 2, 3
+- transom: 2.5, 2.45
+- head: 2.9
+- want: 0
+- Emergency: 999
+- emergency: 101
+- OFFICE: 6
+- ceil: 2.7, 6.3, 5.9, 3.1, 3.2, 3
+- hard: 2, 1
+- pitch: 2.6, 1.17, 1.8, 1.44, 1.2, 2
+- levels: 2, 4, 3, 5
+- empty: .5, .3, .12
+- lift: .5, .8
+- cx0: 160
+- cx1: 160
+- FL2: 5.5
+- tol: .05
+- HIGH_MAX: 2.62
+- climbY: .45
+- _clVer: 0
+- SPLIT2: 4.4
+- dadoH: 1.15
+- flats: 1, 2
+- low: 1
+- lie: 1
+- window: 1
+- wid: .7
+- span: 2
+- angle: 0
+- target: 0
+- ringT: 0
+- _fruitT: .12
+- _tvT: .2
+- _hudT: .25
+- _ambT: .5
+- slack: .5, 2
+- tier: 2
+- GAP: .004
+- sign: 0, 1
+- cash: 25, 60
+- TOP: 1.74
+- verge: 4
+- _wx: 1

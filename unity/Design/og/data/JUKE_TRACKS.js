@@ -1,0 +1,37 @@
+// JUKE_TRACKS from the old game (v95), verbatim. Lines 135476-135511 of game.pretty.js
+const JUKE_TRACKS = [
+ ["3-am-west-end", "3 am West End", "Jazz"],
+ ["bass-meant-jazz", "Bass Meant Jazz", "Jazz"],
+ ["bebop-for-joey", "BeBop for Joey", "Jazz"],
+ ["martini-sunset", "Martini Sunset", "Jazz"],
+ ["a-good-bass-for-gambling", "A Good Bass for Gambling", "Blues"],
+ ["downtown-boogie", "Downtown Boogie", "Blues"],
+ ["hit-n-smash", "Hit n Smash", "Rock"],
+ ["rush", "Rush", "Rock"],
+ ["uberpunch", "Uberpunch", "Rock"],
+ ["funkeriffic", "Funkeriffic", "Funk & soul"],
+ ["groovin", "Groovin", "Funk & soul"],
+ ["gotta-keep-on-movin", "Gotta Keep On Movin", "Funk & soul"],
+ ["sunny-rasta", "Sunny Rasta", "Reggae"],
+ ["sunday-dub", "Sunday Dub", "Reggae"],
+ ["hillbilly-swing", "Hillbilly Swing", "Country"],
+ ["still-pickin", "Still Pickin", "Country"],
+ ["jethro-on-the-run", "Jethro on the Run", "Country"],
+ ["dancing-at-the-inn", "Dancing at the Inn", "Folk"],
+ ["drunken-party", "Drunken Party", "Folk"],
+ ["the-entertainer", "The Entertainer", "Ragtime"],
+ ["maple-leaf-rag", "Maple Leaf Rag", "Ragtime"],
+ ["vintage-party", "Vintage Party", "Ragtime"],
+ ["night-in-venice", "Night in Venice", "World"],
+ ["pina-colada", "Pina Colada", "World"],
+ ["bollywood-groove", "Bollywood Groove", "World"],
+ ["shenzhen-nightlife", "Shenzhen Nightlife", "Electronic"],
+ ["blippy-trance", "Blippy Trance", "Electronic"],
+ ["funshine", "Funshine", "Pop"],
+ ["city-sunshine", "City Sunshine", "Pop"],
+ ["relaxing-ballad", "Relaxing Ballad", "Pop"]
+].map(([f, t, g]) => ({
+ f,
+ t,
+ g
+}));

@@ -12,3 +12,4 @@ android/capacitor-cordova-android-plugins/
 .idea/
 *.zip
 icon-preview.png
+unity/tools/__pycache__/

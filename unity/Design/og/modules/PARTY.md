@@ -1,0 +1,211 @@
+# PARTY (old game, v95)
+
+Part of: House party at Gary Pickering's flat
+
+Source in game.pretty.js: 151394-152137
+
+## Behaviours (30)
+
+- list (`list`, line 151596)
+- fp (`fp`, line 151599)
+- y (`Y`, line 151602)
+- inside (`inside`, line 151605)
+- inside count (`insideCount`, line 151609)
+- defs (`defs`, line 151612)
+- setup (`setup`, line 151660)
+- settle (`settle`, line 151693)
+- free spots (`freeSpots`, line 151714)
+- at door (`atDoor`, line 151719)
+- pick (`pick`, line 151737)
+- can trip (`canTrip`, line 151797)
+- release (`release`, line 151800)
+- place (`place`, line 151804)
+- go (`go`, line 151822)
+- trip (`trip`, line 151845)
+- come back (`comeBack`, line 151865)
+- think (`think`, line 151870)
+- dance (`dance`, line 151894)
+- dom look (`domLook`, line 151908)
+- plan (`plan`, line 151917)
+- tick (`tick`, line 151942)
+- guard (`guard`, line 151980)
+- allowed (`allowed`, line 151983)
+- door tick (`doorTick`, line 151987)
+- throw out (`throwOut`, line 152019)
+- eject tick (`ejectTick`, line 152026)
+- menu (`menu`, line 152037)
+- wares (`wares`, line 152089)
+- wind up (`windUp`, line 152123)
+
+## Everything it says or shows (131)
+
+- Gary Pickering
+- Flat 6, more or less
+- Michelle Dunn
+- Party animal
+- Kevin Murphy
+- Kayleigh Booth
+- On the decks
+- Lee Snape
+- Has things
+- Dominic Achebe
+- On the door
+- Alright! Come in, come in. Don't mind the mess. Don't mind Spud either. Gaz. This is mine. Sort of.
+- Who let you up? Dom did? Then you're sound. Gaz.
+- Here he is!
+- Alright? Grab a can. Not that one.
+- You're back! Nobody comes back.
+- It's been going since Thursday. Which Thursday? Good question.
+- The council sent a letter. I used it as a coaster. Then a plate.
+- Mouse has been on them decks for two days. I'm not sure he's blinked.
+- Old Mrs whatsit at number 5 bangs on the wall. We turn it up. It's a sort of relationship.
+- Mind the stairs. Mind Spud.
+- Nobody touch the fridge, it's holding the wall up.
+- Shut the door! Dom! Shut the door!
+- Who are YOU? ...Go on then. Shell. Don't stand on my bag.
+- What you looking at?
+- My ex lives on the first floor. I play this LOUD for him.
+- I've been barred from the Eggy Duck twice. Second time wasn't even my fault.
+- Kayleigh thinks she can dance. Look at her. Look at her!
+- Bye then.
+- Turn it UP!
+- Who's drunk my drink? WHO'S DRUNK MY DRINK?
+- Don't you look at me like that.
+- You what? Say that again!
+- I never touched your fags!
+- Don't you DARE.
+- Oh here we go.
+- I came for a cup of sugar. In 2019.
+- ...is the music still on? ...yeah. Yeah, it is.
+- Hiya! I'm Kayleigh! Do you dance? You should dance!
+- Oh my God, hi!
+- Dance with me!
+- I'm going to be on telly. Dancing. Or something.
+- Shell says I can't dance. Shell's jealous.
+- This one's a TUNE.
+- Come back and dance!
+- This is my SONG!
+- Oh my God, this one!
+- Get lost, Shell!
+- At least I'm not forty!
+- You're just jealous!
+- Mouse. Don't touch the decks. Don't breathe on the decks.
+- One-thirty BPM. Any slower and people start talking.
+- I've got eleven thousand records. In my head.
+- Gaz pays me in cans. It's a good deal for Gaz.
+- Here we GO.
+- Drop's coming. Wait for it...
+- Lee. People call me Snakey. I don't know why. You after anything?
+- Alright, my friend.
+- I can get anything. Within reason. And outside it.
+- Phones, fags, a telly if you give me a day. No questions.
+- The police? Never seen one up here. Funny that.
+- Tell your friends.
+- You know where I am.
+- Psst. You want a phone?
+- Cans, fags, whatever you want.
+- Cash only, my friend.
+- You owe me twenty quid, Gaz.
+- Don't make me ask again.
+- Have a look. Everything's cheap. Everything's 'found'.
+- For you? Special price.
+- Come back when you've got money, my friend.
+- Pleasure doing business.
+- You didn't get that from me.
+- ...Dom. I'm on the door. You're alright. In you go. Don't touch the decks.
+- Evening. Dom. You can go in. Behave.
+- I've been on this door four years. Never been inside.
+- The police don't come up here. Not since the last time.
+- I don't drink. Somebody has to remember it all.
+- Mind how you go.
+- Keep it moving.
+- In or out, pal.
+- No glasses on the stairs.
+- In you go. Don't touch the decks.
+- Go on. Behave yourself.
+- Not tonight, pal.
+- No. Turn round.
+- You're done for today. Go home.
+- Alright? Whose mate are you?
+- Who are you? ...Sound, sound.
+- Oh, hiya. You with Gaz?
+- You again.
+- My mate! Get in!
+- You. Out of my face.
+- I only popped in for one.
+- What day is it? Don't tell me. I don't want to know.
+- Lee says he can get me a moped. A moped!
+- The bloke downstairs called the police once. They never came. Never.
+- See ya.
+- Who's got a light?
+- Pass us a can.
+- I love this one!
+- Is there any more ice? There's never any ice.
+- Say that again. Go on.
+- You calling me a liar?
+- Say that again and see what happens.
+- You want some?
+- You're having a laugh.
+- I love you, I do. Who are you?
+- At the party
+- Have a natter
+- Can I go in?
+- What goes on in there?
+- A party. Since before I started. Don't ask me whose.
+- Music. Cans. People who should be somewhere else. Same as anywhere.
+- Nothing the police want to know about. They've told me.
+- Got anything going?
+- Any spare cans?
+- … hands you a can of lager.
+- Go on then. Last one. It's not the last one.
+- Help yourself, there's a fridge full.
+- Get your own.
+- Do I look like an off-licence?
+- Ask Gaz. It's his party. Sort of.
+- Whose flat is this?
+- Gaz's. Or his cousin's. Somebody's on the rent book.
+- The council's, technically. They don't come up.
+- Give them something
+- Wind them up
+- See you later
+- Never mind
+- Suit yourself.
+
+## Labels and names (3)
+
+- ...is it morning? · ...five more minutes... · ...who moved the sofa...
+
+## States and modes
+
+- role: bouncer, dj
+- state: gone, idle, walk
+- mode: trip, back, idle, door, stand, away, slump, walk, dance, dj, doze, sit, explore
+- kind: trip, doze, dj, dance
+
+## Tuning numbers (25)
+
+- greed: .6, .5, .2, .4, .3, .95
+- pride: .4, .6, .1, .5, .8, .7
+- caution: .2, .3, .4, .6
+- warmth: .7, .5, .8, .6, .3, .35
+- temper: .5, .8, .1, .3, .7, .55
+- thirst: .9, .8, .7, .5, .1
+- flirt: .3, .4, .1, .6, .2
+- honesty: .2, .25, .3, .4, .05, .15
+- sells: 1, 2
+- trips: 1
+- GENERIC: 3
+- MIN_IN: 6
+- arrive: 1e9
+- leave: 1e9
+- sigma: 60, 70
+- day: 0
+- until: 0, 1e9
+- barkT: 0
+- danceT: 0
+- leaveAt: 1e9
+- _pcAcc: 0
+- dur: 3, 1.6, 1.4, 1.2
+- domMet: 1
+- yaw: 0
+- cadged: 1

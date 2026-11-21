@@ -1,0 +1,254 @@
+# Social (old game, v95)
+
+Part of: Talking to people
+
+Source in game.pretty.js: 100658-101310, 109046-109054, 109056-109067, 110101-110123, 115082-115150, 131659-131692, 139880-139892, 139895-139907, 150094-150134, 150738-150740, 152245-152247, 152664-152697, 167055-167082, 167930-167978, 182522-182560, 193291-193293
+
+## Behaviours (30)
+
+- rel (`rel`, line 100659)
+- bump (`bump`, line 100662)
+- romance stage (`romanceStage`, line 100679)
+- partner (`partner`, line 100682)
+- perks (`perks`, line 100686)
+- open (`open`, line 100692)
+- close (`close`, line 100707)
+- root (`root`, line 100710, 110101, 115082, 131659, 150094, 150738)
+- reply (`reply`, line 100805)
+- chat (`chat`, line 100808)
+- rumour (`rumour`, line 100821, 193291)
+- drink bought (`drinkBought`, line 100828)
+- gift menu (`giftMenu`, line 100838)
+- gift (`gift`, line 100852, 109046, 139880)
+- flirt (`flirt`, line 100864, 109056, 139895)
+- swagger (`swagger`, line 100884)
+- date (`date`, line 100889)
+- borrow from (`borrowFrom`, line 100916)
+- npc level (`npcLevel`, line 100925)
+- eval challenge (`evalChallenge`, line 100928)
+- challenge (`challenge`, line 101048)
+- tactics (`tactics`, line 101082)
+- persuade menu (`persuadeMenu`, line 101105)
+- persuade (`persuade`, line 101122)
+- match over (`matchOver`, line 101145)
+- confront (`confront`, line 101186)
+- fight (`fight`, line 101208)
+- mickey money (`mickeyMoney`, line 101241)
+- tank door (`tankDoor`, line 101275)
+- tank visit (`tankVisit`, line 101280)
+
+## Everything it says or shows (175)
+
+- counts you as a proper mate
+- You and … are seeing each other.
+- You and … are together.
+- … is in the middle of a game.
+- Fancy a game of arrows?
+- Fancy a frame of pool?
+- Get the drinks in
+- Can I get you a drink?
+- Have a natter
+- Give them something
+- Sweet-talk them
+- Flirt a little
+- Step outside for a bit?
+- Show us your darts gear
+- What are you selling?
+- Stick a bet on the racing
+- About this debt...
+- Got anything hot to shift?
+- I need to see Mickey
+- Any chance of a tab?
+- Go on then. But you square it before you leave, or you're barred. I mean it.
+- Settle the tab (…)
+- Settled tab
+- Ta, love. Good as gold.
+- Lend us a tenner?
+- Need a hand with anything?
+- See you later
+- Listen. That machine's not paid out all night. It's full to bursting. If I had any money left...
+- Moira reckons the fruit machine is due a big one. She's been feeding it all night.
+- Terry's hammered. He drops money like confetti when he's like that. Keep an eye on the floor.
+- Dave gets twitchy on the double sixteen after a few. Leave him on 32 and pray.
+- Kev can't handle pressure. Get him on a finish with money on it and he folds like a deckchair.
+- Don't play Ron for big money. He plays like a drunk until the stakes are worth his while.
+- The Duke comes in Saturdays. Plays for silly money. You need a name round here before he'll look at you.
+- Mickey's been asking after you. Asking how you're doing. He doesn't usually ask.
+- Priya can sort you out with proper darts. Brass is for beginners.
+- The snug has a way in that Brenda does not talk about. Try the books.
+- Mickey keeps more behind the wine in his cellar than wine. Allegedly.
+- There is a gate in the beer garden fence, and a yard behind it. Nobody sensible goes through.
+- Get on Brenda's good side and she'll run you a tab. Pay it, mind.
+- Thursday's darts night. Knockout. Ten quid in, decent pot.
+- Never mind
+- Go on then, what is it?
+- What have you got for me?
+- Is this nicked? Get it away from me.
+- … saw that. That's going to cost you.
+- Alright, alright. Don't overdo it.
+- You're a bit far gone, love. Let's talk when you can see straight.
+- It's nice out here. Quiet. Deano never took me anywhere quiet.
+- Don't go getting soft on me. ...Okay, a bit soft.
+- I'm not supposed to take breaks with customers. I'm making an exception.
+- If you ever want to build a set of darts together, I'd... that sounds like a weird thing to say on a date. Is this a date?
+- This is nice.
+- Head back in
+- Borrowed from 
+- Go on. …. I want it back, mind.
+- Sorry, I'm a bit short myself.
+- You're with Shaz now? I wouldn't piss on you if you were on fire. Walk away.
+- "Reg says I'm ready."
+- Reg said that? ...Right. One game. Don't embarrass him.
+- Set it up
+- "You owe me one, Dave."
+- Fair enough
+- "I'll get the drinks in" (…)
+- "Make it worth your while — double stakes"
+- "Scared, are you?"
+- "Just a friendly. No money."
+- "I'll give you a head start"
+- "Come on, for me?"
+- "Play me. I'll make it worth your while."
+- "You owe me one, remember?"
+- "Here's a tenner just to play"
+- Forget it
+- Drink for 
+- You what? Say that again. Go on.
+- Double or nothing (…)
+- Another game
+- Good game
+- Back down
+- Thought so.
+- Stand your ground
+- Laugh it off
+- ...Ha. Alright. You've got bottle, I'll give you that.
+- … goes down. Brenda is not impressed.
+- You take a slap and lose … in the scuffle. Your hand's shaking.
+- You take a slap. Your throwing hand is shaking.
+- Brenda: "OI! Not in my pub! Any more and you're both barred."
+- Pay it all off (…)
+- Pleasure doing business. Genuinely.
+- … to go. Tick tock.
+- Borrow … (pay back …)
+- There you go. Twenty percent. I'm practically a charity.
+- Anything else?
+- You owe me …. Due …. Don't make me send Tank.
+- You're square with me. For now. Need a little something?
+- ...Go on in. Wipe your feet.
+- ...Mickey's heard of you. Go in.
+- Mickey doesn't know you. Win some games. Make a name.
+- Tank comes for you. Big Dave steps in the way. Tank thinks better of it. You owe Dave.
+- Mickey says you're late. …. I'm going to take what you've got on you as a down payment.
+- Hand it over
+- Tank takes …. You still owe ….
+- Tank doesn't do arguments. You're winded, your hand's shaking, and … lighter.
+- Presumptuous. ...Keep them handy.
+- Well. Somebody's feeling confident. Good.
+- Bit forward. Not a no, mind.
+- Put those away before someone sees. ...Later.
+- Are you having a laugh? Get lost.
+- Wow. No. Absolutely not.
+- What am I supposed to do with these?
+- ...I'm going to pretend that didn't happen.
+- Anything under the counter?
+- Not tonight. I have a reputation. Small, but I have it.
+- Anything under the counter? (… picks, …)
+- Any trouble about?
+- "There's been talk of …. I'd like to know who's behind it."
+- "Nothing I can put my finger on. Yet. I'd keep your nose clean."
+- "Quiet as a mouse. Just how I like it."
+- "Not a peep. Lovely. Stay that way."
+- Own up to something
+- Come clean (… fine)
+- Honesty. Rare as hen's teeth. Fine, and we'll say no more about it. Mind you don't make a habit of it.
+- Forget I said anything
+- Hm. Suit yourself.
+- Go on. I'm listening. Be honest and I'll be fair.
+- Can I get you an orange juice? (…)
+- Not on duty, thank you. Kind of you, though.
+- Put your money away, you look like you need it.
+- Orange juice for the policeman
+- Well. Just the one. Cheers, {p}.
+- Give him something
+- What have you got?
+- It's not my birthday. ...Aw, that's actually really nice.
+- A card! For me? Nobody sends cards any more.
+- "To a special someone". Well. I'll put it on the mantelpiece.
+- Ha! Look at his little face. ...He can live on the bar. Don't tell anyone I laughed.
+- What do you actually do?
+- I'm a visible presence. That's the job. Visible, and present.
+- I walk about so people feel safer. Some do. Some feel like I'm following them. I'm not.
+- I give directions. And hand in lost property. And, um, radio Bobby. That one's the big one.
+- I wave. People like a wave. It's, er, community.
+- Can you arrest me?
+- Arrest? No. Well, anyone can arrest anyone, technically, if you're, er... no. No. Better not.
+- No! I mean — you've not done anything. Have you? Don't answer that.
+- I can't. I can radio someone who can. Is that... would you like me to?
+- Wind them up
+- Oi. Er. I'm... I'm a community... person. Stop that.
+- That's, er, not nice. I'm going to write that down. I haven't got a pen.
+- I'll have you know I've got a certificate. In... first aid. And customer service.
+- … glances towards Hawthorn Court and won't meet your eye.
+- Report what goes on in Flat 6, Hawthorn Court
+- Own up to what you did up at Flat 6
+- Sorry — wrong flat
+- Wrong flat. Course you are. OUT.
+- Go on, then. Shut the door behind you.
+- Hmph. Mind how you go.
+- What's this lot, then?
+- …. …. … runs it. …
+- Want a fag?
+- Go on then.
+- Have a can
+- Nice one.
+- About that favour...
+- Anything I can do for you?
+- Got something for you
+- Oh, you're up. Sit down. I've done you something.
+- You've got that look on your face.
+- Don't just stand there.
+- There you are.
+- Ask for another bite
+- Any food going, Mum?
+- Cup of tea?
+- Just a natter
+- Give her some money
+- Not now
+
+## Labels and names (3)
+
+- likes you · … is flirting back. ·  to play
+
+## States and modes
+
+- state: match
+- mode: sit, lean, talk
+- kind: package, pub
+
+## Tuning numbers (25)
+
+- friend: 0
+- romance: 0
+- lookW: 1, .6, .9
+- speed: 0
+- dur: 1.2, 2.4, 1.6
+- lookT: .5, 2.2
+- amount: 0
+- talked: 1
+- gain: 3, 2
+- drinkLeft: 1
+- dated: 1
+- lent: 1
+- min: 2, 20, 500, 1, 50, 10
+- max: 50, 150, 5e3, 10, 20, 250
+- vouched: 1
+- cost: 10
+- stakeMult: 2
+- chance: .35
+- mine: .45
+- theirs: .35
+- dir: 1, -1
+- grudge: 60
+- owesFavour: 0
+- overdue: 0
+- injury: 2

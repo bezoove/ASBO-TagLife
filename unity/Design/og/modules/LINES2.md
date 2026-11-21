@@ -1,0 +1,106 @@
+# LINES2 (old game, v95)
+
+Part of: Talking to people
+
+Source in game.pretty.js: 1604-1604, 106202-106207, 169109-169109, 181548-181558, 182365-182376
+
+## Everything it says or shows (98)
+
+- So I said to him, I said, you're having a laugh.
+- Same again? Go on then.
+- Did you see the match on Saturday?
+- She never did! Get away.
+- He's been in here since opening.
+- Whose round is it?
+- I'm telling you, it was this big.
+- What are you on about?
+- Honestly, the state of it.
+- Your mum rang, by the way.
+- We should do this more often.
+- Oh, don't start him off.
+- That's what I keep saying!
+- Is it raining out?
+- Ten quid says he doesn't.
+- Lovely, cheers love.
+- And then the dog ate it.
+- Not him again.
+- Well, I thought it was funny.
+- Where's Dave got to?
+- Mine's a pint of the usual.
+- You what?
+- Oh, give over.
+- Christ, who gave you that black eye?
+- That eye is a picture. Mind you don't walk into any more doors.
+- Nice shiner.
+- You're bleeding, you daft sod.
+- That lip looks nasty.
+- Your nose... it's gone a funny shape.
+- You want to get some ice on that nose.
+- You've got a cut over your eye.
+- That brow wants a plaster.
+- Someone ring the fire brigade.
+- Nobody's ringing anyone.
+- Was it you?
+- Stand back, it'll go up.
+- Insurance job.
+- Get it on TikTok.
+- Smells like Bonfire Night.
+- It's the third one this month.
+- Police won't come. They never come.
+- Sit down, mate. What are we doing today?
+- Alright? The usual, or something brave?
+- Come in, come in. Mind the hair. There's always hair.
+- Next! That's you. There's nobody else, but still.
+- Number two on the sides, number four on top. Nobody ever says the other numbers. Where do they go?
+- Had a bloke in yesterday who wanted a Mohican for his wedding. I said, which one's the bride?
+- I've cut half the Rovers squad. Terrible at football, lovely hair.
+- Going anywhere nice tonight? Or just the Duck?
+- You're a bit shaggy round the ears. No offence. Some offence.
+- The secret is you never rush. Eighteen minutes. Every time. Even for a buzz.
+- I do the Eggy Duck darts lads at a discount. They never pay it, but I do the discount.
+- Don't tell the wife, but I've been using the good clippers on the dog.
+- Ooh, brave. I like it.
+- Right, sit still, I'm using the sharp ones.
+- A bit off the top, a lot off the pride.
+- Short back and sides it is. Can't go wrong.
+- Colour, is it? Don't sweat. It'll stain the towel, not you.
+- A bit of dye. Your secret's safe. Well. Everyone in the shop will know.
+- Beard work. Lovely. Tilt your head.
+- Tidy up round the chops. Careful with the razor now.
+- Just the brows? Lovely. This one's cheap.
+- There you go, mate. Looking sharp.
+- Done. Mind the neck, it'll sting.
+- Not bad. Better than the last one, anyway.
+- Have a look. Left, right. Handsome.
+- Same as before? You're allowed to say. I'll put the clippers down.
+- Kutz is shut. The chairs are covered in sheets like furniture in a haunted house.
+- Tea? You look like you've been dragged backwards through a hedge.
+- Mind the floor, I've just done it.
+- Sit down, you're making the place look untidy.
+- That's rice, that's. Not a science experiment.
+- It's only egg fried rice. Don't make a face.
+- I've been on my feet since six. Eat what you're given.
+- Three more orders to sort and then I'm off my feet.
+- Eat something. You're like a stick.
+- Your tag's charged? Check it's charged.
+- Mrs Wong wants her trousers taken up by Friday. Everybody wants everything by Friday.
+- Don't touch the machine. I mean it.
+- Another hem. Another hem. Another hem.
+- Shh. This is the one where she finds out.
+- You've been in that chair too long.
+- If you're going to stand there, stand there quietly.
+- Shoes off!
+- Keys, wallet, tag. In that order.
+- Curfew's nine. I'm not asking.
+- Don't go bringing trouble upstairs. Mrs Patel next door has ears like a bat.
+- Your probation lady rang. She was nice about it. I was not.
+- Is the tag beeping? It sounds like it's beeping.
+- You're a good boy really. Don't make me say it twice.
+- There's a note on the table. Read it. Don't just look at it.
+- The extractor's loud again. Tell the landlord. Oh wait, that's me.
+- What have you done? Don't tell me. Tell me.
+- Is that the police out there? Is it? Don't look at me like that.
+- Whatever it is, you go and sort it. Not upstairs, not in my flat.
+- Sit down. Sit DOWN. Let me look at that.
+- Who did that to your face? Who? I'll go round.
+- Is that blood? On my floor? Sit. Sit!

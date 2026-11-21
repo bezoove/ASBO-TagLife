@@ -1,0 +1,213 @@
+# Home (old game, v95)
+
+Part of: Home: the flat over the Golden Dragon, with Mum
+
+Source in game.pretty.js: 67888-68130, 68136-68136, 68145-68145, 68158-68161, 68209-68237, 68275-69462, 182140-182265, 182350-182364, 182377-182383, 182385-182422, 182426-182520, 182561-182733, 182741-182741, 182744-183042, 183057-183087, 183094-183155, 183189-183195, 183203-183203, 201875-201882
+
+## Behaviours (56)
+
+- on (`on`, line 67922)
+- emit (`emit`, line 67925)
+- mats (`mats`, line 67947)
+- fit takeaway (`fitTakeaway`, line 68209)
+- brick (`brick`, line 68275)
+- slabs (`slabs`, line 68299)
+- main body (`mainBody`, line 68354)
+- shopsin (`shopsin`, line 68369)
+- build shell (`buildShell`, line 68371)
+- arch (`arch`, line 68708)
+- door (`door`, line 68721)
+- fmats (`fmats`, line 68740)
+- photo mat (`photoMat`, line 68929)
+- photo (`photo`, line 68973)
+- card (`card`, line 69006)
+- furnish (`furnish`, line 69024, 201875)
+- room lights (`roomLights`, line 182148)
+- lamps for (`lampsFor`, line 182173)
+- tick (`tick`, line 182203)
+- upd dyn (`updDyn`, line 182235)
+- ambience (`ambience`, line 182240)
+- mum vis (`mumVis`, line 182262)
+- route (`route`, line 182350)
+- mum mode (`mumMode`, line 182377)
+- mum activity (`mumActivity`, line 182380)
+- mum spawn (`mumSpawn`, line 182385)
+- mum go (`mumGo`, line 182426)
+- mum tick (`mumTick`, line 182449)
+- say (`say`, line 182492)
+- mum bark (`mumBark`, line 182498)
+- mum react (`mumReact`, line 182502)
+- lump on (`lumpOn`, line 182516)
+- lump off (`lumpOff`, line 182518)
+- mum natter (`mumNatter`, line 182561)
+- mum tea (`mumTea`, line 182573)
+- mum meal (`mumMeal`, line 182583)
+- mum pay (`mumPay`, line 182611)
+- note text (`noteText`, line 182649)
+- sofa menu (`sofaMenu`, line 182655)
+- save (`save`, line 182703)
+- wait (`wait`, line 182714)
+- sleep (`sleep`, line 182744)
+- tuck bed (`tuckBed`, line 182781)
+- wake pos (`wakePos`, line 182783)
+- place (`place`, line 182790)
+- is in (`isIn`, line 182800)
+- stash (`stash`, line 182802)
+- css (`css`, line 182808)
+- stashable (`stashable`, line 182816)
+- stash move (`stashMove`, line 182823)
+- stash ui (`stashUI`, line 182835)
+- tin ui (`tinUI`, line 182978)
+- use (`use`, line 183057)
+- enter (`enter`, line 183094)
+- intro scene (`introScene`, line 183109)
+- sanitise (`sanitise`, line 183189)
+
+## Everything it says or shows (93)
+
+- Stairs (Golden Dragon flat)
+- Stairs and landing
+- Home: the flat over the Golden Dragon
+- Chinese Takeaway · Free delivery over £12
+- Sofa: sleep, wait or save
+- Open your crate (safe storage)
+- Biscuit tin: your cash stash
+- Switch the telly on or off
+- Make a cup of tea
+- Look in the fridge
+- Read the note on the table
+- Pat the lucky cat
+- Look at the calendar
+- Look in the mirror
+- Mum (Mrs Cheung)
+- Your mum
+- Morning. Don't sit there looking at me.
+- Are you still here? Good. Eat something.
+- s going to die on you. Charge it. Now.", "It
+- re going?", "Curfew in an hour. I
+- The tag. I don't care what the lad said. You keep it charged, you keep it on, and you keep it off the Hawthorn Road after nine.
+- Your probation officer, Ms Rao. She rang. She said you were doing 'fine'. I said 'fine' is what we say about the weather.
+- Curfew is curfew. Half past nine I check that door, I don't care if the pub's on fire.
+- Your dad would have laughed, you know. He'd have laughed and then he'd have shouted. Both. At once.
+- The takeaway's been quiet. The Wongs are doing a cheaper box. I could scream.
+- I'm not angry. I'm tired. It's different. Eat your tea.
+- Out so late? No. Back for nine.
+- Don't make plans that end in the police station. Plans that end in the chippy are fine.
+- A mug of builder's tea, two sugars, chipped. Better.
+- You've had your dinner! Don't be greedy. There's a banana.
+- Egg fried rice and sweet and sour chicken, off the end of the menu. It is delicious. You feel mended.
+- Rice, greens and a whole fish, bones and all. You eat it all. A night of healing, in a bowl.
+- Mum's soup. It smells of ginger and love. You are patched up.
+- You haven't got it, love. Don't worry about it.
+- I don't want your money. Well. Go on then.
+- You give Mum £…. She tuts, then she hugs you.
+- Never mind
+- Gone to the cash and carry. Rice in the cooker. EAT IT. - Mum
+- Mrs Patel says you were out after nine. I said you were in the bath. Don't make a liar of me. - Mum
+- Tag charger is by the telly. Plug it in. PLEASE. - Mum
+- Ms Rao rang about Thursday. Be there. Wear a shirt. - Mum
+- Left you 2 spring rolls. DON'T tell the customers. - Mum
+- Rent's due Friday. Not your problem. Eat. - Mum
+- You looked tired. I let you sleep. There's tea in the pot. - Mum
+- Sleep until morning (9:00)
+- Nap until the afternoon
+- Sleep until evening (5pm)
+- Sleep for eight hours
+- Lie back and wait...
+- Save the game
+- The sofa
+- Pull-out bed · Flat A
+- Could not save
+- On the sofa · Flat A
+- Lie back and wait
+- Take it off first.
+- Put it down first.
+- The crate
+- Safe at home: nobody can nick, mug or confiscate what is in here
+- Search items
+- Store all
+- Nothing to store.
+- Take all
+- Nothing to take.
+-  (tap: store, hold shift: all)
+- In the crate (…)
+- Nothing matches.
+- Your pockets are empty.
+- Nothing in here yet. Tap something on the left to store it. Clothes you are wearing and the thing in your hand stay on you.
+- Sell or wear things? Take them out first.
+- The biscuit tin
+- Cash stashed: … · on you …
+- You have nothing to put in.
+- The tin is empty. A single Rich Tea crumb.
+- Put in £…
+- Put in all
+- Mum thinks it is for emergencies. It is for emergencies.
+- The telly comes on: a man is cooking something in a pan, shouting.
+- The telly: the news, then a quiz, then an advert for a sofa.
+- The telly: snooker, with the sound down.
+- Telly off.
+- You make a mug of tea. Two sugars. The chipped one, obviously.
+- The fridge: soy, half a cabbage, and a note: "DO NOT TOUCH - for the restaurant".
+- You eat two cold spring rolls over the sink. Nobody saw.
+- Leftover chow mein, cold, from the tub. Perfect.
+- A prawn cracker and a sulk.
+- The lucky cat waves. It has waved since 1998. It is not impressed.
+- You pat the lucky cat. Luck, probably, is on its way.
+- The cat's battery is on its last legs. The paw slows. Speeds. Slows.
+- Mum puts the kettle on.
+- There you are. Let me look at you. You're thinner. They didn't feed you, did they? Don't answer.
+- Right. Rules. The tag stays charged, the tag stays on, and you are in by nine, because that's what the nice lady at probation said and I wrote it on the calendar. In red.
+- Ms Rao's coming Thursday. You'll be polite. You'll wear the shirt. I'll make tea.
+
+## Labels and names (6)
+
+- bold 15px sans-serif · bold …px sans-serif · …px sans-serif · home bathroom · in hand · btn primary
+
+## States and modes
+
+- type: circle
+- mode: title, explore, sit
+- state: idle, walk
+
+## Tuning numbers (40)
+
+- yaw: 0
+- rough: .9, .88
+- vScale: 1
+- lineWidth: 2, 3
+- seed: 8310, 8311, 8312, 8313, 8314, 8315
+- lobbyX: 137.5
+- home: 1
+- swing: 1, -1
+- run: 5
+- z0s: 16.4
+- out: 1
+- width: .88
+- height: 2.05, 0, 100
+- thick: .045, .04
+- size: .1, .075
+- ppm: 300
+- seg: 8, 6
+- seg2: 6, 4
+- len: 1.7
+- wid: .72
+- _lt: .5
+- _me: 1
+- vol: .02, .03
+- age: .6
+- arrive: 0
+- leave: 9999
+- arriveAt: 0
+- leaveAt: 1e9
+- _mumNext: 0
+- _bark: 20
+- _stuck: 0
+- _repaths: 0
+- _rt: 90
+- battery: 1
+- money: 0
+- flex: 1
+- margin: 0
+- font: 600
+- count: 1
+- _te: 1

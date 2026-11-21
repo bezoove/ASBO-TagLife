@@ -1,0 +1,620 @@
+# Shp (old game, v95)
+
+Part of: Shops and businesses
+
+Source in game.pretty.js: 49030-49043, 49045-49057, 49071-49169, 49175-49175, 49179-49316, 49318-49625, 49627-49804, 50875-50939, 51042-51662, 53021-53534, 54745-55117, 55894-56475, 56677-56787, 56908-57135, 68163-68207, 161678-161998, 162006-162006, 162010-162010, 162671-162679, 162953-162953, 182065-182072
+
+## Behaviours (54)
+
+- target (`target`, line 49045)
+- near (`near`, line 49047)
+- box hit (`boxHit`, line 49047)
+- face hit (`faceHit`, line 49049)
+- hook (`hook`, line 49071)
+- hour (`hour`, line 49090)
+- is open (`isOpen`, line 49090)
+- fmt hours (`fmtHours`, line 49100)
+- mk (`mk`, line 49110, 68163)
+- door (`door`, line 49135)
+- tick (`tick`, line 49144)
+- mats (`mats`, line 49179)
+- floor (`floor`, line 49307)
+- dado (`dado`, line 49307)
+- r (`R`, line 49318)
+- loot (`loot`, line 49627)
+- biz (`biz`, line 49643)
+- act (`act`, line 49650)
+- use (`use`, line 49664)
+- person (`person`, line 49671)
+- basic (`basic`, line 49676)
+- say (`say`, line 49685)
+- buy (`buy`, line 49692)
+- audit (`audit`, line 49740)
+- staff (`staff`, line 49748)
+- back room (`backRoom`, line 49750)
+- frame (`frame`, line 51042)
+- inside postoffice (`inside_postoffice`, line 51066)
+- inside bookies (`inside_bookies`, line 51208)
+- bet (`bet`, line 51306)
+- inside chippy (`inside_chippy`, line 51380)
+- inside launderette (`inside_launderette`, line 51522)
+- inside chinese (`inside_chinese`, line 53021)
+- inside barbers (`inside_barbers`, line 53155)
+- haircut (`haircut`, line 53250, 182065)
+- inside pharmacy (`inside_pharmacy`, line 53305)
+- inside vacantunit (`inside_vacantunit`, line 53452)
+- inside royaloak (`inside_royaloak`, line 54745)
+- pub buy (`pubBuy`, line 55043)
+- inside commfoyer (`inside_commfoyer`, line 55894)
+- inside commhall (`inside_commhall`, line 55936)
+- inside library (`inside_library`, line 56097)
+- inside healthc (`inside_healthc`, line 56333)
+- see gp (`seeGP`, line 56441)
+- inside arcade (`inside_arcade`, line 56677)
+- inside sh3 (`inside_sh3`, line 56754)
+- sh3 in.poundshop (`SH3IN.poundshop`, line 56908)
+- sh3 in.soletrader (`SH3IN.soletrader`, line 56957)
+- sh3 in.threadz (`SH3IN.threadz`, line 56985)
+- sh3 in.glint (`SH3IN.glint`, line 57017)
+- sh3 in.maison (`SH3IN.maison`, line 57056)
+- sh3 in.ostentatia (`SH3IN.ostentatia`, line 57094)
+- app (`app`, line 161958)
+- live setup (`liveSetup`, line 161962)
+
+## Everything it says or shows (503)
+
+- Nobody is serving at … right now. A bell on the counter. You ring it. Nobody comes.
+- "Sorry, mate. Not serving you that. Come back when you can stand up."
+- Wash your hands
+- Tills cashed up by 5.30
+- Fire door NOT a smoking area
+- Ashby Post Office
+- Lucky Star
+- The Codfather
+- Golden Dragon
+- Ashby Pharmacy
+- Empty shop unit
+- Please wait for
+- Nobody from the bank
+- will ask for your PIN.
+- Nobody from HMRC
+- Hang up. Ring us.
+- Post Office counter
+- Book of first-class stamps
+- The Ashby Gazette
+- Birthday card ("To a Wonderful Nan")
+- Biro (the chain is extra)
+- Raffle tickets (the Scouts)
+- "Next, please!" (there is no one else)
+- "Morning. Small parcel? Big parcel? Dead parrot?"
+- "Have you got ID? No. Never mind."
+- Collect a parcel
+- The collection hatch is shut.
+- "Your parcel? I gave you it yesterday. You signed. Look, there's your scribble."
+- "Sorry we missed you." She hands over a small, damp parcel. "It was in the back with the other one."
+- You collect somebody else's parcel. The slip says D. Wright. Close enough.
+- Browse the magazines
+- "WHICH CAR?" "WHICH WATERING CAN?" "WHICH?" You buy nothing, but you learn everything about strimmers.
+- Seventeen magazines about fishing and one about fishing for women. Next to it, a local one: the Ashby Gazette, 1.40.
+- The top shelf has a card over it: "ASK AT COUNTER". Nobody does. The top shelf is dusty.
+- Sorry Nan 7-1
+- Gold Star 11-2
+- NB: no refunds
+- Ashby Rovers v Wanderers
+- Cashier: place a bet
+- Fixed-odds machine
+- Lucky Star machine
+- Reels spin. Two cherries and a lemon. "NEAR MISS", the machine says, which is what it says about everything.
+- Won on the machine
+- JACKPOT (sort of): it pays out £4.50 in coins, as though it were the lottery and you were the lottery.
+- Betting slips
+- You take a slip and a golf pencil. The pencil is blunt, the slip is tiny, the form is a thesis.
+- Lucky Star is closed.
+- Nobody is at the counter. The screens carry on without them.
+- Lucky Star: next race
+- 3.15 Wetherby · 1m 4f · soft to heavy
+- Bottle of Gravy
+- Sorry Nan
+- Brenda's Big Day
+- Lucky Star bet
+- "And they're off..." Four minutes of shouting at a screen.
+- Lucky Star winnings
+- … WINS by a nose! The cashier counts out …. A man in the corner says "bastard" with feeling.
+- … wins. … finished "sensibly" -- last, well clear of the fence. Your slip goes in the bin with the others.
+- Mushy peas 1.60   Pickled egg 1.10
+- "Scraps" free if you smile
+- Generally satisfactory
+- Ashby Fresh Fish
+- (from Grimsby, by van)
+- Order at the counter
+- Traditional fish & chips · since 1987
+- Cod and chips
+- Wrapped in paper, hot as a plate of lava. You get the little wooden fork. It will fail you.
+- Large chips
+- Meat & potato pie
+- Mushy peas
+- Pickled egg
+- Can of pop (it is not lager)
+- "Salt and vinegar?" He has already done it.
+- "Open or wrapped?" Open. "Wrong. Wrapped."
+- "You're in luck. Fresh batch. Five minutes."
+- "Cod, haddock, or the cod that's been in a fight?"
+- Salt and vinegar
+- You shake vinegar on nothing in particular. Your sleeve is now a chip.
+- The salt cellar has been unscrewed. You find out the hard way. Pile of salt.
+- A little bottle of Sarson's. A little, vicious bottle.
+- "I bought a house with my cousin"
+- Service wash £7.50
+- Machines do not eat socks. Socks leave.
+- Do a service wash
+- Shut. The machines hum anyway.
+- Bubbles: service wash
+- Dropped off, done in an hour
+- The woman behind the counter takes your clothes in a bin bag and gives you a ticket. It will take about an hour. She will fold them, she says, "like a person who cares."
+- Pay £7.50 and wait an hour
+- Your clothes come back warm, folded, and smelling of a spring that has never existed. You feel two years younger.
+- Never mind
+- Coin changer
+- Bubbles tokens
+- The machine gives you two brass tokens and a look of contempt.
+- Buy a sachet of powder
+- Detergent & fabric softener
+- Cup of tea (from the flask)
+- A  £9.80 for one
+- 30  Chow mein  6.80
+- B  £16.50 for two
+- 2  Lemon chicken  6.60
+- 31  Egg fried rice  3.40
+- C  £22 for three
+- 3  Crispy beef  7.20
+- Prawn crackers free over £12
+- Pork Belly
+- Chinese takeaway · open lunch & evenings
+- Chicken chow mein (30)
+- Sweet & sour chicken (1)
+- Prawn crackers
+- Fortune cookie (one, free if you are nice)
+- Chips & curry sauce
+- Ashby classic
+- Can of pop
+- "Number? Number?" He has already written it down.
+- "Twenty minutes. Fifteen. Twenty."
+- "Prawn crackers free with twelve pounds!" (You have ten.)
+- The lucky cat
+- The gold cat waves its paw at you, at 1.4 seconds a wave, forever. You feel luckier. You are not.
+- Its paw goes up, down, up. You catch yourself waving back.
+- There is an orange in front of it. You consider the orange. The orange considers you.
+- Look at the fish
+- A fat orange goldfish stares at you the way the tax office does. Another hides behind a plastic castle.
+- The biggest fish is called Kevin. The sign says so. Kevin is huge. Kevin has seen things.
+- A plastic diver blows bubbles. A small fish seems to be in awe of it.
+- Skin fade  £14
+- Short back & sides  £12
+- Beard trim  £5
+- Hot towel shave  £16
+- KUTZ  ·  No appointment needed
+- Get a haircut
+- Wait your turn
+- "Be about ten minutes," says Dino. It is always ten minutes. A man has been here since Tuesday.
+- You flip through a football mag from 2019. Rovers were going to win the league. The date is right there.
+- On the telly, a man in a suit explains how the Rovers keep losing. You know, mate.
+- Products on the shelf
+- Pomade, combs and a smell
+- Kutz is shut. The chairs are covered with sheets, like furniture in a haunted house.
+- Nobody here to cut anything. The chairs are empty. The clippers are plugged in. Menacing.
+- Kutz: sit down, mate
+- No appointment needed
+- Buzz cut
+- Short back & sides
+- Skin fade (spiky top)
+- Slick back
+- Curly (leave it)
+- The lot off
+- Beard trim (stubble)
+- Hot towel shave (clean)
+- Full beard, tidied
+- Ready in 30 mins
+- Please have your
+- NHS number ready
+- £0 if you are over 65
+- Pharmacy counter
+- Over the counter · pharmacist on duty
+- "Anything for the pain? Not the sort you're thinking of."
+- "Over the counter, yes. Behind the counter, no."
+- "Is it for you? Is it for you? OK."
+- Collect a prescription
+- "No. There's nothing for you. I told you. Nothing."
+- "Surname? ... Nothing. Try Hussain. That one's been here since Tuesday."
+- "Prescription for you? ... Hang on. No. It's for the other you."
+- "We've got your tablets. They're in the other branch. Possibly the other country."
+- She slides a slip under the glass. It is somebody else's. Mr A. Hussain, 20 mg of something long. You take it anyway. Obviously.
+- The cuff squeezes your arm like an apology. …/…. The screen says …
+- Step on the scales
+- The needle swings to 12 stone and has a little think. A lady behind you tuts.
+- It says "ONE AT A TIME" and then, after a pause, "PLEASE".
+- It shows 9 st 4. You choose to believe it.
+- Read the agent's board
+- "TO LET. Prime High Street position. Would suit retail, café, or other. Rent on application." Someone has added, in marker: "OR OTHER."
+- Teams of four
+- Cash prize!
+- League winners
+- Last orders 12.40 · Time at 1
+- Order at the bar
+- Royal Oak jukebox
+- You put a pound in. The jukebox thinks, thinks, and plays a song you did not choose. It is always this one.
+- "Wonderwall" starts up. A man at the bar groans without turning round. It is the same man as always.
+- A pound, three numbers, and a Slade song comes on. The whole pub finds its voice, briefly.
+- Fruit machine
+- Royal Oak fruit machine
+- Won on the fruit machine
+- Three bells! It spits out … in a hail of pound coins. Everyone looks at you.
+- Two bells and a "CLOSE ONE". It is not close.
+- The dartboard
+- The board has a hundred and one holes in the treble twenty and none in the double top. Three arrows are missing. One is in the ceiling. You are not allowed to play: it is the League's board.
+- The pool table
+- A 50p slot. The balls come down. The cloth is grey in the middle and the cue tip has been chalked since Christmas. A man in the corner says "I'm next".
+- You rack them. Somebody has stolen the black. It is replaced by a sad brown.
+- The quiz board
+- On the chalkboard behind the bar: "QUIZ THURS · HALF-PINT FOR LAST PLACE · NO PHONES · (YES WE MEAN YOU DEREK)". Under it, in red: "ENTRY £2".
+- Use the toilet
+- Relief. A graffito over the urinal says: "THE DEAD ARE LISTENING".
+- The Royal Oak is shut. The door is on the latch, the pumps are dry, and a cat watches you from the window.
+- Nobody behind the bar. A hand-written note: "BACK IN 5 MIN. PLEASE DON'T HELP YOURSELF. -- BARRY".
+- The Royal Oak
+- Real ale · lager · no cocktails
+- "What'll it be?"
+- "Evening. You're not from round here. Ale?"
+- "Be with you in a sec... go on, then."
+- "I think you've had enough, mate."
+- Finish the one in your hand first.
+- A glass (we saw nothing)
+- TODAY: Toddlers 10 · Lunch club 12 · Tai chi 2 · BINGO 7.30
+- Sign the book
+- Sign in
+- You sign the book: "R. Nobody, visiting". Above you, someone has signed "Elvis" for the third week running.
+- The pen is on a chain. The chain is shorter than the pen. You manage.
+- The page says: "Reason for visit". You write "Curiosity". Mavis from the desk nods approvingly.
+- Ask at the hatch
+- "What's on? Everything's on. Tai chi, yoga, toddlers, a man with a guitar. Check the board."
+- "The hall? £14 an hour. The stage is extra. The curtains are extra. The chairs are... also extra."
+- "Bingo's tonight. Don't sit in Doris's seat."
+- Vending machine
+- Cold drinks, exact change
+- Bring a mat. Bring a smile.
+- Weekday mornings 10 - 12
+- 50p per family. Biscuits!
+- Tea and coffee hatch
+- Community Centre: tea hatch
+- Volunteers · all proceeds to the roof fund
+- Cup of tea
+- Egg and cress sandwich (cut in four)
+- Raffle tickets
+- "Milk? Sugar? Biscuit? We've got a custard cream. One."
+- Plink the piano
+- You play Chopsticks. Badly. Somewhere, a woman called Doris says "Not in my hall."
+- The F above middle C is a half-tone flat. The middle E has a sticky note: "IT'S BROKEN. LEAVE IT."
+- You hit a chord. It comes back, muffled, from three different places.
+- "LOST: tortoise (Brian). Last seen: the lollipop lady's house." · "FOR SALE: hamster wheel (large)." · "WANTED: a good bass player (must be bad at it)."
+- "TAI CHI 2pm - everyone welcome. NOT a fight club." · "BRING AND BUY, Saturday" · "FOUND: dentures. Please describe."
+- "PETITION: bring back the 54 bus." · "PETITION: don't." · "Choir needs altos. And sopranos. And hope."
+- Join the bingo
+- "Bingo's from 7.30 to 10, love. Thursdays and Fridays. Come back, bring a dabber."
+- Eyes down. Two fat ladies, legs eleven, key of the door... Doris wins the hamper. Again. You win a biscuit.
+- Bingo winnings
+- HOUSE! "Check it! Check it!" A woman called Pat counts your card. You win fifteen quid and an enemy.
+- Scan your card
+- The Co-op, 1961
+- Library issue desk
+- The library is shut. A poster says: "OPEN 9 - 8 (not Sundays)".
+- Nobody at the desk. A sign: "BACK IN 5 MINUTES". The sign is yellowed.
+- Ashby Library
+- Issue desk
+- "Shhh. Oh, you can talk to me. Quietly."
+- "Got your card? No? Name? Address? ... Fine."
+- You have a library card. It has a hole in it where it has been on a keyring.
+- Join the library: free. All you need is a name, an address, and the will to return things.
+- Borrow "The Inner Game of Darts"
+- "One a day. It's the policy."
+- She stamps it with a flourish. "Due back in three weeks. Don't be the man with the allotment book."
+- You get a laminated card with a photo that is not you. "Welcome to the library," says Gwen. "Please don't eat anything."
+- You get twenty-five minutes. You look up "how to win at darts" and, somehow, three hours later find yourself on a page about trout.
+- You check the weather, your emails (none) and the Rovers' fixture list (bleak). The man next to you is watching a video of a man making a cheese.
+- You log in. The screen says "Windows is updating". Twenty-five minutes of "Windows is updating".
+- Library photocopy
+- Chunk-chunk. A copy of your hand comes out, slightly blurry. You are, officially, handsome.
+- It makes a copy. The copy is of the previous copy, which is of a bus timetable.
+- Browse the shelves
+- "HOW TO TALK TO ANYONE" is at the end of its shelf. "HOW TO TALK TO NO ONE" is out on loan.
+- Fiction A-H: a man has been bending the spines of one author, in alphabetical order. You can tell. The author is dead.
+- You open a random book. Inside is a bus ticket from 1988 and a pressed flower. It is the most romantic thing you have seen all week.
+- Local History: "Ashby: A Short History" (12 vols). Volume 1 is mostly about a pond.
+- Story corner
+- A bean bag sighs under you. A small girl says: "You're too big." She is right.
+- There is a mural of a very cheerful, very large worm. Under it: "READ A BOOK, BE A BOOKWORM".
+- You sit. The rug is warm. The librarian is looking at you over her glasses. You get up.
+- Touch screen
+- Book at reception
+- Mill Lane Health Centre
+- Reception: see a doctor
+- A shy yellow fish watches you. You have the sudden, strong impression it knows your results.
+- A single neon tetra circles the same bit of plastic weed. Its whole life is a waiting room.
+- Take a leaflet
+- "SO YOU THINK YOU'RE FINE?" A leaflet with a picture of a man pretending to be fine. Page 2: how to stop pretending.
+- "CHOLESTEROL AND YOU" - there is a drawing of a sad egg. You feel the egg's pain.
+- "DRINK AWARE: HOW MANY UNITS?" You flip to the table. You close the leaflet. You do not take it.
+- Weigh yourself
+- The nurse squints at the dial. "Hm." "Hm" is worse than a number.
+- "Take your shoes off." You do. The number is slightly better. "Take your coat off." The number is worse, somehow.
+- The surgery is closed. A sign: "OUT OF HOURS: ring 111. THEN HOLD."
+- Nobody at reception. A bell. A sign: "PLEASE RING AND WAIT". You ring. You wait.
+- "Name? Date of birth? What's the problem?" She looks at you over the computer. "Take a seat. Dr Patel will see you soon. Soon-ish."
+- "Are you registered with us?" She clicks her tongue. "You don't look ill. But then, they never do."
+- Take a seat and wait (about 45 min)
+- Forty-five minutes of "Take a seat". The doctor looks at you for four of them. "Rest. Water. Fewer fights. No, really." You feel patched up.
+- Leave it
+- Everything £1  ·  front left
+- Sole Trader  ·  front right
+- Threadz  ·  middle left
+- Glint  ·  middle right
+- Maison Ashby  ·  back left
+- OSTENTATIA  ·  back right (sorry)
+- Everything £1: have a look
+- Rovers home shirt
+- Sole Trader: trainers and kit
+- Threadz: the rails
+- Threadz: fitting room
+- Try on
+- Maison Ashby
+- Maison Ashby: may we help?
+- Maison Ashby: fitting room
+- OSTENTATIA: be seen
+- Yes, love? Stamps, parcels, or a good moan?
+- Have you got your ID? No? Never mind.
+- Back for more?
+- The queue was out of the door on Monday. Pensions. Everyone comes on Monday.
+- We used to do TV licences. Now we do... I don't know. Everything and nothing.
+- Don't put a cheque in a parcel. People still do.
+- I've been behind this glass for twenty-two years. It's lovely. Don't tap it.
+- Staff only, love. Oh, you're not staff.
+- Round the front, please!
+- There's a parcel in here for a Mr Wright. It's been here since July. He'll collect it. Eventually.
+- The sorting office van came late again.
+- Morning. First time? Slips are on the shelf, pencils are... also on the shelf.
+- Place your bets, mate. Place them quietly.
+- Back again. You've got a system, haven't you.
+- Luck's a lady, so they say. She's not here.
+- Eleven years I've worked here. I've seen a man win 40 grand and lose it by the next race. Same man.
+- The machines pay out a fraction of a percent. Don't tell anyone I said.
+- Anyone who tells you they've got a system, ask them where they're parking their yacht.
+- Can't talk. Gravy's in the lead. Or the horse next to him.
+- Come on, you beauty... oh, no.
+- I had a feeling about this one. I always have a feeling.
+- It's not gambling if you know, is it? Is it?
+- I'm only here for the warm. The warm is free.
+- Forty years. Never won. Not that much. It's the principle.
+- Yes, my friend? What can I get you?
+- Hot and fresh. What you want?
+- Back for more? Good choice.
+- Number? You have a number?
+- Fry at one-eighty. Not one-seventy. Not one-ninety. People think it's easy.
+- Best fish in town. I say that. Everyone says that. I say it louder.
+- Friday is mad. Everyone wants chips, fish, and to tell me about their day.
+- We close when the oil says we close.
+- Don't push in, mate.
+- You again.
+- I've been waiting twenty minutes. I could have gone home and caught it myself.
+- I only came in for stamps.
+- It's always the same. The queue goes down, then a man comes in with a parcel the size of a fridge.
+- It's Friday. Chippy tea. It's the law.
+- Machines two and five are out of order. Machine six eats pound coins. Machine four is fine, but don't tell anyone.
+- Don't put your trainers in the dryer. I've told them. They never listen.
+- Done already?
+- Your wash will take forty minutes. Don't stare at it, it doesn't go faster.
+- People leave their things in here. Their things! Knickers, jumpers, once a whole suit.
+- I've got a lost-property box that's now a lost-property cupboard.
+- Seventeen years. I've never once got a sock back to its pair.
+- Don't put dye in with whites. I've seen a man cry.
+- Order number? You wait, twenty minutes.
+- Hello! Hello! Menu is on the wall. You choose.
+- Ah, you again. Chow mein? Always chow mein.
+- Twenty minutes. Fifteen, maybe.
+- My son, he is a doctor. He says, Dad, stop. I say, who will do the sweet and sour?
+- The cat is lucky. Don't touch the cat.
+- Kevin the fish: eleven years old. He sees everything. He tells nobody.
+- Number thirty is the best. Always thirty.
+- Sit down, mate, I'll be with you in ten.
+- Alright? Just a trim, or the full works?
+- Alright, back for another one?
+- Same again?
+- Number two on the sides, scissors on top, lovely. That's what they all say.
+- Everyone tells their barber their secrets. Barbers don't tell. Well. Not many.
+- It's not about the cut. It's about forty minutes of someone listening.
+- The Rovers lost again. I can't even cut straight, I'm so upset.
+- You've got a cowlick there. I can fix that. Or you can live with it.
+- Hello. Is it for you, or someone else? Be honest.
+- Over the counter, yes. Behind the counter, no.
+- Hello again. Better?
+- Are those the tablets I gave you? Don't take them all at once.
+- Paracetamol and a pint. Please. Please never.
+- Everyone thinks they have the flu. It's a cold. Go home.
+- Hay fever tablets: non-drowsy. For a given value of non-drowsy.
+- The BP machine is correct. It's you that's wrong.
+- Can I help you?
+- Are you in the queue? There's a queue.
+- Anything else?
+- I do eight hours on my feet and then I go home and sit on my feet.
+- People buy the funniest things. I'm not allowed to say.
+- We had a man come in, ask for "something for it". Never said what "it" was.
+- Don't. Don't tell anyone. Please.
+- It's only till the end of the month.
+- You didn't see me.
+- The landlord's a ghost, mate. The place is dead. I'm just minding it.
+- Cold in here at night. Dean's not complaining. Dean's not saying anything.
+- You got a spare fag?
+- Shh. Well, you can talk, but quietly.
+- Looking for something? We have everything. Except the thing you want.
+- Back again. Overdue?
+- No eating, please. Or drinking. Or breathing too loud.
+- You can borrow six books for three weeks. Nobody does.
+- We've had a man in every day for four years. He reads the same newspaper.
+- The children's corner is the busiest part. We never expected that.
+- The computers are free for an hour. Don't look at that. I can see your screen.
+- Take a seat. The doctor will see you now, or soon, or in a bit.
+- Have you got an appointment? Of course you haven't.
+- Mr...? Hold on.
+- Eight a.m. phone calls, all booked in four minutes. Not my fault.
+- Don't Google your symptoms. Please.
+- I have ten minutes per patient. Eleven if you stop talking about the holiday.
+- The flu jab is free for the over-sixty-fives. The rest of you, no.
+- Can I help you? Are you a parent?
+- Visitors sign in at the office, please.
+- It's the last week of term. Everything is sticky.
+- Year 3 are doing Romans. Year 6 are doing a revolt.
+- Gold stars are the best currency in the world. Don't let anyone tell you otherwise.
+- School's closed, mate. You can't be in here.
+- You lost? You look lost.
+- Still here.
+- Eighteen years of keys. Every kid knows I've got keys.
+- The boiler's older than me and it's better behaved.
+- Somebody let the hamster out. Again.
+- I do the bins, the boiler, and the spiders. I hate the spiders.
+- Welcome, welcome. Come in out of the cold.
+- Ah. A visitor. We don't get many. Tea? Of course tea.
+- Peace be with you. And also with you.
+- Hello again!
+- The roof fund is at £4,200. We need £90,000. We're doing a raffle.
+- The bell hasn't rung properly since 1994. The ringers are on strike. Well, they're dead.
+- Bring your own cushion if you're staying for evensong.
+- God works in mysterious ways. So does the boiler.
+- Evening. What can I get you?
+- First time? Don't sit in the chair by the window. That's Norman's.
+- Back again.
+- The quiz is Thursday. Don't tell the Smart Alecs the answers. They're hopeless.
+- Used to be a lively place. Then the other pub opened. Then I did.
+- The cellar floods when it rains. Does the pub, too.
+- What can I get you, love?
+- Be with you in a sec.
+- Back for more, are we?
+- They've been in since two. They'll be in till eleven. They never move.
+- Don't ask for a cocktail. We have a lemonade.
+- It's karaoke on Saturday. I am so, so sorry.
+- Are you the new teacher?
+- Hello! Do you want to see my drawing?
+- Miss said we can't say that word. I said it quietly.
+- It's my birthday on Thursday!
+- I've got a loose tooth. Look. Look!
+- Haven't seen you before.
+- I'm only popping in for one.
+- It's not what it was.
+- Another one, Barry. Not for me.
+- Mind how you go.
+- Shut the door, you're letting the heat out.
+- Parcels to the left, pensions to the right.
+- Don't lean on the glass.
+- Is it a large letter or a small parcel? It matters.
+- And they're off...
+- Come on, come ON!
+- Place your bets, ladies and gentlemen.
+- Salt and vinegar?
+- Fish! Fish for... forty-three!
+- Open or wrapped?
+- Chips are on.
+- Machine five has finished.
+- Don't put trainers in the dryer.
+- Who's left a red sock in the whites?
+- Forty minutes. Not four.
+- Number thirty-two! Number thirty-two!
+- Twenty minutes.
+- Prawn crackers free over twelve pounds!
+- Just a trim? That's what they all say.
+- Number two on the sides, as always.
+- Who's next? Shall we say... you?
+- Prescription for Hussain? Hussain?
+- Next customer, please.
+- Have you taken them with food?
+- Hay fever tablets are on offer.
+- Bingo's at half seven!
+- Don't put your feet on the chairs.
+- Who's moved the urn?
+- Tea or coffee?
+- Sign the book, please.
+- The hall is booked, love.
+- Please return your books on time.
+- Mind the trolley.
+- Computers are twenty-five minutes only.
+- Mr Hussain? Room two.
+- Take a seat, please.
+- Have you got your card?
+- Dr Patel is running a little behind. Forty minutes.
+- Welcome to the centre, love. Sign the book.
+- Can I help? Are you here for the toddlers? You look too tall.
+- Hello again, dear.
+- Back for another cup?
+- The roof fund's at £4,200. We need £60,000. We're doing a raffle.
+- I've been doing the teas for twenty-six years. Nobody ever says thank you. Thank you.
+- Bingo's Thursday and Friday. Don't sit in Doris's chair. Doris will sit in your lap.
+- The hall can seat a hundred and forty. We once had two hundred. It was a wedding.
+- Do you have an appointment?
+- Name, please? Date of birth?
+- Take a seat.
+- The phones open at eight. They're full by 8.04. It's not me, it's the phones.
+- Dr Patel is running forty minutes behind. Dr Hughes is running forty minutes ahead, which is worse.
+- No, I can't tell you your results. Only the doctor can. And only on a Thursday.
+- Please don't Google your symptoms. Please.
+- Last orders at twenty to one!
+- Who's on the Gold Rush?
+- Quiz night is Thursday!
+- Someone's left the door open. In January.
+- Same again, Norman?
+
+## Labels and names (24)
+
+- bold …px monospace · btn sm primary · bold …px sans-serif · the next free position · …px sans-serif · takes payment in · gift vouchers. · for a lie
+- from the bucket · …px monospace · btn sm · btn primary · if you smile · meal deal · …px serif · the number 2
+- "…" …. · for the hangover · (does not work) · in stock now · on request · (if you have · to ask...) · shopsin live
+
+## States and modes
+
+- role: customer, punter
+- kind: win
+
+## Tuning numbers (38)
+
+- builds: 0
+- coping: 0
+- shopsin: 1
+- _te: 1
+- emissiveIntensity: 0
+- size: .7, .45, .2, .12, .1, .08
+- ppm: 160, 220, 90, 110, 200, 130
+- dep: .55
+- lineWidth: 3, 6, 2
+- row2: 0
+- yaw: 0
+- radius: 1.25, .9
+- height: 1
+- swing: 1
+- weight: 600
+- cell: 8, 11, 9, 10, 13, 14
+- pitchX: 2.1, 3, 2.4, 4, 1.7
+- pitchZ: 2.4, 3, 4, 2.2
+- seed: 11, 4, 7, 3, 9, 12
+- levels: 3, 5, 4, 6
+- price: 8.4, 1.4, 2.5, 2, .5, 1
+- lightI: .95, 1.1, 1.2, 1, 1.15, 1.25
+- stake: 5
+- acc: 0
+- dadoH: 1.5, .9, 1.1, 1, 3
+- qty: 1
+- floorS: .8, .7
+- bz0: 12
+- bz1: 12.7
+- hmin: .2
+- wmin: .06
+- gap: .04, .22
+- rot: 1, 2
+- vol: .15
+- depth: .28, .2
+- injury: 0
+- sparse: .2
+- _le: 1

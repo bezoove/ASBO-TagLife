@@ -1,0 +1,378 @@
+# INDX (old game, v95)
+
+Part of: Industrial estate: scrapyard, pawn, taxi office, garage
+
+Source in game.pretty.js: 173438-173524, 173545-174256, 174272-174645, 174721-174757, 174765-174765, 174769-174775, 174976-174985, 175006-175258, 175260-175329, 175380-175420
+
+## Behaviours (10)
+
+- items (`items`, line 173498)
+- app (`app`, line 173678)
+- people (`people`, line 173815, 175380)
+- say (`say`, line 174281)
+- sell panel (`sellPanel`, line 174284)
+- use (`use`, line 174332, 174769, 175260)
+- pawn (`pawn`, line 174510)
+- taxi (`taxi`, line 174598)
+- init later (`initLater`, line 174727)
+- fin people (`finPeople`, line 175006)
+
+## Everything it says or shows (343)
+
+- Length of copper pipe
+- Fifteen mm of other people's central heating. Heavy, and worth exactly what the man at Kelly's says it is.
+- Brass bath tap
+- Gold-coloured, cold to the touch. Kelly's pays by the kilo and does not ask which bathroom.
+- Alloy wheel
+- Off a BMW, once. Polished by the sort of man who says "they just fell off".
+- Catalytic converter
+- A silver sausage with a street value out of all proportion to its smell. Every scrap yard in the county has a sign about these.
+- Roll of lead flashing
+- Church-roof grade. It is amazing what you can do with a ladder and nothing on your conscience.
+- Car battery
+- Flat, but heavy with lead. A lethal lump you carry like a baby.
+- Kelly's float tin
+- A biscuit tin (Danish butter cookies), full of everything except biscuits.
+- Box of lead type
+- Every letter of the alphabet, but mostly Qs. A printer's nightmare and a Scrabble player's dream.
+- Aluminium printing plate
+- Backwards text in a big ink-stained sheet: "BRINDLEY CARNIVAL 1987 · WIN A PIG". You can hear the cheering.
+- Tin of printing ink
+- Black as a bailiff's heart and lethally stubborn on a carpet.
+- Labelled TREV'S BANGERS. Side A is a crying baby. Side B is the same, slower.
+- Pointing trowel
+- Worn bright as a knife. A bricklayer's best friend and the only item he has never lent.
+- Spirit level
+- The bubble sits dead centre. You doubt anything else in this building does.
+- Nail gun
+- Pneumatic, and a lot more interesting than anyone ought to find a nail gun.
+- Tape measure
+- Eight metres of "that'll never fit". Clip, lock, and an uncanny snap.
+- Yellow hard hat
+- Dented from a thing that fell, or a thing that was thrown. Both, probably.
+- Bag of plastic granules
+- Twenty-five kilos of tiny blue beads. Will become buckets. Can become a very bad idea.
+- Box of unsold rubber ducks
+- Five hundred, each with a faint, sceptical look. They've been waiting for a bath since March.
+- Steel injection mould
+- A block that makes ducks. Very precisely, very repeatedly. Heavy as a regret.
+- Foam ear defenders
+- Bright orange. The hall is loud enough to feel in your teeth.
+- Red stapler
+- Somebody stole it from the third floor and somebody else would like it back, with interest.
+- Office party Polaroid
+- Management in tinsel. The photographer was clearly standing on something unwise.
+- "World's Okayest Boss" mug
+- Cracked, stained, and utterly sincere.
+- Brown wage packet
+- A last-Friday-of-the-month envelope with someone's name on, and rather less than they were promised.
+- Handheld barcode scanner
+- It beeps at every single thing, including your sandwich. Sorted by a 13-digit prayer.
+- Roll of pallet stretch-wrap
+- Cling film for adults. You'll find yourself wrapping random objects.
+- Unclaimed parcel
+- Addressed to "The Occupier, 14 Back of Beyond Lane". Rattles. Slightly warm. Do not shake.
+- Pallet-truck key
+- A single key on a large orange tag: "NOT YOURS, GRAHAM".
+- Catering tin of beans
+- Six pounds of baked beans: a feast for fourteen, or one sustained argument.
+- Price-labelling gun
+- Click-click. Everything becomes 99p. Stick one on a friend for a very bargain-bin birthday.
+- Catering box of crisps
+- Forty-eight packets of ready salted. Sell them one at a time to the pub.
+- Torque wrench
+- Clicks when a nut is just right, and not before. The mechanic treasures it, guards it, and names it Doris.
+- Wheel brace
+- A cross of cold steel: loosens nuts, deters burglars, adds weight to an argument.
+- Tyre pressure gauge
+- The dial says 32. Everything else about you says flat.
+- Pair of number plates
+- Not the ones on any car they ever belonged to. Ask nothing.
+- Fluffy dice
+- Pink, shed hair like a Pekingese. Hang them and lose your self-respect.
+- Pine air freshener
+- A tree, but square and flat and loud. Smells of every taxi.
+- Initials worn smooth: "T.H." Someone pawned the family and kept the shine.
+- Gold-plated watch
+- Still ticking, still 20 minutes fast. It was bought for a man who was late, and it suited him.
+- Gold chain
+- Heavy, rope-weave. The sort a man wears to be seen from space.
+- Pawn ticket (guitar)
+- Red ticket, stamped. Unredeemed since March. The Telecaster is behind the counter and the owner is behind bars.
+- Games console
+- Grey, scratched, and with a cartridge of "Fruit Smash 2" still in. Plays, mostly.
+- Giant disposable vape (15,000 puffs)
+- Blue razz lemonade. It weighs as much as a sandwich and goes on for as long as one.
+- E-liquid: "Unicorn Tears"
+- Pink and glittery and 20 mg of poor choices. The label says "TRY ME" and the label is lying.
+- Disposable vape
+- A tube of fruity cloud. Smells like a sweet shop had an accident.
+- Cola Bottle flavour. A bottle full of children's sweets and adult mistakes.
+- Spare cab keys
+- A bunch on a plastic A1 Taxis fob. One of them starts the Skoda. Another opens something expensive.
+- Fare book
+- Carbon copies of 4 a.m. in a cab. "To the Oak, £5, wife in the back, sorry."
+- Lost property: single shoe
+- Left in the back of the cab on Saturday. The other one is, presumably, somewhere good.
+- Chamois leather
+- A golden stiff rag that goes all floppy when wet. The valet's best friend and the only thing he owns.
+- Tin of car wax
+- Mirror-finish, they promise. Smells of lemon and promises.
+- Tip jar
+- Mostly coppers and one Euro. A hand-written label says "FOR THE BOYS".
+- Spark plug
+- A little ceramic bullet. Four for a Fiesta. One for a very small nerd.
+- Jerry can
+- Red, empty, and a fire waiting to happen. Pour some on, light the, no wait, don't.
+- Weighbridge is out the back. Don't stand on the sign.
+- Scrap? Cars? Anything with copper in it?
+- Mick. Alright. What've you got?
+- Back again.
+- Copper's gone up. Not for you, mind.
+- No, I don't want to know where it's from. It's from a skip. It's always from a skip.
+- Cats? We stopped taking them. The police asked nicely. Then not nicely.
+- Kelly says it's a recycling business. It's a recycling business with a very big dog.
+- Dave Kelly. If it's rust, it's money.
+- Kelly's Metals. We pay cash. No questions. Well, one question.
+- Oh, you again.
+- Wipe your feet. No, don't. It's a scrap yard.
+- Thirty-one years. Never lost a finger. Well, not one of mine.
+- Don't touch the crane. I'm being serious. Ask Terry.
+- My boy wants to do an apprenticeship at the council. The council!
+- Who're you? Are you the council?
+- Oi. We were here first.
+- Got a light?
+- It's not a squat. It's... an independent artist space.
+- The roof only drips on the left. We live on the right.
+- Don't go near the big press. It looks at you.
+- Skripter did the dragon. Nobody knows who Skripter is. It's me.
+- Account or cash?
+- Yes, mate. What do you need?
+- Alright. The usual?
+- The timber is on a pallet. The pallet is on a lorry. The lorry's in Doncaster.
+- We've sold out of cement. And hope.
+- Don't lean on the paint mixer. It leans back.
+- Beep beep. Mind out.
+- Forklift licence, mate. I've got a card. And a certificate. And a lanyard.
+- Can you not stand there?
+- Do you have an appointment?
+- Visitors sign in, please. In the book. Not on the wall.
+- Can I help?
+- Don't use the third-floor kettle. It's not ours. It's not anybody's.
+- The printer is possessed. We've called a man.
+- Oi! Ear defenders!
+- Can't hear you. Shout.
+- Ducks. All day. I dream in ducks.
+- Machine four's been making a noise since March.
+- I can't hear you, but I'm sure it's lovely.
+- Goods-in's round the front. Mind the pallets.
+- Staff only, mate.
+- Mind your feet.
+- Eight hours of walking. Eight miles. I don't get paid by the mile.
+- I scanned my own lunch once.
+- Pallet number 4-4-1. Wherever that is.
+- Tesco can wait, Tesco always waits.
+- Trade card? No? Everyone's welcome. Cash only, mind.
+- Mind the trolleys. They get ideas.
+- It's a cash and carry. We only do one of those. Guess which.
+- The multi-pack is cheaper, even if you don't need a multi-pack.
+- Don't touch the lobster. It's... never mind.
+- Be with you in a minute. Mind the oil.
+- Puncture? MOT? Or an exhaust that's started singing?
+- She's up on the lift.
+- That'll be 80. That's before I look at it.
+- Has she been making a noise? Everybody's does.
+- Your tyres are... let's say 'characterful'.
+- Selling or borrowing? Cash for gold. Cash for anything, really.
+- Welcome to Quick Cash. Behind the glass, please.
+- Nothing today? Pity.
+- Everything's got a story. Mostly a sad one.
+- Three months to redeem it, then it's mine. Say goodbye to the guitar.
+- No, I don't give you what it's worth. I give you what it's worth to me.
+- Alright. You eighteen? Got ID?
+- We've got the new Blue Razz. It's mad.
+- The usual?
+- It's not smoke, it's a cloud.
+- Mango ice is the best seller. Don't ask me why.
+- Fifteen thousand puffs. A week, tops.
+- A1 Taxis. Where to? Be quick, I've got the radio.
+- Cab? Ten minutes. Maybe twenty.
+- Hold on, Control's on.
+- Car 4, go to the Oak. Car 4? CAR 4!
+- No, we don't take dogs. Yes, we take dogs. Which is it?
+- Saturday night? Like a war. A war with sick.
+- Waiting on a fare. Hop in the next one.
+- Not on shift, mate.
+- Four hours I've been here. Four.
+- I once drove a bloke to Margate for a bet.
+- Hello, my friend. Wash? Very good price.
+- Six pound. Special. Only for you.
+- Hello again!
+- Very clean.
+- Always rain. Always, when I finish.
+- You want valet? Inside, outside, everything shine.
+- My cousin, he has a car wash. In Poland. Very big. This is smaller.
+- Mind your trolley.
+- I only came for bread.
+- Is that your trolley?
+- Two for one on tuna. I live for it.
+- I'm on my third lap. Where are the bin bags?
+- Trade only? Who's checking?
+- Don't mind me.
+- I've been in here an hour.
+- Cash is cash.
+- Same as last week.
+- Mick, weigh that!
+- Who left the gate open?
+- Did you hear that? The roof.
+- Don't tell the council.
+- Skripter strikes again.
+- Forklift! Mind your backs!
+- Who's got the bloody tape?
+- Machine four's jammed!
+- Ear defenders on, you lot.
+- Ducks are running low.
+- Truck's late again.
+- Who's moved my pallet?
+- Price check on aisle four!
+- Please return trolleys.
+- Till four open, till four!
+- Who's got the 10 mil?
+- Torque wrench, Dave!
+- She'll need two tyres.
+- Next customer, please.
+- Cab for Mr Singh!
+- Gold's up again.
+- Very shiny!
+- Weighbridge clerk
+- Dave Kelly
+- Yard hand
+- Trade counter
+- Counter assistant
+- Forklift driver
+- Office staff
+- Machine operator
+- Shift supervisor
+- Goods-in clerk
+- Shelf stacker
+- Big Dave
+- Tyre fitter
+- Vape shop
+- Night controller
+- Cab driver
+- Waiting for a cab
+- Car wash
+- Nothing on you that they want.
+- Kelly's Metals is shut (7 till 5). The gates are padlocked and the dog is awake.
+- Hargreaves is shut (7 till 5:30). A hand-written sign: BACK MONDAY.
+- Price Star is shut. Trade 8 till 7.
+- TreadRight is shut (8 till 6). The roller doors are down.
+- Quick Cash is shut (9 till 5:30).
+- Cloud Nine is shut (10 till 9).
+- The car wash is shut. Radu is asleep in a Skoda.
+- Let's see what you've got.
+- On the scales. No, the other scales.
+- Scrap bought by the weight. Cash, no questions (a few).
+- Hargreaves Builders' Merchants
+- Trade counter · cash and carry
+- Adjustable spanner
+- Screwdriver set
+- Duct tape
+- Bolt cutters
+- Hi-vis vest
+- Jerry can (empty)
+- Price Star Cash & Carry
+- Trade & public welcome. Everything in bulk (but we'll sell you one).
+- Bottled water
+- Energy drink
+- Catering box of crisps (48)
+- Rolling papers
+- Bin bags
+- MOT's fifty-four eighty-five. If it fails, it fails. Don't shoot the messenger.
+- Tyres: budget, mid, premium. Or part-worn, which we don't talk about.
+- TreadRight Tyres & Exhausts
+- Counter sales (fitting takes an hour; bring a car)
+- Eighteen? Course you are.
+- Two for ten on the big ones.
+- Cloud Nine Vapes
+- Vapes · pods · e-liquid · 18+ only (we think)
+- Giant 15,000 puff vape
+- "Unicorn Tears" e-liquid
+- Wash six pound. Small car, big car, same price for you.
+- No car? Next time. Bring car.
+- Valet fifteen. We do the seats, the mats, everything shine.
+- The cabin is empty. A tin of change and a radio playing Romanian pop.
+- Selling, or buying?
+- I'll give you a fair price. Fair for me.
+- Quick Cash Pawnbrokers
+- We buy gold, tools, electronics. Cash today.
+- Sell to Glenn
+- Quick Cash
+- You have nothing worth his time.
+- Buy from the cases
+- Where to? Ten minutes.
+- 01632 960 111 · 24 hours · cash only · no sick
+- The Royal Oak
+- Hawthorn Court
+- Victoria Park gate
+- Back here (Canalside Trading Estate)
+- Can't afford the fare.
+- The cab drops you at …. "That's …. Tip? No? Cheers."
+- A lamp glows in the porthole. A voice, muffled: "Whoever it is, we are NOT buying double glazing."
+- You knock on the hatch. A cat looks out of the porthole, then at you, then away. Smoke curls from the chimney. Tea, by the smell.
+- Mrs Okafor
+- Miss Brandt
+- Reception teacher
+- Mrs Patel
+- Mrs Bell
+- School secretary
+- Mrs Hussain
+- Teaching assistant
+- The Revd Anne Okafor
+- Mrs Pugh
+- Flower rota
+- Bell ringer
+- Park keeper
+- The hatch is down. A sign: "Back at 9. Pat. (No, the toilets are NOT locked.)"
+- What can I get you, love?
+- Bacon roll's just come off.
+- Tea's stewed. Just how you like it.
+- Pavilion Café
+- Victoria Park · cash only · no cards, no apps, no nonsense
+- Mug of tea
+- Hot chocolate
+- Bacon roll
+- Slice of lemon drizzle
+- Dog bags (roll)
+- Visitors sign in, please. Name, car reg, who you're here to see.
+- Have you got an appointment with Mrs Patel?
+- Parents' evening is Thursday. Sign up on the sheet.
+- The school is shut. A sign on the door: "Closed — INSET day. Back Monday." (It is not a Monday. It is never a Monday.)
+- You drop a pound in the box. It rings against the tin. Somewhere a roof beam sighs with gratitude.
+- The box says "ROOF FUND" in marker pen. You have nothing to put in it.
+- Votive candles
+- A card: "Light a candle: 50p. Pay what you can." You can't.
+- You light a small candle. The flame leans, steadies. For a moment the whole nave is quiet.
+- A white cloth, a gilt cross and two candlesticks. A small card: "Please do not sit on the altar rail." It has been laminated twice.
+- The ringers are ringing a touch of Plain Bob. "Not that one!" says Gerald. "That ROPE is for the treble!"
+- Eight ropes, their sallies looped up out of reach. A sign: "RINGERS ONLY. Wednesdays 7.30. Tea provided (bring a biscuit)."
+- Mind the trench!
+- Who moved my ladder?
+- Plans say left. Plans are wrong.
+- (a cough from the dark)
+- Site foreman
+- Sleeping rough
+
+## Labels and names (9)
+
+- 9ct gold signet ring · btn sm primary · selling on stolen goods · fencing at the pawnbroker · 9ct signet ring · btn sm · ind later · 99 ice cream
+- (a rustle of newspaper)
+
+## Tuning numbers (6)
+
+- made: 0
+- yaw: 0
+- price: 9, 12, 3.2, 4.5, 26, 15
+- radius: 1.2, 1
+- _te: 1
+- vol: .1, .2, .12

@@ -1,0 +1,221 @@
+# Pets (old game, v95)
+
+Part of: Cashmere, Chewie and Olly
+
+Source in game.pretty.js: 197079-199130
+
+## Behaviours (53)
+
+- area rect (`areaRect`, line 197172)
+- free (`free`, line 197178)
+- spot in (`spotIn`, line 197183)
+- random spot (`randomSpot`, line 197197)
+- nearest ok (`nearestOk`, line 197206)
+- path find (`pathFind`, line 197244)
+- sound (`sound`, line 197536)
+- say (`say`, line 197614)
+- lines (`lines`, line 197619)
+- remark (`remark`, line 197643)
+- make pet (`makePet`, line 197696)
+- build (`build`, line 197748)
+- place (`place`, line 197819)
+- ground y (`groundY`, line 197823)
+- prey mesh (`preyMesh`, line 197833)
+- make prey (`makePrey`, line 197863)
+- spawn prey (`spawnPrey`, line 197889)
+- prey off (`preyOff`, line 197916)
+- prey update (`preyUpdate`, line 197922)
+- idle (`idle`, line 197969)
+- stop (`stop`, line 197973)
+- walk to (`walkTo`, line 197977)
+- arrived (`arrived`, line 198007)
+- move (`move`, line 198012)
+- think cashmere (`thinkCashmere`, line 198090)
+- offer ball (`offerBall`, line 198225)
+- greeted (`greeted`, line 198232)
+- yawn (`yawn`, line 198240)
+- nibble (`nibble`, line 198244)
+- cashmere next (`cashmereNext`, line 198248)
+- think chewie (`thinkChewie`, line 198335)
+- chewie next (`chewieNext`, line 198397)
+- car near (`carNear`, line 198445)
+- traffic (`traffic`, line 198454)
+- think olly (`thinkOlly`, line 198498)
+- olly next (`ollyNext`, line 198622)
+- pounce (`pounce`, line 198651)
+- land (`land`, line 198675)
+- drop present (`dropPresent`, line 198700)
+- drop ball (`dropBall`, line 198709)
+- throw ball (`throwBall`, line 198716)
+- ball update (`ballUpdate`, line 198741)
+- food (`food`, line 198772)
+- any food (`anyFood`, line 198779)
+- candidates (`candidates`, line 198783)
+- use target (`useTarget`, line 198834)
+- stroke (`stroke`, line 198846)
+- feed (`feed`, line 198865)
+- bite (`bite`, line 198872)
+- active radius (`activeRadius`, line 198907)
+- wake (`wake`, line 198912)
+- in view (`inView`, line 198940)
+- update (`update`, line 198945)
+
+## Everything it says or shows (54)
+
+- Who's a good boy? You are, Cashmere!
+- Go on then, Cashmere. Just one.
+- No, you're not having my scratchings.
+- Look at them eyes. He knows what he's doing.
+- He's softer than a cushion, this one.
+- Cashmere! Where's your ball, eh?
+- Don't you be feeding him, he'll be sick on my carpet.
+- He's had three packets off the regulars already.
+- Spoilt rotten, that dog.
+- Mind your fingers! He nibbles. Never hurt nobody though.
+- That's him saying hello. Soppy thing.
+- That cat's caught more mice than the council ever has.
+- Olly, get down off there.
+- He's hunting again. Look at him go.
+- Olly! Not on my floor!
+- Oh, he's brought you a present. You're honoured.
+- Lovely. Another mouse. Somebody get the dustpan.
+- Told you. Don't touch Chewie.
+- He does that. Everyone gets bit once.
+- Little sod, isn't he? Lovely till you touch him.
+- That's Chewie. He's nobody's and everybody's.
+- Don't stroke him, he'll have your fingers.
+- Oi! Don't you be feeding him crisps, he'll be sick on my carpet.
+- He's on a diet. Allegedly.
+- Go on, but that's his last one tonight.
+- Olly! Not by my bar!
+- Oh, for... Olly! Who's picking that up? Not me.
+- He thinks he's paying his rent, that cat.
+- He's only playing, love. He nibbles. Never broke skin in his life.
+- Cashmere, the pub dog, comes to say hello. Give him a stroke, a treat, or throw his ball.
+- Cashmere gently mouths your hand. A soft, slobbery nibble: no harm done.
+- Cashmere nibbles your fingers. Gently. It's how he says hello.
+- That's Chewie, the estate's scruffy little stray. Lovely nature. Everyone says: whatever you do, don't touch him.
+- Olly drops a dead mouse at your feet and looks up, very pleased with himself. A present. You shouldn't have.
+- Nowhere to throw it in here.
+- a bit of sausage roll
+- Stroke Chewie (he's growling...)
+- Toss Chewie …
+- Throw the ball for Cashmere
+- Throw ball
+- Cashmere flops over for a belly rub.
+- Cashmere leans into your hand, tail going like the clappers.
+- Soft as his name. Cashmere closes his eyes and leans in.
+- Cashmere wags so hard his whole back end goes with it.
+- Olly has had quite enough of you. Tail lashing, he stalks off.
+- Olly is busy hunting. He flicks his tail at you and moves off.
+- Olly arches into your hand and purrs like a little engine.
+- Olly tolerates one more stroke. Just about.
+- Olly sniffs … and gives you a look of total contempt.
+- Cashmere wolfs down … and checks your hands for more.
+- You toss Chewie …. Gone in a second. His tail goes. Still don't touch him.
+- Olly accepts … with great dignity.
+- Chewie bit you! Little sod. Your hand stings${dmg?
+- :""}. Everyone did say.
+
+## Labels and names (5)
+
+- some pork scratchings · a pickled egg · a few crisps · pets bite · pets props
+
+## States and modes
+
+- type: lowpass
+- state: gone, offstage, carried, flying, ground
+- kind: mouse, moth, bird, stand, loot, npc, lift, pet
+- mode: hop, peck, look, explore, title
+- act: ball, feed
+
+## Tuning numbers (88)
+
+- frames: 0
+- msMax: 0
+- full: 0
+- slow: 0
+- dormant: 0
+- sounds: 0
+- blocked: 0
+- bites: 0
+- nibbles: 0
+- pounces: 0
+- catches: 0
+- presents: 0
+- preySpawned: 0
+- carHits: 0
+- dodges: 0
+- nan: 0
+- strokes: 0
+- treats: 0
+- fetches: 0
+- cap: 0
+- gen: 0
+- vol: .09, .18, .035, .08, .13, .025
+- attack: .08, .05, .02
+- freq: 3200, 900, 1300, 4500, 500
+- slide: -90, 350, 120, -200
+- sweepTo: 800
+- value: 260, 0, 25, .05
+- bark: 30
+- happy: 22
+- growl: 8
+- pant: 5, 0, .8, .7, .5
+- whine: 10
+- yelp: 25
+- snap: 12, 1
+- chomp: 4
+- meow: 15
+- chirp: 8
+- purr: 3
+- purrShort: 3
+- hiss: 6
+- cashmere: .3, 3.2, 1
+- chewie: .17, 4.2, 1
+- olly: .14, 5.5
+- walk: .95, .6, .55
+- trot: 2, 1.3
+- run: 4.6, 3.4, 3.8
+- yaw: 0
+- dur: 2, 1.4, 4, 3, .6, 1.3
+- tSpd: 0
+- dormT: 99, 0
+- acc: 0
+- stuck: 0
+- lastSnd: -99
+- mood: .5
+- strokeT: -99
+- warnT: 0
+- near: 0
+- cool: 0
+- wake: 0
+- color: 7219750, 13030970
+- life: 0
+- hop: 0
+- att: 1
+- wag: 0, 1, .7, .8, .6, .4
+- nibble: 0
+- sniff: 0, .8, .9
+- lift: 0
+- eyesClosed: 0, 1, .6, .7
+- lookOn: 0, .5
+- blinkT: -.1
+- jaw: 0
+- lean: 0
+- chew: 0
+- scratch: 1, 0
+- then: 0
+- earBack: 0, 1
+- extraPitch: 0
+- timeout: 4, 3, 16
+- tailFlick: .4, 1.2, 1.6, .2, 2
+- wiggle: 0, 1
+- speedK: .6
+- extraY: 0
+- poseRate: 14, 4
+- dmg: 0
+- _err: 1
+- _err2: 1
+- _se: 1
+- score: 0
