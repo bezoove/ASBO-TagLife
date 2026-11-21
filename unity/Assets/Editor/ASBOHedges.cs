@@ -84,10 +84,129 @@ namespace ASBO.EditorTools
             Debug.Log($"[ASBO] hedges upgraded: {hedgeMats.Count} material(s), {n} leaf shells, {cards} cards");
         }
 
+        // ------------------------------------------------------------------ trees
+        static readonly Color EstateLeaf = new Color(0.18f, 0.38f, 0.14f), FieldLeaf = new Color(0.22f, 0.4f, 0.16f);
+
+        /// <summary>
+        /// Tree overhaul without re-baking: the blob canopies get a leaf texture and a shell of large leaf-clump cards
+        /// (underside too), so they read as foliage. Village trees get the shell as a child with a LODGroup;
+        /// the field trees' prefab gets an LOD0 (cards) / LOD1 (plain canopy) LODGroup the terrain uses directly.
+        /// </summary>
+        [MenuItem("ASBO/Art/Upgrade Trees")]
+        public static void UpgradeTrees()
+        {
+            Directory.CreateDirectory(TexDir);
+            var surf = AssetDatabase.LoadAssetAtPath<Texture2D>(TexDir + "HedgeSurface.png") ?? Leaves("HedgeSurface", 512, true, 11);
+            var surfN = AssetDatabase.LoadAssetAtPath<Texture2D>(TexDir + "HedgeSurface_N.png");
+            var card = Leaves("TreeCard", 512, false, 37); var cardN = AssetDatabase.LoadAssetAtPath<Texture2D>(TexDir + "TreeCard_N.png");
+            string cmPath = MatDir + "TreeLeaves.mat";
+            var cm = AssetDatabase.LoadAssetAtPath<Material>(cmPath);
+            if (cm == null) { cm = new Material(Shader.Find("Universal Render Pipeline/Lit")); AssetDatabase.CreateAsset(cm, cmPath); }
+            cm.SetTexture("_BaseMap", card); cm.SetColor("_BaseColor", new Color(1.08f, 1.12f, 0.92f));
+            cm.SetTexture("_BumpMap", cardN); cm.EnableKeyword("_NORMALMAP");
+            cm.SetFloat("_AlphaClip", 1f); cm.SetFloat("_Cutoff", 0.45f); cm.EnableKeyword("_ALPHATEST_ON");
+            cm.SetFloat("_Cull", 0f); cm.SetFloat("_Smoothness", 0.2f); cm.renderQueue = 2450; cm.enableInstancing = true;
+            cm.SetOverrideTag("RenderType", "TransparentCutout");
+            EditorUtility.SetDirty(cm);
+            void Leafy(Material m)
+            {
+                m.SetTexture("_BaseMap", surf); m.SetColor("_BaseColor", new Color(1.0f, 1.06f, 0.9f));
+                if (surfN != null) { m.SetTexture("_BumpMap", surfN); m.SetFloat("_BumpScale", 1.3f); m.EnableKeyword("_NORMALMAP"); }
+                m.SetFloat("_Smoothness", 0.18f); EditorUtility.SetDirty(m);
+            }
+            var treeOpts = new ShellOpts { density = 2.6f, sizeMin = 0.7f, sizeMax = 1.25f, offMin = -0.25f, offMax = 0.3f, under = true };
+            var fieldOpts = new ShellOpts { density = 1.4f, sizeMin = 0.9f, sizeMax = 1.5f, offMin = -0.3f, offMax = 0.35f, under = true };
+
+            // village trees
+            var leafMats = new HashSet<Material>();
+            foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                foreach (var m in r.sharedMaterials)
+                    if (m != null && m.HasProperty("_BaseColor") && (Near(m.GetColor("_BaseColor"), EstateLeaf) || m.name == "EstateLeafUpgraded")) leafMats.Add(m);
+            foreach (var old in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None).Where(t => t != null && t.name == "TreeLeaves").ToList())
+                Object.DestroyImmediate(old.gameObject);
+            int shells = 0, cards = 0;
+            foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                var mf = r.GetComponent<MeshFilter>(); if (mf == null || mf.sharedMesh == null) continue;
+                var mats = r.sharedMaterials;
+                for (int sub = 0; sub < mats.Length && sub < mf.sharedMesh.subMeshCount; sub++)
+                {
+                    if (!leafMats.Contains(mats[sub])) continue;
+                    var mesh = Shell(mf.sharedMesh, sub, r.transform, 5000 + shells * 13, treeOpts, out int c);
+                    if (mesh == null) continue;
+                    string mp = MeshDir + "TreeLeaves_" + shells + ".asset";
+                    if (File.Exists(mp)) AssetDatabase.DeleteAsset(mp);
+                    AssetDatabase.CreateAsset(mesh, mp);
+                    var go = new GameObject("TreeLeaves"); go.transform.SetParent(r.transform, false);
+                    go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                    var mr = go.AddComponent<MeshRenderer>(); mr.sharedMaterial = cm;
+                    mr.shadowCastingMode = ShadowCastingMode.Off; mr.lightProbeUsage = LightProbeUsage.BlendProbes; mr.receiveGI = ReceiveGI.LightProbes;
+                    var lg = go.AddComponent<LODGroup>(); lg.SetLODs(new[] { new LOD(0.03f, new Renderer[] { mr }) });
+                    shells++; cards += c;
+                }
+            }
+            foreach (var m in leafMats) { Leafy(m); m.name = "EstateLeafUpgraded"; }
+
+            // field trees: rebuild the terrain's tree prefab with LODs
+            int fieldCards = 0;
+            string prefabPath = AssetDatabase.FindAssets("Tree t:Prefab", new[] { "Assets/Art/Generated/Terrain" }).Select(AssetDatabase.GUIDToAssetPath).FirstOrDefault(p => p.EndsWith("/Tree.prefab"));
+            if (prefabPath != null)
+            {
+                var root = PrefabUtility.LoadPrefabContents(prefabPath);
+                var rootMf = root.GetComponent<MeshFilter>(); var rootMr = root.GetComponent<MeshRenderer>();
+                Mesh baseMesh = rootMf != null ? rootMf.sharedMesh : root.transform.Find("LOD1")?.GetComponent<MeshFilter>()?.sharedMesh;
+                Material[] baseMats = rootMr != null ? rootMr.sharedMaterials : root.transform.Find("LOD1")?.GetComponent<MeshRenderer>()?.sharedMaterials;
+                if (baseMesh != null && baseMats != null)
+                {
+                    int leafSub = System.Array.FindIndex(baseMats, m => m != null && m.HasProperty("_BaseColor") && (Near(m.GetColor("_BaseColor"), FieldLeaf) || m.name == "FieldLeafUpgraded"));
+                    if (leafSub < 0) leafSub = baseMats.Length - 1;
+                    foreach (var m in baseMats) if (m != null && System.Array.IndexOf(baseMats, m) == leafSub) { Leafy(m); m.name = "FieldLeafUpgraded"; }
+                    var cardMesh = Shell(baseMesh, leafSub, root.transform, 77, fieldOpts, out fieldCards);
+                    // LOD0 = canopy + bark + cards in one mesh (terrain trees render one renderer per LOD)
+                    var lod0 = new Mesh { name = "tree_lod0" };
+                    var verts = new List<Vector3>(baseMesh.vertices); var norms = new List<Vector3>(baseMesh.normals);
+                    var uvs = new List<Vector2>(baseMesh.uv.Length == baseMesh.vertexCount ? baseMesh.uv : new Vector2[baseMesh.vertexCount]);
+                    int off = verts.Count;
+                    verts.AddRange(cardMesh.vertices); norms.AddRange(cardMesh.normals); uvs.AddRange(cardMesh.uv);
+                    lod0.SetVertices(verts); lod0.SetNormals(norms); lod0.SetUVs(0, uvs);
+                    if (verts.Count > 65000) lod0.indexFormat = IndexFormat.UInt32;
+                    lod0.subMeshCount = baseMesh.subMeshCount + 1;
+                    for (int i = 0; i < baseMesh.subMeshCount; i++) lod0.SetTriangles(baseMesh.GetTriangles(i), i);
+                    lod0.SetTriangles(cardMesh.triangles.Select(i => i + off).ToArray(), baseMesh.subMeshCount);
+                    lod0.RecalculateBounds(); lod0.RecalculateTangents();
+                    string lp = "Assets/Art/Generated/Terrain/tree_lod0.asset";
+                    if (File.Exists(lp)) AssetDatabase.DeleteAsset(lp);
+                    AssetDatabase.CreateAsset(lod0, lp);
+                    // rebuild hierarchy: root(LODGroup) -> LOD0, LOD1
+                    foreach (Transform ch in root.transform.Cast<Transform>().ToList()) Object.DestroyImmediate(ch.gameObject);
+                    if (rootMr != null) Object.DestroyImmediate(rootMr);
+                    if (rootMf != null) Object.DestroyImmediate(rootMf);
+                    var g0 = new GameObject("LOD0"); g0.transform.SetParent(root.transform, false);
+                    g0.AddComponent<MeshFilter>().sharedMesh = lod0;
+                    var r0 = g0.AddComponent<MeshRenderer>(); r0.sharedMaterials = baseMats.Concat(new[] { cm }).ToArray();
+                    var g1 = new GameObject("LOD1"); g1.transform.SetParent(root.transform, false);
+                    g1.AddComponent<MeshFilter>().sharedMesh = baseMesh;
+                    var r1 = g1.AddComponent<MeshRenderer>(); r1.sharedMaterials = baseMats;
+                    var lg = root.GetComponent<LODGroup>(); if (lg == null) lg = root.AddComponent<LODGroup>();
+                    lg.SetLODs(new[] { new LOD(0.12f, new Renderer[] { r0 }), new LOD(0.01f, new Renderer[] { r1 }) });
+                    lg.RecalculateBounds();
+                    PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                }
+                PrefabUtility.UnloadPrefabContents(root);
+                foreach (var terr in Object.FindObjectsByType<Terrain>(FindObjectsSortMode.None)) { terr.terrainData.RefreshPrototypes(); terr.Flush(); }
+            }
+            AssetDatabase.SaveAssets();
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+            Debug.Log($"[ASBO] trees upgraded: {leafMats.Count} village leaf material(s), {shells} shells / {cards} cards; field tree prefab {(prefabPath ?? "not found")} +{fieldCards} cards");
+        }
+
         static bool Near(Color a, Color b) => Mathf.Abs(a.r - b.r) + Mathf.Abs(a.g - b.g) + Mathf.Abs(a.b - b.b) < 0.04f;
 
         /// <summary>Leaf cards scattered over the faces of one submesh (in the renderer's local space), area-weighted.</summary>
-        static Mesh Shell(Mesh src, int sub, Transform t, int seed, out int count)
+        public class ShellOpts { public float density = 9f, sizeMin = 0.26f, sizeMax = 0.48f, offMin = -0.02f, offMax = 0.07f; public bool under; }
+        static Mesh Shell(Mesh src, int sub, Transform t, int seed, out int count) => Shell(src, sub, t, seed, new ShellOpts(), out count);
+        static Mesh Shell(Mesh src, int sub, Transform t, int seed, ShellOpts o, out int count)
         {
             count = 0;
             var v = src.vertices; var nm = src.normals; var tri = src.GetTriangles(sub);
@@ -98,13 +217,13 @@ namespace ASBO.EditorTools
             {
                 Vector3 a = Vector3.Scale(v[tri[i]], sc), b = Vector3.Scale(v[tri[i + 1]], sc), c = Vector3.Scale(v[tri[i + 2]], sc);
                 Vector3 fn = Vector3.Cross(b - a, c - a); float ar = fn.magnitude * 0.5f;
-                if (fn.normalized.y < -0.5f) ar = 0f; // no cards underneath
+                if (!o.under && fn.normalized.y < -0.5f) ar = 0f; // no cards underneath
                 areas.Add(ar); total += ar;
             }
             if (total < 0.05f) return null;
             var rng = new System.Random(seed);
             float R() => (float)rng.NextDouble();
-            int want = Mathf.Clamp(Mathf.RoundToInt(total * 9f), 4, 60000 / 4);
+            int want = Mathf.Clamp(Mathf.RoundToInt(total * o.density), 4, 60000 / 4);
             var cum = new float[areas.Count]; float acc = 0f; for (int i = 0; i < areas.Count; i++) { acc += areas[i]; cum[i] = acc; }
             var ov = new List<Vector3>(); var on = new List<Vector3>(); var ou = new List<Vector2>(); var ot = new List<int>(); var oc = new List<Vector4>();
             for (int k = 0; k < want; k++)
@@ -121,8 +240,8 @@ namespace ASBO.EditorTools
                 Vector3 tA = Vector3.Cross(cn, Mathf.Abs(cn.y) > 0.9f ? Vector3.right : Vector3.up).normalized;
                 Vector3 tB = Vector3.Cross(cn, tA);
                 float ang = R() * Mathf.PI * 2f; Vector3 ax = tA * Mathf.Cos(ang) + tB * Mathf.Sin(ang), ay = Vector3.Cross(cn, ax);
-                float size = Mathf.Lerp(0.26f, 0.48f, R());
-                Vector3 c0 = p + n * Mathf.Lerp(-0.02f, 0.07f, R());
+                float size = Mathf.Lerp(o.sizeMin, o.sizeMax, R());
+                Vector3 c0 = p + n * Mathf.Lerp(o.offMin, o.offMax, R()) / Mathf.Max(0.001f, (sc.x + sc.y + sc.z) / 3f);
                 Vector3 hx = new Vector3(ax.x / sc.x, ax.y / sc.y, ax.z / sc.z) * size * 0.5f, hy = new Vector3(ay.x / sc.x, ay.y / sc.y, ay.z / sc.z) * size * 0.5f;
                 int b0 = ov.Count;
                 ov.Add(c0 - hx - hy); ov.Add(c0 + hx - hy); ov.Add(c0 + hx + hy); ov.Add(c0 - hx + hy);

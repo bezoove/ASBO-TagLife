@@ -211,7 +211,11 @@ namespace ASBO.EditorTools
             {
                 var path = $"{Gen}/Terrain/{name}.png"; File.WriteAllBytes(path, tex.EncodeToPNG()); AssetDatabase.ImportAsset(path);
                 var layer = new TerrainLayer { diffuseTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(path), tileSize = new Vector2(tile, tile), diffuseRemapMax = tint };
-                AssetDatabase.CreateAsset(layer, $"{Gen}/Terrain/{name}.terrainlayer"); return layer;
+                layer.smoothness = 0.06f;
+                AssetDatabase.CreateAsset(layer, $"{Gen}/Terrain/{name}.terrainlayer");
+                // constant smoothness: with "diffuse alpha" (the default) an opaque texture makes the grass mirror-shiny on Android
+                var so = new SerializedObject(layer); var sp = so.FindProperty("m_SmoothnessSource"); if (sp != null) { sp.intValue = 0; so.ApplyModifiedPropertiesWithoutUndo(); }
+                return layer;
             }
             td.terrainLayers = new[]
             {
