@@ -68,6 +68,7 @@ namespace ASBO.Slice
             if (vcam != null) vcam.PreviousStateIsValid = false;
         }
 
+        bool wasGrounded = true; float fallSpeed;
         public bool InCar => inCar; bool touch;
         Vector2 lookAdd;
         /// <summary>Camera turn from touch drags (degrees).</summary>
@@ -166,6 +167,8 @@ namespace ASBO.Slice
             }
             transform.rotation = Quaternion.Euler(0, bodyYaw, 0);
 
+            if (grounded && !wasGrounded && fallSpeed < -3.5f && GameAudio.I != null) GameAudio.I.Land(transform.position);
+            fallSpeed = vy; wasGrounded = grounded;
             if (grounded && vy < 0f) vy = -2f; else vy -= 19.6f * Time.deltaTime;
             if (grounded && turnTimer <= 0f && ((kb != null && kb.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonSouth.wasPressedThisFrame))) { vy = 4.6f; person.Jump(); }
             cc.Move((vel + Vector3.up * vy) * Time.deltaTime);

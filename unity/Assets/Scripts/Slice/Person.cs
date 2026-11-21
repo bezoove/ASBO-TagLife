@@ -296,7 +296,7 @@ namespace ASBO.Slice
             if (GameAudio.I != null)
             {
                 GameAudio.I.CarImpact(point, severity);
-                GameAudio.I.PlayVoice("shout", point, 0.25f, 1f);
+                if (dead || !GameAudio.I.Pain(point + Vector3.up * 0.5f, male, 0.1f)) { if (!dead) GameAudio.I.PlayVoice("shout", point, 0.25f, 1f); }
                 GameAudio.I.PlayVoice("witness", point + new Vector3(8f, 0, 4f), 1.6f, 1f);
             }
             if (severity >= 8f) StartCoroutine(Dismember(severity));

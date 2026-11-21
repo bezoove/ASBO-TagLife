@@ -1,0 +1,120 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e243c7247a68eab45a51e3d6f1af0aaf, type: 3}
+  m_Name: SfxBank
+  m_EditorClassIdentifier: Assembly-CSharp::ASBO.Slice.SfxBank
+  entries:
+  - key: step0
+    clips:
+    - {fileID: 8300000, guid: f234c5c9581cf1d4e9ce843db78ca7ea, type: 3}
+    - {fileID: 8300000, guid: 622b441c834caed48b886136bee64944, type: 3}
+    - {fileID: 8300000, guid: 4d11813f5983ce047873c94858e6a6c1, type: 3}
+    - {fileID: 8300000, guid: 6154d2d90f91ac743a30a16a58f9fa32, type: 3}
+    - {fileID: 8300000, guid: 4544cd1f9b0d00a498e3602ecfffcacc, type: 3}
+    - {fileID: 8300000, guid: 2921c47b0bdded540b5b813c1e60001c, type: 3}
+    - {fileID: 8300000, guid: 825d688f717750646b0a05cb2db4ae16, type: 3}
+    - {fileID: 8300000, guid: df0f02816989a0348b801669beb67362, type: 3}
+    - {fileID: 8300000, guid: 90f0af26cb589f64eaae4a27d022a1d3, type: 3}
+    - {fileID: 8300000, guid: 8ce4499bbd5a13e408937e979191ac28, type: 3}
+    - {fileID: 8300000, guid: b8da35185c17df440a0d9e0309ac22a3, type: 3}
+    - {fileID: 8300000, guid: 209ae35949b251d4a83610a1e5992a2f, type: 3}
+  - key: step1
+    clips:
+    - {fileID: 8300000, guid: 0609acde86b59a2458aaf135531f8756, type: 3}
+    - {fileID: 8300000, guid: fdfa07727ba18e146b0d737f16110ba5, type: 3}
+    - {fileID: 8300000, guid: e988fcf175fd1874db4f82c3b2d75db3, type: 3}
+    - {fileID: 8300000, guid: 98e005e2d5100484b88927d0803cb395, type: 3}
+    - {fileID: 8300000, guid: b3e9cdac26b78934197456d8199e30bc, type: 3}
+    - {fileID: 8300000, guid: ddc4973571f36404d95c23401b7d2f12, type: 3}
+    - {fileID: 8300000, guid: 8c9f76b14113ab640ab4b94535ad82e3, type: 3}
+    - {fileID: 8300000, guid: 797da453001930d4abbf0f9db27b28b3, type: 3}
+    - {fileID: 8300000, guid: ce1270282c972394c84b68a67452dffd, type: 3}
+  - key: step2
+    clips:
+    - {fileID: 8300000, guid: c87c3a812abe2fc4baa1fe54b4b77172, type: 3}
+    - {fileID: 8300000, guid: ee6a6c12e92b76347881600e494ea047, type: 3}
+    - {fileID: 8300000, guid: 06438add0bb42f846b7f1e2e0fcb78cb, type: 3}
+    - {fileID: 8300000, guid: 7dd1b75dd97f9af468c655f59ab900cc, type: 3}
+    - {fileID: 8300000, guid: 294e5ecef1c038f4eaaaad457cad5981, type: 3}
+    - {fileID: 8300000, guid: 0810c6bbffb6c0143984f3145f710f69, type: 3}
+    - {fileID: 8300000, guid: ebd381bfafa32b844a6954fc40a08c2e, type: 3}
+    - {fileID: 8300000, guid: 5c3c2c44515d6fe44a395faf0741edc0, type: 3}
+    - {fileID: 8300000, guid: eec53751c4e79a7469fc34e774360128, type: 3}
+    - {fileID: 8300000, guid: dbe4405baeea2404ba3d422430b5fd3b, type: 3}
+    - {fileID: 8300000, guid: c8657061120b2da4fb645654b16201f6, type: 3}
+    - {fileID: 8300000, guid: 8ff53086d637af8478c1408b78b3dd05, type: 3}
+    - {fileID: 8300000, guid: b662731f964d624449b092d4198147de, type: 3}
+  - key: step3
+    clips:
+    - {fileID: 8300000, guid: 6154d2d90f91ac743a30a16a58f9fa32, type: 3}
+    - {fileID: 8300000, guid: 10485b9efe2bd994f98d392f91dd1a0a, type: 3}
+    - {fileID: 8300000, guid: ed6bb89be19053b4abdfe85ac7daf25f, type: 3}
+    - {fileID: 8300000, guid: 9a7a2d7c3f0efa7408e14bd09744808d, type: 3}
+    - {fileID: 8300000, guid: 27ff539436f259348b7138c14d3885cc, type: 3}
+    - {fileID: 8300000, guid: a6e2596331387124da8e81d37da68ae2, type: 3}
+    - {fileID: 8300000, guid: ec02951caf7cd1f4fbc24fe9960cc69a, type: 3}
+    - {fileID: 8300000, guid: 7250925503d24ac4184011ccade045dd, type: 3}
+    - {fileID: 8300000, guid: 02dc709a1e386674e8d05d3c04baa6f7, type: 3}
+    - {fileID: 8300000, guid: c92fd58ac6b91794ba82b93ef3f4e00e, type: 3}
+    - {fileID: 8300000, guid: a70895712392d4345be385abfae08f28, type: 3}
+    - {fileID: 8300000, guid: 4544cd1f9b0d00a498e3602ecfffcacc, type: 3}
+    - {fileID: 8300000, guid: b70d04f1f7e251b4f8629b271d71c623, type: 3}
+  - key: land0
+    clips:
+    - {fileID: 8300000, guid: 622f42e8d781b8a44b119174e4ed9708, type: 3}
+    - {fileID: 8300000, guid: 18524d7f295d11b40a2b7bd3d9ef3561, type: 3}
+  - key: land1
+    clips:
+    - {fileID: 8300000, guid: c025c43d1749af5469c7dd8af13e162f, type: 3}
+    - {fileID: 8300000, guid: 65713fdea647c1949961f91d42bed416, type: 3}
+    - {fileID: 8300000, guid: 684d90e2defae1547a1d51bec24e6e9d, type: 3}
+  - key: engine
+    clips:
+    - {fileID: 8300000, guid: 9630c8b4bac2ebf45ae7c66d8fcbfd2e, type: 3}
+  - key: crashMetal
+    clips:
+    - {fileID: 8300000, guid: 2eea5cca3ca0d2f448771273bbf97a59, type: 3}
+    - {fileID: 8300000, guid: d6020e6250697e74ab482d04a5f1c000, type: 3}
+  - key: crashGlass
+    clips:
+    - {fileID: 8300000, guid: fad818b1bba7a4f4d8b2e1a427603cad, type: 3}
+    - {fileID: 8300000, guid: a3f0cb29347c1d846a3572517526ee4b, type: 3}
+    - {fileID: 8300000, guid: 199d906d36a1c7744a656a7647d1b7d6, type: 3}
+  - key: bone
+    clips:
+    - {fileID: 8300000, guid: b04bd0ba4dd35324ab8975cb2b012c24, type: 3}
+  - key: painM
+    clips:
+    - {fileID: 8300000, guid: 5b1a0297bbfdd9248b4e9fcd4a6796a9, type: 3}
+    - {fileID: 8300000, guid: 7cf3f6d04eece8d40a5195f7a4bc2d78, type: 3}
+    - {fileID: 8300000, guid: b4987ed104726ba4e9bec1941d4cb539, type: 3}
+    - {fileID: 8300000, guid: f0db07acd4058cf4d80ab30af3bef79d, type: 3}
+  - key: painF
+    clips:
+    - {fileID: 8300000, guid: 125e771382905f34ca969ef857a6c2a9, type: 3}
+    - {fileID: 8300000, guid: e086e118becb937408811b7ad741d44a, type: 3}
+    - {fileID: 8300000, guid: a772d38f4bdb0c34fb001204ca31d802, type: 3}
+    - {fileID: 8300000, guid: 0bc705cdb1c349f44a9c510880ef5168, type: 3}
+  - key: dog
+    clips:
+    - {fileID: 8300000, guid: 1c4aa2d67a783ee47832ece6b782a0fe, type: 3}
+    - {fileID: 8300000, guid: 2cb4a2944b28f3644b5547b072e7b336, type: 3}
+  - key: crow
+    clips:
+    - {fileID: 8300000, guid: 9d8fb425089c8204ca38d2b4cd11668a, type: 3}
+    - {fileID: 8300000, guid: a34fa385b7f9a3f4da46aa0f09555157, type: 3}
+  - key: ambTown
+    clips:
+    - {fileID: 8300000, guid: 87588bec5f3e0db48a561df8ea3e860d, type: 3}
+  - key: moped
+    clips:
+    - {fileID: 8300000, guid: 84d0f95608a0bb04c9cef2c462d2eeb5, type: 3}

@@ -16,7 +16,7 @@ namespace ASBO.Slice
         public float Speed => wrecked ? (rb != null ? rb.linearVelocity.magnitude : 0f) : speed;
         public Vector3 Velocity => wrecked ? rb.linearVelocity : transform.forward * speed;
         public static readonly List<TrafficCar> All = new List<TrafficCar>();
-        static AudioClip engClip;
+        static AudioClip engClip; static bool realEngine; float pitchBase = 1f;
 
         public static TrafficCar Spawn(Transform parent, float x, float dir, System.Random r)
         {
@@ -33,7 +33,8 @@ namespace ASBO.Slice
             bc.center = new Vector3(0, 0.3f + h / 2f, 0); bc.size = new Vector3(1.7f, h, spec.L);
             t.rb = g.AddComponent<Rigidbody>(); t.rb.isKinematic = true; t.rb.mass = spec.van ? 2000f : 1200f; t.rb.interpolation = RigidbodyInterpolation.Interpolate;
             t.cruise = 11f + (float)r.NextDouble() * 3.5f; t.speed = t.cruise;
-            engClip ??= AudioSynth.Engine();
+            if (engClip == null) { engClip = SfxBank.Pick("engine"); realEngine = engClip != null; if (engClip == null) engClip = AudioSynth.Engine(); }
+            t.pitchBase = 0.9f + (float)r.NextDouble() * 0.2f;
             t.eng = g.AddComponent<AudioSource>(); t.eng.clip = engClip; t.eng.loop = true; t.eng.spatialBlend = 1f; t.eng.minDistance = 4f; t.eng.maxDistance = 60f; t.eng.volume = 0.18f;
             t.eng.time = (float)r.NextDouble() * engClip.length; t.eng.Play();
             All.Add(t);
@@ -90,7 +91,7 @@ namespace ASBO.Slice
         {
             wheelSpin += Speed * Time.deltaTime / 0.31f * Mathf.Rad2Deg;
             if (!wrecked && wheels != null) foreach (var w in wheels) w.localRotation = Quaternion.Euler(wheelSpin, 0, 90f);
-            if (eng != null) { eng.pitch = 0.55f + Speed * 0.05f; }
+            if (eng != null) { eng.pitch = realEngine ? pitchBase * (0.95f + Speed * 0.035f) : 0.55f + Speed * 0.05f; }
         }
 
         void OnCollisionEnter(Collision c)
@@ -106,7 +107,7 @@ namespace ASBO.Slice
             wrecked = true;
             rb.isKinematic = false; rb.linearVelocity = transform.forward * speed; rb.angularDamping = 0.6f;
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-            if (GameAudio.I != null) GameAudio.I.CarImpact(transform.position, impulseDir.magnitude);
+            if (GameAudio.I != null) GameAudio.I.CarCrash(transform.position, impulseDir.magnitude);
             if (eng != null) eng.volume = 0.05f;
         }
     }

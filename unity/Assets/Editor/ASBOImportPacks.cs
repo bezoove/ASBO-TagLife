@@ -42,6 +42,18 @@ namespace ASBO.EditorTools
             }
         }
 
+        /// <summary>Log every path in the cached packages matching the keyword (to choose what is worth importing).</summary>
+        public static void Files(string keyword)
+        {
+            foreach (var f in Cached().Where(f => Path.GetFileNameWithoutExtension(f).IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                var sb = new StringBuilder("[ASBO] files in " + Path.GetFileName(f) + ":\n");
+                foreach (var p in Paths(f).Values.OrderBy(x => x)) sb.Append(p).Append('\n');
+                File.AppendAllText("Temp/asbo_files_" + keyword + ".txt", sb.ToString());
+                Debug.Log("[ASBO] wrote Temp/asbo_files_" + keyword + ".txt");
+            }
+        }
+
         static bool Excluded(string p) => p.StartsWith("ProjectSettings/") || p.StartsWith("Packages/") || p == "ProjectSettings" || p == "Packages";
 
         /// <summary>Import every cached package whose file name contains the keyword (case-insensitive).</summary>

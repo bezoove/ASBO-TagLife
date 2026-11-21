@@ -57,8 +57,8 @@ namespace ASBO.EditorTools
                     var ps = m.GetParameters(); var args = new object[ps.Length];
                     for (int i = 0; i < ps.Length; i++)
                     {
-                        string v = i + 1 < parts.Length ? parts[i + 1] : "";
                         var pt = ps[i].ParameterType;
+                        string v = i + 1 < parts.Length ? (i == ps.Length - 1 && pt == typeof(string) ? string.Join(" ", parts, i + 1, parts.Length - i - 1) : parts[i + 1]) : "";
                         args[i] = pt == typeof(float) ? float.Parse(v, System.Globalization.CultureInfo.InvariantCulture) : pt == typeof(int) ? int.Parse(v) : pt == typeof(bool) ? (object)(v == "true" || v == "1") : v;
                     }
                     m.Invoke(null, args); continue;
