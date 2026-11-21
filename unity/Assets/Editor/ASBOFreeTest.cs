@@ -42,7 +42,56 @@ namespace ASBO.EditorTools
         [System.Serializable] class Speeds { public float walk, run, sprint, turnSecs; }
 
         [MenuItem("ASBO/Test/2 Build Locomotion Controllers")]
-        public static void BuildControllers() { foreach (var ik in new[] { true, false }) { Build("M", "Male", ik); Build("F", "Female", ik); } Build("M", "Male", true, true); Build("F", "Female", true, true); AssetDatabase.SaveAssets(); }
+        public static void BuildControllers() { foreach (var ik in new[] { true, false }) { Build("M", "Male", ik); Build("F", "Female", ik); } Build("M", "Male", true, true); Build("F", "Female", true, true); BuildDrunk(); AssetDatabase.SaveAssets(); }
+
+        const string MC = "Assets/MoCapCentral/MC_Sample/Animations/";
+        /// <summary>A clip from any imported Humanoid file (.fbx or .anim); null with a warning if missing.</summary>
+        static AnimationClip AnyClip(string path)
+        {
+            if (path.EndsWith(".anim")) { var a = AssetDatabase.LoadAssetAtPath<AnimationClip>(path); if (a == null) Debug.LogWarning("[ASBO] missing " + path); return a; }
+            var c = AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>().FirstOrDefault(x => !x.name.StartsWith("__preview__"));
+            if (c == null) Debug.LogWarning("[ASBO] missing " + path);
+            return c;
+        }
+
+        /// <summary>1D blend on "Variant" (0, 0.5, 1): each person keeps one of these for good (set once at spawn).</summary>
+        static Motion Variants(AnimatorController ac, string name, params AnimationClip[] clips)
+        {
+            var ok = clips.Where(c => c != null).ToArray();
+            if (ok.Length == 0) return null; if (ok.Length == 1) return ok[0];
+            var bt = new BlendTree { name = name, blendType = BlendTreeType.Simple1D, blendParameter = "Variant", useAutomaticThresholds = false, hideFlags = HideFlags.HideInHierarchy };
+            AssetDatabase.AddObjectToAsset(bt, ac);
+            for (int i = 0; i < ok.Length; i++) bt.AddChild(ok[i], i / (float)(ok.Length - 1));
+            return bt;
+        }
+
+        /// <summary>The estate drunk: MoCap Central's drunk idle and stagger (imported Asset Store pack), same parameters as the others.</summary>
+        static void BuildDrunk()
+        {
+            string ctrlPath = Out + "LocoM_Drunk.controller";
+            if (File.Exists(ctrlPath)) AssetDatabase.DeleteAsset(ctrlPath);
+            var idle = AnyClip(MC + "Drunk/MCU_am_StandDrunk_Idle_01.FBX"); var walk = AnyClip(MC + "Drunk/MCU_am_Drunk_Loco_Walk_01.FBX");
+            if (idle == null || walk == null) return;
+            var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
+            foreach (var n in new[] { "MoveX", "MoveZ", "Variant" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
+            foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
+            foreach (var n in new[] { "Jump", "TurnL", "TurnR" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
+            var sm = ac.layers[0].stateMachine;
+            var move = ac.CreateBlendTreeInController("Move", out BlendTree tree, 0);
+            tree.blendType = BlendTreeType.FreeformDirectional2D; tree.blendParameter = "MoveX"; tree.blendParameterY = "MoveZ";
+            tree.AddChild(idle, Vector2.zero);
+            float sp = Mathf.Max(0.5f, walk.averageSpeed.magnitude);
+            tree.AddChild(walk, new Vector2(0f, sp));
+            sm.defaultState = move;
+            var talkClip = Clip("Male/Social/Conversation/HumanM@Talk01");
+            var talk = sm.AddState("Talk", new Vector3(300, 140)); talk.motion = Variants(ac, "Talks", talkClip, AnyClip(MC + "Emotions/MCU_am_Stand_Emotion_ThisGuy_01.FBX"), AnyClip(MC + "Idle/MCU_am_Stand_Conv_Talk_05_Generic.FBX"));
+            var ti = move.AddTransition(talk); ti.AddCondition(AnimatorConditionMode.If, 0, "Talk"); ti.hasExitTime = false; ti.duration = 0.3f;
+            var to = talk.AddTransition(move); to.AddCondition(AnimatorConditionMode.IfNot, 0, "Talk"); to.hasExitTime = false; to.duration = 0.3f;
+            foreach (var cs in sm.states) cs.state.iKOnFeet = true;
+            var ls = ac.layers; ls[0].iKPass = true; ac.layers = ls;
+            EditorUtility.SetDirty(ac);
+            Debug.Log($"[ASBO] LocoM_Drunk: stagger {sp:F2} m/s, len {walk.length:F2}s, loop {walk.isLooping}");
+        }
 
         const string SABase = "Assets/Starter Assets/Runtime/ThirdPersonController/Character/Animations/";
         /// <summary>Unity's Starter Assets mocap walk/run (imported Asset Store pack), for an A/B against the current set.</summary>
@@ -62,7 +111,7 @@ namespace ASBO.EditorTools
             Directory.CreateDirectory(Out);
             if (File.Exists(ctrlPath)) AssetDatabase.DeleteAsset(ctrlPath);
             var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
-            foreach (var n in new[] { "MoveX", "MoveZ" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
+            foreach (var n in new[] { "MoveX", "MoveZ", "Variant" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
             foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
             foreach (var n in new[] { "Jump", "TurnL", "TurnR" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
             var sm = ac.layers[0].stateMachine;
@@ -70,7 +119,8 @@ namespace ASBO.EditorTools
             var move = ac.CreateBlendTreeInController("Move", out BlendTree tree, 0);
             tree.blendType = BlendTreeType.FreeformDirectional2D; tree.blendParameter = "MoveX"; tree.blendParameterY = "MoveZ";
             var idle = Clip(p + "Idles/" + h + "Idle01");
-            tree.AddChild(idle, Vector2.zero);
+            // standing about: the pack idle, looking round, scratching an arm (MoCap Central)
+            tree.AddChild(ik ? Variants(ac, "Idles", idle, AnyClip(MC + "Idle/MCU_am_Stand_Idle_03_LookAround.FBX"), AnyClip(MC + "Idle/MCU_am_Stand_Idle_06_ScratchArm.FBX")) : idle, Vector2.zero);
             var sp = new Speeds();
             void Dirs(string gait, string[] dirs)
             {
@@ -125,6 +175,7 @@ namespace ASBO.EditorTools
             var t2 = fall.AddTransition(land); t2.AddCondition(AnimatorConditionMode.If, 0, "Grounded"); t2.hasExitTime = false; t2.duration = 0.08f;
             var t3 = land.AddTransition(move); t3.hasExitTime = true; t3.exitTime = 0.55f; t3.duration = 0.2f;
             var talk = St("Talk", Clip($"{p}Social/Conversation/{h}Talk01"), new Vector3(300, 140));
+            if (ik) talk.motion = Variants(ac, "Talks", (AnimationClip)talk.motion, AnyClip("Assets/DoubleL/Demo/Anim/Dialogue_1.anim"), AnyClip(MC + "Idle/MCU_am_Stand_Conv_Talk_05_Generic.FBX"));
             var ti = move.AddTransition(talk); ti.AddCondition(AnimatorConditionMode.If, 0, "Talk"); ti.hasExitTime = false; ti.duration = 0.3f;
             var to = talk.AddTransition(move); to.AddCondition(AnimatorConditionMode.IfNot, 0, "Talk"); to.hasExitTime = false; to.duration = 0.3f;
             // paramedic kneel and a wave: CMU mocap clips (retargeted through Humanoid like the pack's)

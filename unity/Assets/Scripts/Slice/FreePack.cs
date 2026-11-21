@@ -113,8 +113,8 @@ namespace ASBO.Slice
             var dca = go.AddComponent<DynamicCharacterAvatar>();
             dca.RacePreset = race.raceName;
             bool stock = PlayerPrefs.GetInt("asbo_stock", 0) == 1; // before/after comparison: UMA defaults, no foot IK
-            string k = (isMale ? "M" : "F") + (stock ? "_Stock" : PlayerPrefs.GetInt("asbo_sa", 1) == 1 ? "_SA" : "");
-            if (!ctrls.TryGetValue(k, out var ctrl)) { ctrl = Resources.Load<RuntimeAnimatorController>("Anim/Loco" + k); ctrls[k] = ctrl; }
+            string k = (isMale ? "M" : "F") + (stock ? "_Stock" : p != null && p.drunk && isMale ? "_Drunk" : PlayerPrefs.GetInt("asbo_sa", 1) == 1 ? "_SA" : "");
+            if (!ctrls.TryGetValue(k, out var ctrl)) { ctrl = Resources.Load<RuntimeAnimatorController>("Anim/Loco" + k); if (ctrl == null && k.EndsWith("_Drunk")) ctrl = Resources.Load<RuntimeAnimatorController>("Anim/LocoM_SA"); ctrls[k] = ctrl; }
             dca.raceAnimationControllers.defaultAnimationController = ctrl;
             // body: legs a little closer under the pelvis than UMA's default (0.5)
             if (!stock)

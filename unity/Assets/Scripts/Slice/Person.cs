@@ -20,6 +20,7 @@ namespace ASBO.Slice
         public float speed = 1.3f;
         public State state = State.Walking;
         public bool dead, injured;
+        public bool drunk; int variant;
         public string label = "Person";
         public string model; public Color skinTone = Color.white, hairColor = new Color(0.25f, 0.17f, 0.1f); public bool male = true;
         public event Action<Person> Settled;
@@ -53,11 +54,16 @@ namespace ASBO.Slice
             int h = isPlayer ? 20261120 : Mathf.Abs(GetInstanceID() * 7919 + (int)(transform.position.x * 13f)); // the player always looks the same
             male = isPlayer || (string.IsNullOrEmpty(model) ? (h % 2) == 1 : model.StartsWith("m_"));
             if (isParamedic || label == "Paramedic") male = (h % 3) != 0;
+            // about one bloke in five on the estate is half-cut, all day
+            drunk = !isPlayer && male && !isParamedic && label != null && label.Contains("@") && (h / 7) % 5 == 0;
+            variant = isPlayer ? 0 : (h / 3) % 3;
             UmaBody.Create(this, male, h, isPlayer, d =>
             {
                 anim = d.animator != null ? d.animator : GetComponentInChildren<Animator>();
                 if (anim == null) return;
                 anim.applyRootMotion = false;
+                // which idle and which way of talking this person has (0, 0.5, 1 pick clips in the controller's blends)
+                foreach (var prm in anim.parameters) if (prm.name == "Variant") { anim.SetFloat("Variant", variant * 0.5f); break; }
                 hips = anim.isHuman ? anim.GetBoneTransform(HumanBodyBones.Hips) : anim.transform;
                 smrs = GetComponentsInChildren<SkinnedMeshRenderer>(true);
                 foreach (var r in smrs) r.updateWhenOffscreen = false;

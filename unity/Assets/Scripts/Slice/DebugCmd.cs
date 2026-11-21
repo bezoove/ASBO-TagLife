@@ -99,6 +99,7 @@ namespace ASBO.Slice
                 Debug.Log("[ASBO] dumped " + name);
             }
         }
+        public static void DrunkShow() { new GameObject("DrunkShow").AddComponent<DrunkShowRun>(); }
         public static void TouchDrive() { new GameObject("TouchDriveTest").AddComponent<TouchDriveTest>().Run(); }
         public static void EditSwitch() { if (TouchControls.I != null) TouchControls.I.SwitchEditSet(); }
         public static void EditPreset() { if (TouchControls.I != null) TouchControls.I.NextPreset(); }
@@ -310,6 +311,46 @@ namespace ASBO.Slice
             World.HideHud = false;
             Debug.Log("[ASBO] car show done");
             Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Follow-cam clip of an estate drunk walking (Shots/drunk/d_###.png at 30 fps): the stagger can't be judged from a still.</summary>
+    public class DrunkShowRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            Person who = null;
+            for (int tries = 0; tries < 20 && who == null; tries++)
+            {
+                foreach (var p in Person.All) if (p != null && p.drunk && p.state == Person.State.Walking && p.Ready) { var ag = p.GetComponent<UnityEngine.AI.NavMeshAgent>(); if (ag != null && ag.velocity.magnitude > 0.3f) { who = p; break; } }
+                if (who == null) yield return new WaitForSeconds(0.5f);
+            }
+            // put one out on the lane and send him up it, so the camera isn't stuck behind walls
+            Person d0 = null; foreach (var p in Person.All) if (p != null && p.drunk && p.state == Person.State.Walking && p.Ready) { d0 = p; break; }
+            if (d0 != null)
+            {
+                var ag0 = d0.GetComponent<UnityEngine.AI.NavMeshAgent>();
+                if (ag0 != null && ag0.enabled && Nav.Snap(new Vector3(-12f, 0f, Estate.LaneZ), out var a0, 3f) && Nav.Snap(new Vector3(14f, 0f, Estate.LaneZ), out var b0, 3f))
+                { ag0.Warp(a0); ag0.SetDestination(b0); who = d0; yield return new WaitForSeconds(2f); }
+            }
+            int drunks = 0; foreach (var p in Person.All) if (p != null && p.drunk) drunks++;
+            Debug.Log("[ASBO] drunkshow: " + drunks + " drunks, filming " + (who != null ? who.name : "nobody"));
+            if (who == null) { Destroy(gameObject); yield break; }
+            World.HideHud = true;
+            var cg = new GameObject("DrunkCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 42f; cam.nearClipPlane = 0.05f;
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/drunk"); System.IO.Directory.CreateDirectory(dir);
+            foreach (var f in System.IO.Directory.GetFiles(dir, "*.png")) { try { System.IO.File.Delete(f); } catch { } }
+            Time.captureFramerate = 30;
+            for (int i = 0; i < 90; i++)
+            {
+                var t = who.transform; Vector3 side = Quaternion.Euler(0, 70f, 0) * t.forward;
+                cg.transform.position = Vector3.Lerp(cg.transform.position == Vector3.zero ? t.position + side * 3.4f + Vector3.up * 1.3f : cg.transform.position, t.position + side * 3.4f + Vector3.up * 1.3f, i == 0 ? 1f : 0.15f);
+                cg.transform.LookAt(t.position + Vector3.up * 0.9f);
+                ScreenCapture.CaptureScreenshot(dir + "/d_" + i.ToString("000") + ".png");
+                yield return null;
+            }
+            Time.captureFramerate = 0;
+            Destroy(cg); World.HideHud = false; Destroy(gameObject);
         }
     }
 

@@ -109,7 +109,7 @@ namespace ASBO.Slice
             ag.agentTypeID = Nav.AgentType;
             ag.enabled = false;
             gameObject.SetActive(true); ag.radius = 0.24f; ag.height = 1.75f; ag.baseOffset = 0f;
-            ag.speed = Random.Range(1.0f, 1.35f); ag.angularSpeed = 300f; ag.acceleration = 3f; ag.stoppingDistance = 0.25f; ag.autoBraking = true;
+            ag.speed = p != null && p.drunk ? Random.Range(0.58f, 0.68f) : Random.Range(1.0f, 1.35f); ag.angularSpeed = 300f; ag.acceleration = 3f; ag.stoppingDistance = 0.25f; ag.autoBraking = true;
             ag.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance; ag.avoidancePriority = Random.Range(30, 70);
             if (Nav.Snap(transform.position, out var q, 2f)) transform.position = q;
             ag.enabled = true;
