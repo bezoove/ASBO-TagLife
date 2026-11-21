@@ -7682,7 +7682,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1203043975}
-  - component: {fileID: 1203043974}
   - component: {fileID: 1203043976}
   m_Layer: 0
   m_Name: FreePackTest
@@ -7691,18 +7690,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1203043974
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1203043973}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7813acb8cbd763a4bb8238d12a01ec6c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ASBO.Slice.FreePackTest
 --- !u!4 &1203043975
 Transform:
   m_ObjectHideFlags: 0

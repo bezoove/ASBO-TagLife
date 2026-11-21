@@ -52,7 +52,7 @@ namespace ASBO.EditorTools
             if (File.Exists(ctrlPath)) AssetDatabase.DeleteAsset(ctrlPath);
             var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
             foreach (var n in new[] { "MoveX", "MoveZ" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
-            foreach (var n in new[] { "Talk", "Kneel", "Grounded" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
+            foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
             foreach (var n in new[] { "Jump", "TurnL", "TurnR" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
             var sm = ac.layers[0].stateMachine;
 
@@ -97,6 +97,14 @@ namespace ASBO.EditorTools
             var talk = St("Talk", Clip($"{p}Social/Conversation/{h}Talk01"), new Vector3(300, 140));
             var ti = move.AddTransition(talk); ti.AddCondition(AnimatorConditionMode.If, 0, "Talk"); ti.hasExitTime = false; ti.duration = 0.3f;
             var to = talk.AddTransition(move); to.AddCondition(AnimatorConditionMode.IfNot, 0, "Talk"); to.hasExitTime = false; to.duration = 0.3f;
+            // paramedic kneel and a wave: CMU mocap clips (retargeted through Humanoid like the pack's)
+            foreach (var (nm, y) in new[] { ("Kneel", 220f), ("Wave", 300f) })
+            {
+                var c = ASBOImport.ClipNamed(nm); if (c == null) { Debug.LogWarning("[ASBO] no " + nm + " clip"); continue; }
+                var st = St(nm, c, new Vector3(300, y));
+                var a = move.AddTransition(st); a.AddCondition(AnimatorConditionMode.If, 0, nm); a.hasExitTime = false; a.duration = 0.35f;
+                var b = st.AddTransition(move); b.AddCondition(AnimatorConditionMode.IfNot, 0, nm); b.hasExitTime = false; b.duration = 0.35f;
+            }
             // Foot IK on every state: feet go back to where the original mocap put them (fixes wide stance after retargeting onto UMA)
             foreach (var cs in sm.states) cs.state.iKOnFeet = ik;
             if (!ik) { EditorUtility.SetDirty(ac); return; }

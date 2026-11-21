@@ -85,7 +85,7 @@ namespace ASBO.EditorTools
                 EditorApplication.delayCall += BuildController;
         }
 
-        static AnimationClip ClipNamed(string name)
+        internal static AnimationClip ClipNamed(string name)
         {
             foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { AnimDir }))
             {

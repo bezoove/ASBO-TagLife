@@ -152,6 +152,13 @@ namespace ASBO.Slice
             }
         }
 
+        /// <summary>Stand still at a spot for a while (scripted tests, cut-scenes), then carry on with the day.</summary>
+        public void HoldAt(Vector3 pos, float yaw, float secs)
+        {
+            if (ag != null && ag.enabled && ag.isOnNavMesh) { ag.Warp(pos); ag.ResetPath(); } else transform.position = pos;
+            transform.rotation = Quaternion.Euler(0f, yaw, 0f); wait = secs; doing = "hold";
+        }
+
         public System.Collections.IEnumerator TalkFor(float t)
         {
             if (p == null) yield break;

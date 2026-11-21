@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 namespace ASBO.Slice
 {
@@ -28,6 +29,50 @@ namespace ASBO.Slice
             var go = new GameObject("GaitShow"); go.AddComponent<GaitShow>().Run(pc, speed, frames);
         }
         /// <summary>Gait from a fixed camera angle (0 = directly behind, -90 = left side, 180 = front), optional swing.</summary>
+        public static void DumpMats()
+        {
+            var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (pc == null) return;
+            foreach (var r in pc.GetComponentsInChildren<Renderer>(true))
+                foreach (var m in r.sharedMaterials)
+                {
+                    if (m == null) continue;
+                    var sb = new System.Text.StringBuilder("[ASBO] mat " + r.name + " / " + m.name + " shader=" + m.shader.name + " :");
+                    for (int i = 0; i < m.shader.GetPropertyCount(); i++)
+                    {
+                        var n = m.shader.GetPropertyName(i); var t = m.shader.GetPropertyType(i);
+                        sb.Append(" " + n);
+                        if (t == UnityEngine.Rendering.ShaderPropertyType.Color) sb.Append("=" + m.GetColor(n));
+                        if (t == UnityEngine.Rendering.ShaderPropertyType.Texture) { var tx = m.GetTexture(n); sb.Append("=" + (tx != null ? tx.name : "null")); }
+                    }
+                    Debug.Log(sb.ToString());
+                }
+        }
+        /// <summary>Drive the RCC car into a resident at the given speed (m/s) and film it from the side: tests UMA ragdolls with real car physics.</summary>
+        public static void CrashTest(float speed, int frames)
+        {
+            var rv = Object.FindFirstObjectByType<RccVehicle>(); if (rv == null) { Debug.LogWarning("[ASBO] no RCC car"); return; }
+            Resident best = null; float bd = 1e9f;
+            foreach (var r in Object.FindObjectsByType<Resident>(FindObjectsSortMode.None))
+            {
+                var pp = r.GetComponent<Person>(); if (pp == null || pp.state != Person.State.Walking) continue;
+                float d = (r.transform.position - rv.transform.position).sqrMagnitude; if (d < bd) { bd = d; best = r; }
+            }
+            if (best == null) { Debug.LogWarning("[ASBO] no resident to test"); return; }
+            Vector3 want = rv.transform.position + rv.transform.forward * 18f;
+            if (Nav.Snap(want, out var q, 6f)) want = q;
+            best.HoldAt(want, rv.transform.eulerAngles.y + 90f, 6f);
+            var go = new GameObject("CrashShow"); go.AddComponent<CrashShow>().Run(rv, best.GetComponent<Person>(), speed, frames);
+        }
+        /// <summary>Put the player 4 m from the last casualty, looking at it (to film paramedics etc.).</summary>
+        public static void ViewCasualty(float dist, float side)
+        {
+            var pc = Object.FindFirstObjectByType<PlayerCtl>(); var v = Person.LastHit; if (pc == null || v == null) return;
+            Vector3 c = v.BodyPos; c.y = 0f;
+            Vector3 from = c + new Vector3(Mathf.Sin(side * Mathf.Deg2Rad), 0f, Mathf.Cos(side * Mathf.Deg2Rad)) * dist;
+            if (Nav.Snap(from, out var q, 3f)) from = q;
+            Vector3 d = c - from; float yaw = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+            pc.Teleport(from, yaw, 18f);
+        }
         public static void Stock(int on) { PlayerPrefs.SetInt("asbo_stock", on); PlayerPrefs.Save(); Debug.Log("[ASBO] stock bodies " + on); }
         public static void ShowGaitFrom(float speed, int frames, float camOffset, float swing, float radius)
         {
@@ -89,6 +134,40 @@ namespace ASBO.Slice
             string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/burst"); System.IO.Directory.CreateDirectory(dir);
             for (int i = 0; i < n; i++) { ScreenCapture.CaptureScreenshot(dir + "/b_" + i.ToString("000") + ".png"); yield return new WaitForSecondsRealtime(dt); }
             Destroy(gameObject);
+        }
+    }
+
+    public class CrashShow : MonoBehaviour
+    {
+        public void Run(RccVehicle car, Person target, float speed, int frames) { StartCoroutine(Go(car, target, speed, frames)); }
+        System.Collections.IEnumerator Go(RccVehicle car, Person target, float speed, int frames)
+        {
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/crash"); System.IO.Directory.CreateDirectory(dir);
+            foreach (var f in System.IO.Directory.GetFiles(dir, "*.png")) { try { System.IO.File.Delete(f); } catch { } }
+            World.HideHud = true;
+            yield return null; yield return null;
+            var rb = car.GetComponent<Rigidbody>();
+            Vector3 tp = target.transform.position;
+            Vector3 dirv = tp - car.transform.position; dirv.y = 0f; dirv.Normalize();
+            car.transform.rotation = Quaternion.LookRotation(dirv, Vector3.up);
+            // film from the side of the line of travel
+            var cg = new GameObject("CrashCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 50f; cam.nearClipPlane = 0.1f;
+            var main = Camera.main; if (main != null) { var src = main.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>(); var dst = cam.GetUniversalAdditionalCameraData(); if (src != null) { dst.renderPostProcessing = src.renderPostProcessing; dst.antialiasing = src.antialiasing; } }
+            Vector3 side = Vector3.Cross(Vector3.up, dirv);
+            cg.transform.position = tp + side * 9f - dirv * 3f + Vector3.up * 1.7f;
+            cg.transform.LookAt(tp + dirv * 2.5f + Vector3.up * 0.8f);
+            Time.captureFramerate = 30;
+            bool hit = false; int hitFrame = -1;
+            for (int i = 0; i < frames; i++)
+            {
+                if (!hit && rb != null && i < 90) { rb.linearVelocity = dirv * speed + Vector3.up * rb.linearVelocity.y; rb.angularVelocity = Vector3.zero; }
+                if (!hit && target.state != Person.State.Walking) { hit = true; hitFrame = i; }
+                ScreenCapture.CaptureScreenshot(dir + "/c_" + i.ToString("000") + ".png", 2);
+                yield return null;
+            }
+            Time.captureFramerate = 0;
+            Debug.Log("[ASBO] crash test: hit " + hit + " at frame " + hitFrame + ", target now " + target.state);
+            Destroy(cg); World.HideHud = false; Destroy(gameObject);
         }
     }
 }

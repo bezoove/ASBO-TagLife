@@ -61,7 +61,7 @@ namespace ASBO.Slice
                 hips = anim.isHuman ? anim.GetBoneTransform(HumanBodyBones.Hips) : anim.transform;
                 smrs = GetComponentsInChildren<SkinnedMeshRenderer>(true);
                 foreach (var r in smrs) r.updateWhenOffscreen = false;
-            });
+            }, isParamedic || label == "Paramedic" ? "Paramedic" : null);
             if (!isPlayer)
             {
                 trigger = gameObject.AddComponent<CapsuleCollider>();
