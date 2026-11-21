@@ -103,6 +103,12 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - Old game: [Wait](og/modules/Wait.md), [Bus41](og/modules/Bus41.md), [Bus](og/modules/Bus.md) (22 behaviours, 11 lines said or shown, 21 tuning numbers)
 - [ ] **Birds and wildlife**
   - Old game: [Birds](og/modules/Birds.md), [BD](og/modules/BD.md) (24 behaviours, 0 lines said or shown, 31 tuning numbers)
+- [ ] **Big construction site**: Planned: a half-built block of flats with a tower crane, scaffolding you can climb, diggers, portacabins, fencing and hoardings. Builders on shift by day; a security guard and his dog at night. Tools, copper and scrap worth taking to the scrapyard.
+  - You asked: A big construction site.
+- [ ] **Creepy old castle on a big hill**: Planned: set apart from the town on its own hill, up a winding lane and footpath off the long road out. Crumbling walls, a keep, a dungeon and crypt, crows, fog and creaks after dark.
+  - You asked: A creepy old castle set aside on a big hill.
+- [ ] **Casino**: Planned: on the edge of town by the long road out, with a made-up name. Doorman, cashier's cage for chips, bar, croupiers, security and regulars. Only the game's own money goes in.
+  - You asked: A casino where you can gamble your money.
 - [~] **Props everywhere**: Hedges, walls, lamps, cars in; most small street and indoor props not yet.
   - You asked: World detail audit: recognisable props everywhere.
   - You asked: Door frames right (old-game bug).
@@ -214,7 +220,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 - [ ] **Graffiti and chalk**: Spray cans and pavement chalk.
   - Old game: [Spray](og/modules/Spray.md) (59 behaviours, 22 lines said or shown, 34 tuning numbers)
 
-## Pub games and bets
+## Games, bets and the casino
 
 - [ ] **Darts**: Swipe throws from your own view, pencil grip, AI opponents, match rules, the caller.
   - You asked: Swipe and release, held dart, natural throw, portrait view.
@@ -234,6 +240,14 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - Old game: [Snap](og/modules/Snap.md), [CARDS](og/modules/CARDS.md) (9 behaviours, 17 lines said or shown, 3 tuning numbers)
 - [ ] **Horse racing bets with Ron**
   - Old game: [Racing](og/modules/Racing.md), [RACE_HORSES](og/modules/RACE_HORSES.md), [RACE_COURSES](og/modules/RACE_COURSES.md) (10 behaviours, 19 lines said or shown, 3 tuning numbers)
+- [ ] **Casino: roulette**: European wheel with a single zero; every bet on the layout at real payouts, so the house edge is the real one.
+  - You asked: Properly working casino games where you gamble your money.
+- [ ] **Casino: blackjack**: Six-deck shoe, dealer stands on 17, blackjack pays 3 to 2; hit, stand, double, split and insurance.
+  - You asked: Properly working casino games where you gamble your money.
+- [ ] **Casino: slot machines**: Real reels with fixed odds and pay tables, paying back a bit under what goes in, like real machines.
+  - You asked: Properly working casino games where you gamble your money.
+- [ ] **Casino: poker**: Texas Hold'em at a table with other players who bluff and fold like people; the house takes a cut of each pot.
+  - You asked: Properly working casino games where you gamble your money.
 - [ ] **Pick up, carry, throw and smash things**: Glasses, chairs, bottles.
   - You asked: Physics props: pick up, carry, move, throw, smash, damage.
   - You asked: No chair stuck in your hands (old-game bug).

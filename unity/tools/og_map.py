@@ -88,6 +88,12 @@ SECTIONS = [
   ('todo', 'Phonebox', '999 free; A1 Taxis ("Twenty minutes, mate. Maybe thirty."), pizza, the speaking clock.', ['Phonebox'], [], []),
   ('todo', 'Bus stop and Route 41', 'Sit and wait; pick how long.', ['Wait', 'Bus41', 'Bus'], [], []),
   ('todo', 'Birds and wildlife', '', ['Birds', 'BD'], [], []),
+  ('todo', 'Big construction site', 'Planned: a half-built block of flats with a tower crane, scaffolding you can climb, diggers, portacabins, fencing and hoardings. Builders on shift by day; a security guard and his dog at night. Tools, copper and scrap worth taking to the scrapyard.', [], [],
+   ['A big construction site.']),
+  ('todo', 'Creepy old castle on a big hill', 'Planned: set apart from the town on its own hill, up a winding lane and footpath off the long road out. Crumbling walls, a keep, a dungeon and crypt, crows, fog and creaks after dark.', [], [],
+   ['A creepy old castle set aside on a big hill.']),
+  ('todo', 'Casino', 'Planned: on the edge of town by the long road out, with a made-up name. Doorman, cashier\'s cage for chips, bar, croupiers, security and regulars. Only the game\'s own money goes in.', [], [],
+   ['A casino where you can gamble your money.']),
   ('part', 'Props everywhere', 'Hedges, walls, lamps, cars in; most small street and indoor props not yet.', ['Decor', 'Props', 'KIT', 'Grime', 'Decay', 'Walls', 'World:light', 'World:door', 'World'], [],
    ['World detail audit: recognisable props everywhere.', 'Door frames right (old-game bug).']),
  ]),
@@ -142,7 +148,7 @@ SECTIONS = [
   ('todo', 'Taking cars: break-ins and carjacking', '', ['Jack', 'CarInt', 'Hijack'], [], []),
   ('todo', 'Graffiti and chalk', 'Spray cans and pavement chalk.', ['Spray'], [], []),
  ]),
- ('Pub games and bets', [
+ ('Games, bets and the casino', [
   ('todo', 'Darts', 'Swipe throws from your own view, pencil grip, AI opponents, match rules, the caller.',
    ['DartsGame', 'DartsAI', 'Darts3D', 'DartHand', 'DartDepth', 'DartParts', 'FPThrow', 'Checkout', 'GAME_NAMES', 'Caller', 'GRIPS', 'Game:darts', 'UI:darts'], [],
    ['Swipe and release, held dart, natural throw, portrait view.', 'One continuous motion; index finger on top of the barrel; pencil grip.', 'Faster forward stroke; fix the torn sleeve.', 'Dartboard with no wobble, the whole board and numbers visible.']),
@@ -152,6 +158,10 @@ SECTIONS = [
   ('todo', 'Fruit machine', '', ['FruitMachine', 'FM_NAMES'], [], []),
   ('todo', 'Snap', 'Cards for money with the regulars.', ['Snap', 'CARDS'], [], []),
   ('todo', 'Horse racing bets with Ron', '', ['Racing', 'RACE_HORSES', 'RACE_COURSES'], [], []),
+  ('todo', 'Casino: roulette', 'European wheel with a single zero; every bet on the layout at real payouts, so the house edge is the real one.', [], [], ['Properly working casino games where you gamble your money.']),
+  ('todo', 'Casino: blackjack', 'Six-deck shoe, dealer stands on 17, blackjack pays 3 to 2; hit, stand, double, split and insurance.', [], [], ['Properly working casino games where you gamble your money.']),
+  ('todo', 'Casino: slot machines', 'Real reels with fixed odds and pay tables, paying back a bit under what goes in, like real machines.', [], [], ['Properly working casino games where you gamble your money.']),
+  ('todo', 'Casino: poker', 'Texas Hold\'em at a table with other players who bluff and fold like people; the house takes a cut of each pot.', [], [], ['Properly working casino games where you gamble your money.']),
   ('todo', 'Pick up, carry, throw and smash things', 'Glasses, chairs, bottles.', ['Objs', 'GlassFx', 'Brk', 'BRK_KIND'], [], ['Physics props: pick up, carry, move, throw, smash, damage.', 'No chair stuck in your hands (old-game bug).']),
  ]),
  ('Money and items', [
