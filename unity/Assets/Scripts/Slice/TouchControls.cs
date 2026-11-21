@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.OnScreen;
@@ -7,14 +9,31 @@ using UnityEngine.UI;
 namespace ASBO.Slice
 {
     /// <summary>
-    /// Phone controls built on the Input System's on-screen controls: they drive a virtual gamepad, so the player
-    /// code and RCC's gamepad bindings work unchanged. Left thumb: stick (walk / steer). Right side: drag to look,
-    /// buttons for run, jump (handbrake in a car), get in/out, and pedals while driving.
+    /// Phone controls built on the Input System's on-screen controls (a virtual gamepad, so the player code and RCC's
+    /// gamepad bindings work unchanged), customisable like the original game: EDIT opens the layout editor, where you
+    /// drag each control where your thumbs want it and tap one to resize or hide it. On-foot and vehicle layouts are
+    /// separate, each with presets and a reset; layouts are saved on the phone.
     /// </summary>
     public class TouchControls : MonoBehaviour
     {
+        public static bool Editing => I != null && I.editing;
         public static bool Wanted => Application.isMobilePlatform || PlayerPrefs.GetInt("asbo_touch", 0) == 1;
-        PlayerCtl pc; GameObject footSet, carSet; static Sprite disc, ring; Font font;
+        public static TouchControls I;
+
+        class Ctl
+        {
+            public string id, label; public bool foot, car; public bool bottomLeft;
+            public RectTransform rt, cover; public float baseSize; public Vector2 defFoot, defCar;
+            public Behaviour[] onScreen; public CanvasGroup group;
+        }
+        [Serializable] class Entry { public string id; public float x, y, s = 1f; public bool hide; }
+        [Serializable] class Layout { public List<Entry> e = new List<Entry>(); }
+
+        PlayerCtl pc; static Sprite disc, ring; Font font; Canvas canvas; RectTransform root;
+        readonly List<Ctl> ctls = new List<Ctl>();
+        Layout foot, car; bool carSet;
+        bool editing; bool editCar; Ctl selected; int presetIdx;
+        GameObject dim, editBar, sizeBar, editBtn; Text editTitle, sizeTitle, hideLabel, presetLabel;
 
         public static TouchControls Create(PlayerCtl pc)
         {
@@ -23,13 +42,14 @@ namespace ASBO.Slice
                 var es = new GameObject("EventSystem"); es.AddComponent<EventSystem>(); es.AddComponent<InputSystemUIInputModule>();
             }
             var go = new GameObject("TouchControls");
-            var t = go.AddComponent<TouchControls>(); t.pc = pc; t.Build();
+            var t = go.AddComponent<TouchControls>(); t.pc = pc; I = t; t.Build();
             return t;
         }
 
+        // ------------------------------------------------------------------ building blocks
         static Sprite Circle(bool filled)
         {
-            const int N = 128; var tex = new Texture2D(N, N, TextureFormat.RGBA32, false); tex.wrapMode = TextureWrapMode.Clamp;
+            const int N = 128; var tex = new Texture2D(N, N, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
             var px = new Color32[N * N];
             for (int y = 0; y < N; y++)
                 for (int x = 0; x < N; x++)
@@ -48,67 +68,246 @@ namespace ASBO.Slice
             r.anchorMin = r.anchorMax = anchor; r.pivot = new Vector2(0.5f, 0.5f); r.anchoredPosition = pos; r.sizeDelta = size;
             return r;
         }
-
+        static void Stretch(RectTransform r) { r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.sizeDelta = Vector2.zero; r.anchoredPosition = Vector2.zero; }
         Image Img(RectTransform r, Sprite s, Color c, bool hit = true) { var i = r.gameObject.AddComponent<Image>(); i.sprite = s; i.color = c; i.raycastTarget = hit; return i; }
-
-        void Label(RectTransform r, string text, int size)
+        Text Label(RectTransform r, string text, int size, Color? col = null)
         {
             var t = Rect("Label", r, new Vector2(0.5f, 0.5f), Vector2.zero, r.sizeDelta);
             var tx = t.gameObject.AddComponent<Text>(); tx.text = text; tx.font = font; tx.fontSize = size; tx.alignment = TextAnchor.MiddleCenter;
-            tx.color = new Color(1f, 1f, 1f, 0.92f); tx.raycastTarget = false; tx.fontStyle = FontStyle.Bold;
+            tx.color = col ?? new Color(1f, 1f, 1f, 0.92f); tx.raycastTarget = false; tx.fontStyle = FontStyle.Bold; tx.horizontalOverflow = HorizontalWrapMode.Overflow;
+            return tx;
+        }
+        Button UiButton(Transform parent, string text, Vector2 anchor, Vector2 pos, Vector2 size, Action onClick, out Text label)
+        {
+            var r = Rect(text, parent, anchor, pos, size);
+            var img = Img(r, null, new Color(0.08f, 0.09f, 0.11f, 0.85f));
+            var b = r.gameObject.AddComponent<Button>(); b.targetGraphic = img; b.onClick.AddListener(() => onClick());
+            label = Label(r, text, Mathf.RoundToInt(size.y * 0.42f));
+            return b;
         }
 
-        void Button(Transform parent, string text, string path, Vector2 pos, float size, Color tint)
+        Ctl AddCtl(string id, string label, bool footSet, bool carSet2, bool bottomLeft, Vector2 defFoot, Vector2 defCar, float size)
         {
-            var r = Rect(text, parent, new Vector2(1f, 0f), pos, new Vector2(size, size));
-            Img(r, disc, tint);
-            var ring2 = Rect("Ring", r, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size, size)); Img(ring2, ring, new Color(1, 1, 1, 0.55f), false);
-            r.gameObject.AddComponent<OnScreenButton>().controlPath = path;
-            Label(r, text, Mathf.RoundToInt(size * 0.2f));
+            var c = new Ctl { id = id, label = label, foot = footSet, car = carSet2, bottomLeft = bottomLeft, defFoot = defFoot, defCar = defCar, baseSize = size };
+            c.rt = Rect(id, root, bottomLeft ? Vector2.zero : new Vector2(1f, 0f), footSet ? defFoot : defCar, new Vector2(size, size));
+            c.group = c.rt.gameObject.AddComponent<CanvasGroup>();
+            ctls.Add(c);
+            return c;
+        }
+
+        void Button(string id, string text, string path, bool footSet, bool carSet2, Vector2 defFoot, Vector2 defCar, float size, Color tint)
+        {
+            var c = AddCtl(id, text, footSet, carSet2, false, defFoot, defCar, size);
+            var face = Rect("Face", c.rt, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size, size)); Stretch(face);
+            Img(face, disc, tint);
+            var ring2 = Rect("Ring", face, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); Stretch(ring2); Img(ring2, ring, new Color(1, 1, 1, 0.55f), false);
+            var osb = face.gameObject.AddComponent<OnScreenButton>(); osb.controlPath = path;
+            Label(face, text, Mathf.RoundToInt(size * 0.2f)).rectTransform.sizeDelta = new Vector2(size, size);
+            c.onScreen = new Behaviour[] { osb };
+            AddCover(c);
+        }
+
+        void AddCover(Ctl c)
+        {
+            c.cover = Rect("EditCover", c.rt, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); Stretch(c.cover);
+            Img(c.cover, ring, new Color(1f, 0.85f, 0.2f, 0.9f));
+            c.cover.gameObject.AddComponent<EditHandle>().Init(this, c);
+            c.cover.gameObject.SetActive(false);
         }
 
         void Build()
         {
             if (disc == null) { disc = Circle(true); ring = Circle(false); }
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            var canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 100;
+            canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 100;
             var cs = gameObject.AddComponent<CanvasScaler>(); cs.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; cs.referenceResolution = new Vector2(1920, 1080); cs.matchWidthOrHeight = 0.6f;
             gameObject.AddComponent<GraphicRaycaster>();
-            var root = (RectTransform)transform;
+            root = (RectTransform)transform;
 
-            // look: the whole screen behind everything else
-            var look = Rect("Look", root, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-            look.anchorMin = Vector2.zero; look.anchorMax = Vector2.one; look.sizeDelta = Vector2.zero;
+            var look = Rect("Look", root, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); Stretch(look);
             Img(look, null, new Color(0, 0, 0, 0)); look.gameObject.AddComponent<TouchLook>().pc = pc;
+            dim = Rect("Dim", root, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero).gameObject; Stretch((RectTransform)dim.transform);
+            Img((RectTransform)dim.transform, null, new Color(0f, 0f, 0f, 0.45f)); dim.SetActive(false);
 
-            // stick: static base, knob with a large invisible grab area
-            var stickBase = Rect("StickBase", root, Vector2.zero, new Vector2(270, 270), new Vector2(300, 300));
-            Img(stickBase, ring, new Color(1, 1, 1, 0.45f), false);
-            var knob = Rect("Knob", root, Vector2.zero, new Vector2(270, 270), new Vector2(150, 150));
-            Img(knob, disc, new Color(1, 1, 1, 0.38f));
-            var grab = Rect("Grab", knob, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(460, 460)); Img(grab, disc, new Color(1, 1, 1, 0f));
-            var st = knob.gameObject.AddComponent<OnScreenStick>(); st.controlPath = "<Gamepad>/leftStick"; st.movementRange = 120f;
+            // stick (both layouts): static base, knob with a large invisible grab area
+            {
+                var c = AddCtl("stick", "Stick", true, true, true, new Vector2(270, 270), new Vector2(270, 270), 300f);
+                var b = Rect("Base", c.rt, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); Stretch(b); Img(b, ring, new Color(1, 1, 1, 0.45f), false);
+                var knob = Rect("Knob", c.rt, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(150, 150));
+                Img(knob, disc, new Color(1, 1, 1, 0.38f));
+                var grab = Rect("Grab", knob, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(460, 460)); Img(grab, disc, new Color(1, 1, 1, 0f));
+                var st = knob.gameObject.AddComponent<OnScreenStick>(); st.controlPath = "<Gamepad>/leftStick"; st.movementRange = 120f;
+                c.onScreen = new Behaviour[] { st };
+                AddCover(c);
+            }
+            Color dark = new Color(0.05f, 0.06f, 0.08f, 0.42f), blue = new Color(0.1f, 0.25f, 0.45f, 0.5f);
+            Button("jump", "JUMP", "<Gamepad>/buttonSouth", true, false, new Vector2(-170, 190), default, 190, dark);
+            Button("run", "RUN", "<Gamepad>/leftStickPress", true, false, new Vector2(-380, 130), default, 160, dark);
+            Button("car", "CAR", "<Gamepad>/select", true, false, new Vector2(-150, 430), default, 140, blue);
+            Button("gas", "GAS", "<Gamepad>/rightTrigger", false, true, default, new Vector2(-160, 200), 210, new Color(0.08f, 0.35f, 0.12f, 0.5f));
+            Button("brake", "BRAKE", "<Gamepad>/leftTrigger", false, true, default, new Vector2(-400, 150), 180, new Color(0.45f, 0.08f, 0.06f, 0.5f));
+            Button("hb", "H/B", "<Gamepad>/buttonSouth", false, true, default, new Vector2(-400, 380), 130, dark);
+            Button("out", "OUT", "<Gamepad>/select", false, true, default, new Vector2(-150, 460), 140, blue);
 
-            footSet = new GameObject("Foot", typeof(RectTransform)); footSet.transform.SetParent(root, false); Stretch((RectTransform)footSet.transform);
-            carSet = new GameObject("Car", typeof(RectTransform)); carSet.transform.SetParent(root, false); Stretch((RectTransform)carSet.transform);
-            Color dark = new Color(0.05f, 0.06f, 0.08f, 0.42f);
-            Button(footSet.transform, "JUMP", "<Gamepad>/buttonSouth", new Vector2(-170, 190), 190, dark);
-            Button(footSet.transform, "RUN", "<Gamepad>/leftStickPress", new Vector2(-380, 130), 160, dark);
-            Button(footSet.transform, "CAR", "<Gamepad>/select", new Vector2(-150, 430), 140, new Color(0.1f, 0.25f, 0.45f, 0.5f));
-            Button(carSet.transform, "GAS", "<Gamepad>/rightTrigger", new Vector2(-160, 200), 210, new Color(0.08f, 0.35f, 0.12f, 0.5f));
-            Button(carSet.transform, "BRAKE", "<Gamepad>/leftTrigger", new Vector2(-400, 150), 180, new Color(0.45f, 0.08f, 0.06f, 0.5f));
-            Button(carSet.transform, "H/B", "<Gamepad>/buttonSouth", new Vector2(-400, 380), 130, dark);
-            Button(carSet.transform, "OUT", "<Gamepad>/select", new Vector2(-150, 460), 140, new Color(0.1f, 0.25f, 0.45f, 0.5f));
-            carSet.SetActive(false);
+            // edit button and the editor's bars
+            UiButton(root, "EDIT", new Vector2(1f, 1f), new Vector2(-90, -60), new Vector2(130, 64), ToggleEdit, out _);
+            editBtn = root.Find("EDIT").gameObject;
+            editBar = Rect("EditBar", root, new Vector2(0.5f, 1f), new Vector2(0, -190), new Vector2(1500, 130)).gameObject;
+            Img((RectTransform)editBar.transform, null, new Color(0.02f, 0.02f, 0.03f, 0.8f));
+            editTitle = Label(Rect("Title", editBar.transform, new Vector2(0.5f, 1f), new Vector2(0, -28), new Vector2(1500, 44)), "", 27);
+            float bx = -540;
+            foreach (var (txt, act) in new (string, Action)[] { ("Switch layout", SwitchEditSet), ("Preset: Default", NextPreset), ("Reset", ResetLayout), ("Done", ToggleEdit) })
+            {
+                UiButton(editBar.transform, txt, new Vector2(0.5f, 0f), new Vector2(bx, 36), new Vector2(330, 56), act, out var lbl);
+                if (txt.StartsWith("Preset")) presetLabel = lbl;
+                bx += 360;
+            }
+            editBar.SetActive(false);
+            sizeBar = Rect("SizeBar", root, new Vector2(0.5f, 1f), new Vector2(0, -340), new Vector2(760, 110)).gameObject;
+            Img((RectTransform)sizeBar.transform, null, new Color(0.02f, 0.02f, 0.03f, 0.8f));
+            sizeTitle = Label(Rect("Title", sizeBar.transform, new Vector2(0.5f, 1f), new Vector2(0, -24), new Vector2(760, 40)), "", 26);
+            UiButton(sizeBar.transform, "Smaller", new Vector2(0.5f, 0f), new Vector2(-250, 32), new Vector2(220, 52), () => Resize(-0.1f), out _);
+            UiButton(sizeBar.transform, "Bigger", new Vector2(0.5f, 0f), new Vector2(0, 32), new Vector2(220, 52), () => Resize(0.1f), out _);
+            UiButton(sizeBar.transform, "Hide", new Vector2(0.5f, 0f), new Vector2(250, 32), new Vector2(220, 52), ToggleHide, out hideLabel);
+            sizeBar.SetActive(false);
+
+            foot = Load("foot"); car = Load("car");
+            Apply();
         }
 
-        static void Stretch(RectTransform r) { r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.sizeDelta = Vector2.zero; r.anchoredPosition = Vector2.zero; }
+        // ------------------------------------------------------------------ layouts
+        Layout Load(string set)
+        {
+            try { var j = PlayerPrefs.GetString("asbo_ctl_" + set, ""); if (!string.IsNullOrEmpty(j)) { var l = JsonUtility.FromJson<Layout>(j); if (l != null && l.e != null) return l; } } catch { }
+            return Default(set == "car");
+        }
+        void Save() { PlayerPrefs.SetString("asbo_ctl_foot", JsonUtility.ToJson(foot)); PlayerPrefs.SetString("asbo_ctl_car", JsonUtility.ToJson(car)); PlayerPrefs.Save(); }
+
+        Layout Default(bool forCar)
+        {
+            var l = new Layout();
+            foreach (var c in ctls)
+            {
+                if (forCar ? !c.car : !c.foot) continue;
+                var p = forCar ? c.defCar : c.defFoot;
+                l.e.Add(new Entry { id = c.id, x = p.x, y = p.y, s = 1f });
+            }
+            return l;
+        }
+
+        static readonly string[] Presets = { "Default", "Left-handed", "Compact", "Big thumbs" };
+        Layout Preset(bool forCar, int k)
+        {
+            var l = Default(forCar);
+            foreach (var e in l.e)
+            {
+                switch (k)
+                {
+                    case 1: break; // mirrored: stick on the right, buttons on the left (Apply swaps the sides)
+                    case 2: e.s = 0.82f; e.x *= 0.8f; e.y *= 0.8f; break;
+                    case 3: e.s = 1.25f; e.x *= 1.12f; e.y *= 1.12f; break;
+                }
+            }
+            if (k == 1) foreach (var e in l.e) e.hide = false;
+            l.e.Add(new Entry { id = "_mirror", x = k == 1 ? 1 : 0 });
+            return l;
+        }
+
+        Entry Find(Layout l, string id) { foreach (var e in l.e) if (e.id == id) return e; return null; }
+        bool Mirrored(Layout l) { var m = Find(l, "_mirror"); return m != null && m.x > 0.5f; }
+
+        void Apply()
+        {
+            var l = carSet ? car : foot;
+            bool mirror = Mirrored(l);
+            foreach (var c in ctls)
+            {
+                bool inSet = carSet ? c.car : c.foot;
+                var e = inSet ? Find(l, c.id) : null;
+                bool show = inSet && e != null && (!e.hide || editing);
+                c.rt.gameObject.SetActive(show);
+                if (!show) continue;
+                bool left = c.bottomLeft ^ mirror;
+                c.rt.anchorMin = c.rt.anchorMax = left ? Vector2.zero : new Vector2(1f, 0f);
+                c.rt.anchoredPosition = new Vector2(mirror ? -e.x : e.x, e.y);
+                c.rt.sizeDelta = Vector2.one * c.baseSize * e.s;
+                c.group.alpha = e.hide ? 0.35f : 1f;
+                foreach (var b in c.onScreen) b.enabled = !editing;
+                c.cover.gameObject.SetActive(editing);
+            }
+        }
+
+        void Store(Ctl c)
+        {
+            var l = carSet ? car : foot; var e = Find(l, c.id); if (e == null) return;
+            bool mirror = Mirrored(l);
+            e.x = mirror ? -c.rt.anchoredPosition.x : c.rt.anchoredPosition.x; e.y = c.rt.anchoredPosition.y;
+        }
+
+        // ------------------------------------------------------------------ editor
+        public void ToggleEdit()
+        {
+            editing = !editing;
+            if (editing) { editCar = pc != null && pc.InCar; carSet = editCar; }
+            else { Save(); carSet = pc != null && pc.InCar; selected = null; }
+            dim.SetActive(editing); editBar.SetActive(editing); sizeBar.SetActive(false); editBtn.SetActive(!editing);
+            RefreshTitle(); Apply();
+        }
+        public void SwitchEditSet() { Save(); editCar = !editCar; carSet = editCar; selected = null; sizeBar.SetActive(false); RefreshTitle(); Apply(); }
+        public void NextPreset()
+        {
+            presetIdx = (presetIdx + 1) % Presets.Length;
+            if (editCar) car = Preset(true, presetIdx); else foot = Preset(false, presetIdx);
+            presetLabel.text = "Preset: " + Presets[presetIdx]; Apply();
+        }
+        void ResetLayout() { if (editCar) car = Default(true); else foot = Default(false); presetIdx = 0; presetLabel.text = "Preset: Default"; selected = null; sizeBar.SetActive(false); Apply(); }
+        void RefreshTitle() { editTitle.text = (editCar ? "Vehicle layout" : "On-foot layout") + "  ·  drag the controls where your thumbs want them, tap one to resize or hide it"; }
+
+        void Select(Ctl c)
+        {
+            selected = c; sizeBar.SetActive(true);
+            var e = Find(carSet ? car : foot, c.id);
+            sizeTitle.text = c.label + "  ·  size " + Mathf.RoundToInt((e != null ? e.s : 1f) * 100f) + "%";
+            hideLabel.text = e != null && e.hide ? "Show" : "Hide";
+        }
+        void Resize(float d)
+        {
+            if (selected == null) return; var e = Find(carSet ? car : foot, selected.id); if (e == null) return;
+            e.s = Mathf.Clamp(e.s + d, 0.6f, 1.8f); Apply(); Select(selected);
+        }
+        void ToggleHide()
+        {
+            if (selected == null) return; var e = Find(carSet ? car : foot, selected.id); if (e == null) return;
+            if (selected.id == "stick" && !e.hide) { sizeTitle.text = "The stick can't be hidden"; return; }
+            e.hide = !e.hide; Apply(); Select(selected);
+        }
+
+        void Dragged(Ctl c, Vector2 screenDelta)
+        {
+            c.rt.anchoredPosition += screenDelta / Mathf.Max(0.01f, canvas.scaleFactor);
+            // keep it on screen
+            var size = root.rect.size; var p = c.rt.anchoredPosition; bool left = c.rt.anchorMin.x < 0.5f; float h = c.rt.sizeDelta.x * 0.5f;
+            p.x = left ? Mathf.Clamp(p.x, h, size.x - h) : Mathf.Clamp(p.x, -size.x + h, -h);
+            p.y = Mathf.Clamp(p.y, h, size.y - h);
+            c.rt.anchoredPosition = p;
+            Store(c);
+        }
+        void Tapped(Ctl c) { Select(c); }
 
         void Update()
         {
-            if (pc == null) return;
-            bool car = pc.InCar;
-            if (carSet.activeSelf != car) { carSet.SetActive(car); footSet.SetActive(!car); }
+            if (pc == null || editing) return;
+            bool inCar = pc.InCar;
+            if (inCar != carSet) { carSet = inCar; Apply(); }
+        }
+
+        class EditHandle : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
+        {
+            TouchControls owner; Ctl c; float moved;
+            public void Init(TouchControls o, Ctl ctl) { owner = o; c = ctl; }
+            public void OnPointerDown(PointerEventData e) { moved = 0f; }
+            public void OnDrag(PointerEventData e) { moved += e.delta.magnitude; owner.Dragged(c, e.delta); }
+            public void OnPointerUp(PointerEventData e) { if (moved < 12f) owner.Tapped(c); }
         }
     }
 

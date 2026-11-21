@@ -84,6 +84,9 @@ namespace ASBO.Slice
         }
         /// <summary>Line up ten generic residents on the road and photograph them (Shots/people_*.png).</summary>
         public static void PeopleShow() { new GameObject("PeopleShow").AddComponent<PeopleShowRun>(); }
+        public static void EditControls() { if (TouchControls.I != null) TouchControls.I.ToggleEdit(); }
+        public static void EditSwitch() { if (TouchControls.I != null) TouchControls.I.SwitchEditSet(); }
+        public static void EditPreset() { if (TouchControls.I != null) TouchControls.I.NextPreset(); }
         public static void Touch(int on) { PlayerPrefs.SetInt("asbo_touch", on); PlayerPrefs.Save(); }
         public static void Stock(int on) { PlayerPrefs.SetInt("asbo_stock", on); PlayerPrefs.Save(); Debug.Log("[ASBO] stock bodies " + on); }
         public static void ShowGaitFrom(float speed, int frames, float camOffset, float swing, float radius)

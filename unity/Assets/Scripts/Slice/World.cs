@@ -158,7 +158,7 @@ namespace ASBO.Slice
         public static bool HideHud;
         void OnGUI()
         {
-            if (HideHud) return;
+            if (HideHud || TouchControls.Editing) return;
             string lvl = Gore.Level == 2 ? "Full" : Gore.Level == 1 ? "Reduced" : "Off";
             GUI.Label(new Rect(12, 8, 700, 120), TouchControls.Wanted
                 ? "ASBO — Abbots Wend (Unity test)   Left thumb: move/steer • Drag: look • CAR by a car to drive"
