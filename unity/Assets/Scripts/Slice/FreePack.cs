@@ -40,7 +40,7 @@ namespace ASBO.Slice
             Debug.Log("[ASBO] UMA races: " + (male ? male.raceName : "none") + " / " + (female ? female.raceName : "none") + ", wardrobe recipes: " + all.Count);
         }
 
-        static readonly string[] Banned = { "underwear", "underpants", "bra", "swim", "challenger", "robe", "wrapped", "tights", "anime", "pigtail", "tornado", "pointy", "elf", "orc", "sylvan", "sprite", "glove", "shouder", "shoulder", "lace", "tanktop_zebra", "straps", "sportswear_top" };
+        static readonly string[] Banned = { "underwear", "underpants", "bra", "swim", "challenger", "robe", "wrapped", "tights", "anime", "pigtail", "tornado", "pointy", "elf", "orc", "sylvan", "sprite", "glove", "shouder", "shoulder", "lace", "tanktop_zebra", "straps", "sportswear_top", "hive", "hoodie_turquoise", "bluewhite", "tshirt_turquoise" }; // printed brand names on hive/blueWhite/turquoise tee; the turquoise hoodie is open with nothing under it // hive = printed brand name; the turquoise hoodie is open with nothing under it
 
         static List<UMAWardrobeRecipe> Pool(RaceData race, string slot, params string[] mustContainAny)
         {
@@ -78,6 +78,27 @@ namespace ASBO.Slice
                 }
         }
 
+        /// <summary>Colour individual garments by their overlays (before UMA builds its atlas), so a tint never spills onto skin or shoes sharing that atlas.</summary>
+        static bool TintOverlays(UMAData d, Dictionary<string, Color> tints)
+        {
+            if (d == null || d.umaRecipe == null || tints.Count == 0) return false;
+            bool changed = false;
+            foreach (var slot in d.umaRecipe.slotDataList)
+            {
+                if (slot == null) continue;
+                var ovs = slot.GetOverlayList(); if (ovs == null) continue;
+                foreach (var ov in ovs)
+                {
+                    if (ov == null) continue;
+                    string n = (ov.overlayName ?? "").ToLowerInvariant();
+                    foreach (var kv in tints)
+                        if (n.Contains(kv.Key)) { ov.colorData = new OverlayColorData(3) { color = kv.Value }; changed = true; break; }
+                }
+            }
+            if (changed) d.Dirty(false, true, false);
+            return changed;
+        }
+
         static T Pick<T>(List<T> l, System.Random rng) => l.Count == 0 ? default : l[rng.Next(l.Count)];
 
         /// <summary>Create the UMA avatar under the person. onReady fires once the mesh, skeleton and Animator exist.</summary>
@@ -106,6 +127,7 @@ namespace ASBO.Slice
 
             var wear = new List<UMAWardrobeRecipe>();
             var tints = new Dictionary<string, Color>();
+            float residentAge = 0.35f;
             if (role == "Paramedic")
             {
                 // no uniform in the free wardrobe: grey sportswear tinted ambulance green, dark trousers
@@ -119,34 +141,98 @@ namespace ASBO.Slice
             else if (isPlayer)
             {
                 // the player: hoodie, trackies and trainers
-                wear.Add(Pick(Pool(race, "Chest", "hoodie_grey", "hoodie"), rng));
-                wear.Add(Pick(Pool(race, "Legs", "sweatpants", "sportpants"), rng));
+                wear.Add(Pick(Pool(race, "Chest", "hoodie_blue"), rng));
+                wear.Add(Pick(Pool(race, "Legs", "sweatpants"), rng));
                 wear.Add(Pick(Pool(race, "Feet", "shoe_low", "shoe"), rng));
                 wear.Add(Pick(Pool(race, "Hair", "short", "military", "haircut"), rng));
             }
             else
             {
-                wear.Add(Pick(Pool(race, "Chest", "hoodie", "jacket", "tshirt", "sweater", "top", "tanktop", "dress"), rng));
-                var top = wear[0];
-                if (top == null || !top.name.ToLowerInvariant().Contains("dress"))
-                    wear.Add(Pick(Pool(race, "Legs", "pants", "shorts", "skirt", "bottom"), rng));
-                wear.Add(Pick(Pool(race, "Feet"), rng));
-                wear.Add(Pick(Pool(race, "Hair"), rng));
-                if (isMale && rng.NextDouble() < 0.35) wear.Add(Pick(Pool(race, "Beard"), rng));
+                // estate resident, after the original game's generator: hoodies, trackies, cheap jackets, tired colours
+                float R() => (float)rng.NextDouble();
+                if (isMale)
+                {
+                    float t = R();
+                    wear.Add(Pick(Pool(race, "Chest", t < 0.62f ? "hoodie" : "tshirt"), rng));
+                    float b = R();
+                    wear.Add(Pick(Pool(race, "Legs", b < 0.75f ? "sweatpants" : b < 0.9f ? "sportpants" : "shorts_black"), rng));
+                    wear.Add(Pick(Pool(race, "Feet", R() < 0.8f ? "shoe_low" : "shoes_tall"), rng));
+                    float h = R();
+                    if (h < 0.45f) wear.Add(Pick(Pool(race, "Hair", "military"), rng));      // buzz cut
+                    else if (h < 0.85f) wear.Add(Pick(Pool(race, "Hair", "haircut"), rng));  // short back and sides
+                    // else: shaved / bald
+                    float bd = R();
+                    if (bd < 0.25f) wear.Add(Pick(Pool(race, "Beard", "trimmed"), rng));
+                    else if (bd < 0.35f) wear.Add(Pick(Pool(race, "Beard", "goatee"), rng));
+                    else if (bd < 0.4f) wear.Add(Pick(Pool(race, "Beard", "neckbeard"), rng));
+                }
+                else
+                {
+                    float t = R();
+                    wear.Add(Pick(Pool(race, "Chest", "sweater"), rng));
+                    float b = R();
+                    var legs = Pick(Pool(race, "Legs", "pants_granit"), rng);
+                    if (legs == null) Debug.LogWarning("[ASBO] no female trackies recipe found");
+                    wear.Add(legs);
+                    wear.Add(Pick(Pool(race, "Feet", R() < 0.7f ? "shoe_low" : "shoes_tall"), rng));
+                    float h = R();   // scraped back, ponytails and buns mostly
+                    wear.Add(Pick(Pool(race, "Hair", h < 0.3f ? "pulledback" : h < 0.55f ? "ponytail" : h < 0.75f ? "bun" : h < 0.85f ? "bob" : h < 0.93f ? "straight" : "messyup"), rng));
+                }
+                // tired, cheap colours on the garments that take a tint; everything gets a bit grubby
+                string[] tops = { "#2a4a8a", "#8a2028", "#2f5a32", "#b4b4b0", "#3a3a3c", "#6a4a7a", "#b88a3e", "#4a6a8a", "#7a6444", "#2d7a6a", "#a8442e", "#c8b46a", "#e4e2dc", "#5a5c60" };
+                string[] bots = { "#2c3e5c", "#1d1d22", "#3a3530", "#4a4030", "#22324a", "#555555", "#2a2a2a" };
+                float grime = 0.12f + R() * 0.35f;
+                Color Grub(Color c) => Color.Lerp(c, c * new Color(0.82f, 0.78f, 0.7f), grime) * (1f - grime * 0.15f);
+                Color Hex(string h) { ColorUtility.TryParseHtmlString(h, out var c); return c; }
+                foreach (var w in wear)
+                {
+                    if (w == null) continue; string n = w.name.ToLowerInvariant();
+                    string key = n.Contains("hoodie") ? "hoodie" : n.Contains("tshirt") ? "tshirt" : n.Contains("sweater") ? "sweater" : n.Contains("jacket") ? "jacket"
+                        : n.Contains("sweatpants") ? "sweatpants" : n.Contains("sportpants") ? "sportpants" : n.Contains("pants_granit") ? "pants_granit" : n.Contains("shorts") ? "shorts" : n.Contains("skirt") ? "skirt" : n.Contains("shoe") ? "shoe" : null;
+                    if (key == null) continue;
+                    float baseLum = n.Contains("white") ? 0.85f : n.Contains("grey") ? 0.42f : -1f; // how bright the garment's own texture is
+                    bool isTop = key == "hoodie" || key == "tshirt" || key == "sweater" || key == "jacket";
+                    Color c = baseLum > 0f && key != "shoe" ? Hex(isTop ? tops[rng.Next(tops.Length)] : bots[rng.Next(bots.Length)]) * Mathf.Min(2.3f, 0.8f / baseLum) : new Color(0.9f, 0.88f, 0.85f);
+                    if (key == "shoe") c = Color.Lerp(Color.white, new Color(0.72f, 0.68f, 0.6f), grime * 1.5f); // white trainers, not so white
+                    c.a = 1f; tints[key] = Grub(c);
+                }
+                // bodies: real shapes, not catwalk ones
+                float age = R(), build = R(), belly = Mathf.Pow(R(), 1.5f) * (0.3f + age * 0.7f);
+                float hgt = isMale ? 1.68f + R() * 0.22f : 1.55f + R() * 0.17f;
+                var D = dca.predefinedDNA ?? (dca.predefinedDNA = new UMAPredefinedDNA());
+                D.AddDNA("height", Mathf.Clamp01(0.5f + (hgt - (isMale ? 1.79f : 1.63f)) / 0.25f * 0.3f));
+                D.AddDNA("upperWeight", 0.38f + build * 0.38f); D.AddDNA("lowerWeight", 0.4f + build * 0.32f);
+                D.AddDNA("upperMuscle", 0.3f + R() * 0.3f); D.AddDNA("lowerMuscle", 0.38f + R() * 0.22f);
+                D.AddDNA("belly", Mathf.Clamp01(0.5f + belly * 0.5f)); D.AddDNA("waist", Mathf.Clamp01(0.5f + belly * 0.32f));
+                D.AddDNA("bodyFitness", 0.2f + R() * 0.3f);
+                D.AddDNA("neckThickness", 0.45f + build * 0.2f);
+                D.AddDNA("noseSize", 0.45f + R() * 0.25f + age * 0.08f); D.AddDNA("noseWidth", 0.45f + R() * 0.25f);
+                if (isMale && R() < 0.3f) D.AddDNA("noseBroken", 0.55f + R() * 0.35f);
+                D.AddDNA("jawsSize", 0.42f + R() * 0.22f); D.AddDNA("mandibleSize", 0.42f + R() * 0.22f); D.AddDNA("chinSize", 0.4f + R() * 0.25f);
+                D.AddDNA("eyeSize", 0.4f + R() * 0.12f); D.AddDNA("cheekSize", 0.42f + R() * 0.18f);
+                D.AddDNA("lipsSize", isMale ? 0.44f + R() * 0.1f : 0.4f + R() * 0.14f);
+                D.AddDNA("headSize", 0.47f + R() * 0.07f);
+                if (!isMale) { D.AddDNA("breastSize", 0.4f + R() * 0.22f + belly * 0.1f); D.AddDNA("gluteusSize", 0.45f + build * 0.22f); }
+                residentAge = age;
             }
             wear.Add(Pick(Pool(race, "Eyebrows"), rng));
             foreach (var w in wear) if (w != null) dca.preloadWardrobeRecipes.recipes.Add(new DynamicCharacterAvatar.WardrobeRecipeListItem(w));
 
-            Color[] skins = { new Color(0.96f, 0.82f, 0.72f), new Color(0.92f, 0.75f, 0.62f), new Color(0.78f, 0.6f, 0.47f), new Color(0.55f, 0.38f, 0.27f), new Color(0.36f, 0.24f, 0.17f) };
-            Color[] hairs = { new Color(0.1f, 0.07f, 0.05f), new Color(0.25f, 0.16f, 0.09f), new Color(0.45f, 0.3f, 0.16f), new Color(0.7f, 0.55f, 0.3f), new Color(0.55f, 0.2f, 0.1f), new Color(0.7f, 0.7f, 0.68f) };
-            int si = rng.Next(10); var skin = skins[si < 6 ? rng.Next(2) : si < 8 ? 2 : si < 9 ? 3 : 4];
+            // the original game's skin and hair palettes (mostly pale and pink: it's an English estate)
+            Color HexC(string h) { ColorUtility.TryParseHtmlString(h, out var c); return c; }
+            string[] skinHex = { "#f3d2bd", "#e9bfa0", "#d9a57f", "#c68a62", "#a86d47", "#8a5432", "#6b3d22", "#4a2a17" };
+            string[] hairHex = { "#1b1512", "#2e2119", "#4a3121", "#6b4a2e", "#8f6a3e", "#b89058", "#d6b37a", "#a33a1c" };
+            string[] greyHex = { "#c8c4bd", "#e8e6e1", "#8a8a8a" };
+            int si = rng.Next(20); var skin = HexC(skinHex[si < 9 ? 0 : si < 15 ? 1 : si < 17 ? 2 : si < 18 ? 3 : 4 + rng.Next(4)]);
+            skin = Color.Lerp(skin, skin * new Color(1.02f, 0.93f, 0.9f), (float)rng.NextDouble() * 0.5f); // a bit of colour in the cheeks
             dca.SetRawColor("Skin", new OverlayColorData(3) { color = skin }, false);
-            var hairCol = isPlayer ? hairs[1] : hairs[rng.Next(hairs.Length)];
+            // the recipes' own colour slots: neutral, so nothing comes out purple
+            foreach (var n in new[] { "Shoes01", "Shoes02" }) dca.SetRawColor(n, new OverlayColorData(3) { color = new Color(0.86f, 0.85f, 0.82f) }, false);
+            foreach (var n in new[] { "ClothingTop01", "ClothingTop02", "ClothingTop03", "ClothingBottom01", "ClothingBottom02", "ClothingBottom03" })
+                dca.SetRawColor(n, new OverlayColorData(3) { color = new[] { new Color(0.2f, 0.2f, 0.22f), new Color(0.45f, 0.45f, 0.46f), new Color(0.16f, 0.22f, 0.36f), new Color(0.7f, 0.7f, 0.68f) }[rng.Next(4)] }, false);
+            var hairCol = isPlayer ? HexC("#2e2119") : residentAge > 0.75f ? HexC(greyHex[rng.Next(3)]) : HexC(hairHex[rng.Next(hairHex.Length)]);
             dca.SetRawColor("Hair", new OverlayColorData(3) { color = hairCol }, false);
             dca.SetRawColor("Eyes", new OverlayColorData(3) { color = Color.Lerp(new Color(0.3f, 0.2f, 0.1f), new Color(0.3f, 0.5f, 0.7f), (float)rng.NextDouble()) }, false);
-            Color[] cloth = { new Color(0.15f, 0.15f, 0.17f), new Color(0.5f, 0.5f, 0.52f), new Color(0.12f, 0.2f, 0.4f), new Color(0.5f, 0.1f, 0.12f), new Color(0.2f, 0.35f, 0.22f), new Color(0.85f, 0.85f, 0.82f), new Color(0.6f, 0.45f, 0.3f) };
-            foreach (var n in new[] { "ClothingTop01", "ClothingBottom01", "Shoes01", "ClothingTop02", "ClothingBottom02" })
-                dca.SetRawColor(n, new OverlayColorData(3) { color = cloth[rng.Next(cloth.Length)] }, false);
 
             dca.CharacterCreated = new UMADataEvent();
             dca.CharacterCreated.AddListener(d =>
@@ -154,11 +240,12 @@ namespace ASBO.Slice
                 var a = d.animator != null ? d.animator : d.GetComponentInChildren<Animator>();
                 if (a != null && a.GetComponent<ArmTrim>() == null) a.gameObject.AddComponent<ArmTrim>().Bind(a);
                 if (a != null && a.GetComponent<FootGround>() == null) a.gameObject.AddComponent<FootGround>().Bind(a);
-                TintHair(d, hairCol); TintClothes(d, tints);
+                TintHair(d, hairCol);
+                TintOverlays(d, tints); // rebuilds the textures once with the garment colours
                 onReady?.Invoke(d);
             });
             if (dca.CharacterUpdated == null) dca.CharacterUpdated = new UMADataEvent();
-            dca.CharacterUpdated.AddListener(d => { TintHair(d, hairCol); TintClothes(d, tints); });
+            dca.CharacterUpdated.AddListener(d => TintHair(d, hairCol));
             go.SetActive(true);
             return dca;
         }

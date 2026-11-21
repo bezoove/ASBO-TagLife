@@ -82,6 +82,8 @@ namespace ASBO.Slice
             var go = GameObject.Find(name); if (go == null) { Debug.LogWarning("[ASBO] ShotOf: no " + name); return; }
             new GameObject("ShotOf").AddComponent<ShotOfRun>().Go(go.transform, angle, dist, height);
         }
+        /// <summary>Line up ten generic residents on the road and photograph them (Shots/people_*.png).</summary>
+        public static void PeopleShow() { new GameObject("PeopleShow").AddComponent<PeopleShowRun>(); }
         public static void Touch(int on) { PlayerPrefs.SetInt("asbo_touch", on); PlayerPrefs.Save(); }
         public static void Stock(int on) { PlayerPrefs.SetInt("asbo_stock", on); PlayerPrefs.Save(); Debug.Log("[ASBO] stock bodies " + on); }
         public static void ShowGaitFrom(float speed, int frames, float camOffset, float swing, float radius)
@@ -240,6 +242,41 @@ namespace ASBO.Slice
             ScreenCapture.CaptureScreenshot(d + "/of_" + t.name + "_" + Mathf.RoundToInt(angle) + ".png");
             yield return null; yield return null;
             Destroy(cg); World.HideHud = false; Destroy(gameObject);
+        }
+    }
+
+    public class PeopleShowRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            foreach (var t in TrafficCar.All.ToArray()) if (t != null) t.gameObject.SetActive(false);
+            World.HideHud = true;
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots"); System.IO.Directory.CreateDirectory(dir);
+            var ppl = new System.Collections.Generic.List<Person>();
+            float z = World.RoadZ;
+            for (int i = 0; i < 10; i++)
+            {
+                var p = World.MakePerson(new Vector3(-48f + i * 1.1f, 0.05f, z), Color.grey, Color.grey, "Resident");
+                p.transform.rotation = Quaternion.Euler(0, 180f, 0);
+                ppl.Add(p);
+            }
+            for (int i = 0; i < 90; i++) yield return null; // let the bodies build
+            var cg = new GameObject("ShowCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 32f; cam.nearClipPlane = 0.05f;
+            var main = Camera.main; if (main != null) { var src = main.GetComponent<UniversalAdditionalCameraData>(); var dst = cam.GetUniversalAdditionalCameraData(); if (src != null) { dst.renderPostProcessing = src.renderPostProcessing; dst.antialiasing = src.antialiasing; } }
+            for (int g = 0; g < 2; g++)
+            {
+                float cx = -48f + (g * 5 + 2f) * 1.1f;
+                cg.transform.position = new Vector3(cx, 1.2f, z - 7.5f); cg.transform.LookAt(new Vector3(cx, 0.95f, z));
+                yield return null; yield return null;
+                ScreenCapture.CaptureScreenshot(dir + "/people_" + g + ".png", 2);
+                yield return null; yield return null;
+            }
+            Destroy(cg);
+            foreach (var p in ppl) if (p != null) Destroy(p.gameObject);
+            foreach (var t in TrafficCar.All.ToArray()) if (t != null) t.gameObject.SetActive(true);
+            World.HideHud = false;
+            Debug.Log("[ASBO] people show done");
+            Destroy(gameObject);
         }
     }
 }
