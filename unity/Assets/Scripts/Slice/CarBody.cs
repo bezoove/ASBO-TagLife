@@ -162,7 +162,7 @@ namespace ASBO.Slice
         }
 
         // ---------------------------------------------------------------- materials
-        static Material paintTpl, plateTpl, glass, glassHaze, trim, under, chrome, tyre, alloy, lampF, lampR, amber, interior, grilleM, shadowM, steelM, discM;
+        static Material paintTpl, plateTpl, glass, glassHaze, trim, under, chrome, tyre, alloy, lampF, lampFRound, lampR, lampClear, amber, interior, grilleM, shadowM, steelM, discM;
         static readonly Dictionary<string, Material> plastic = new Dictionary<string, Material>();
         static Mesh wheelSteel, wheelCap, wheelAlloy, wheelBare;
         static Texture2D[] grime;
@@ -183,6 +183,11 @@ namespace ASBO.Slice
             alloy = Tpl("Alloy", () => Gfx.Mat(new Color(0.62f, 0.63f, 0.65f), null, 0.72f, 0.9f));
             lampF = Tpl("LampFront", () => Gfx.Emissive(new Color(1f, 0.96f, 0.85f), 1.6f));
             lampR = Tpl("LampRear", () => Gfx.Emissive(new Color(0.85f, 0.05f, 0.04f), 1.1f));
+            // lamps with something inside them: reflector bowls behind the head lamp glass, ribbed lenses at the back
+            lampFRound = LampMat(lampF, "LampFrontRound", 1, Color.white);
+            lampF = LampMat(lampF, "LampFrontRect", 0, Color.white);
+            lampClear = LampMat(lampF, "LampReverse", 3, new Color(0.9f, 0.9f, 0.88f)); lampClear.SetColor("_EmissionColor", new Color(0.25f, 0.25f, 0.24f));
+            lampR = LampMat(lampR, "LampRearRibbed", 2, Color.white);
             amber = Tpl("LampAmber", () => Gfx.Emissive(new Color(1f, 0.5f, 0.05f), 0.6f));
             interior = Tpl("Interior", () => Gfx.Mat(new Color(0.07f, 0.07f, 0.075f), null, 0.15f));
             grilleM = Tpl("Grille", () => Gfx.Mat(new Color(0.02f, 0.02f, 0.025f), null, 0.35f, 0.2f));
@@ -191,6 +196,70 @@ namespace ASBO.Slice
             discM = new Material(plateTpl) { name = "TaxDisc" }; discM.SetColor("_BaseColor", new Color(0.35f, 0.65f, 0.45f));
             wheelSteel = BuildWheel("steel"); wheelCap = BuildWheel("cap"); wheelAlloy = BuildWheel("alloy"); wheelBare = BuildWheel("bare");
             grime = new[] { GrimeTex(1, 0.35f, false), GrimeTex(2, 0.6f, false), GrimeTex(3, 0.85f, false), GrimeTex(4, 0.7f, true), GrimeTex(5, 0.9f, true) };
+        }
+
+        static Material LampMat(Material tpl, string name, int kind, Color tint)
+        {
+            var mm = new Material(tpl) { name = name };
+            mm.SetTexture("_BaseMap", LampTex(kind, false)); mm.SetColor("_BaseColor", tint * (tpl.HasProperty("_BaseColor") ? 1f : 1f));
+            if (kind != 3) { mm.SetTexture("_EmissionMap", LampTex(kind, true)); mm.EnableKeyword("_EMISSION"); }
+            mm.SetFloat("_Smoothness", 0.92f);
+            return mm;
+        }
+
+        /// <summary>0 rectangular head lamp (two reflector bowls), 1 round head lamp, 2 red ribbed tail lens, 3 clear ribbed reversing lens.</summary>
+        static Texture2D LampTex(int kind, bool emit)
+        {
+            int W = kind == 1 ? 128 : 256, H = 128;
+            var px = new Color32[W * H];
+            float Bowl(float u, float v, float cu, float cv, float r)
+            {
+                float d = new Vector2((u - cu) * W, (v - cv) * H).magnitude / (r * H);
+                return d; // 0 centre .. 1 rim
+            }
+            for (int y = 0; y < H; y++)
+                for (int x = 0; x < W; x++)
+                {
+                    float u = (x + 0.5f) / W, v = (y + 0.5f) / H;
+                    Color c;
+                    float edge = Mathf.Min(Mathf.Min(u * W, (1 - u) * W), Mathf.Min(v * H, (1 - v) * H));
+                    if (kind <= 1)
+                    {
+                        // housing: brushed silver, darker low down
+                        c = Color.Lerp(new Color(0.42f, 0.43f, 0.45f), new Color(0.7f, 0.71f, 0.72f), v);
+                        float glow = 0f;
+                        var bowls = kind == 1 ? new[] { (0.5f, 0.5f, 0.46f) } : new[] { (0.7f, 0.52f, 0.4f), (0.3f, 0.5f, 0.32f) };
+                        foreach (var (cu, cv, r) in bowls)
+                        {
+                            float d = Bowl(u, v, cu, cv, r);
+                            if (d >= 1.06f) continue;
+                            if (d > 0.97f) { c = new Color(0.12f, 0.12f, 0.13f); continue; } // bowl rim
+                            float ring = 0.5f + 0.5f * Mathf.Cos(d * 18f);
+                            c = Color.Lerp(new Color(0.95f, 0.95f, 0.96f), new Color(0.55f, 0.56f, 0.58f), d * 0.8f) * (0.92f + 0.08f * ring);
+                            if (d < 0.18f) { c = new Color(1f, 0.98f, 0.92f); glow = Mathf.Max(glow, 1f); }
+                            else glow = Mathf.Max(glow, Mathf.Clamp01(1f - d) * 0.35f);
+                        }
+                        // diagonal sheen on the glass
+                        float sheen = Mathf.Clamp01(1f - Mathf.Abs((u - v * 0.6f) - 0.25f) * 14f) * 0.18f;
+                        c = Color.Lerp(c, Color.white, sheen);
+                        if (edge < 3f) c = new Color(0.05f, 0.05f, 0.055f); // shut line round the lamp
+                        if (emit) c = new Color(glow, glow, glow);
+                    }
+                    else
+                    {
+                        // ribbed lens: horizontal prisms, a darker frame, brighter where the bulb sits
+                        float rib = 0.75f + 0.25f * Mathf.Abs(Mathf.Sin(v * Mathf.PI * 7f));
+                        float bulb = Mathf.Clamp01(1f - new Vector2((u - 0.5f) * 1.6f, v - 0.5f).magnitude * 1.8f);
+                        float b = rib * (0.75f + 0.25f * bulb);
+                        c = kind == 2 ? new Color(0.62f * b, 0.06f * b, 0.05f * b) : new Color(0.85f * b, 0.85f * b, 0.84f * b);
+                        if (edge < 4f) c *= 0.35f;
+                        if (emit) { float e = edge < 4f ? 0f : 0.35f + 0.65f * bulb * rib; c = new Color(e, e, e); }
+                    }
+                    px[y * W + x] = c;
+                }
+            var t = new Texture2D(W, H, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Clamp, name = "Lamp" + kind + (emit ? "E" : "") };
+            t.SetPixels32(px); t.Apply(true, true);
+            return t;
         }
 
         static Material Plastic(string hex)
@@ -481,7 +550,7 @@ namespace ASBO.Slice
                     foreach (float c in new[] { hd.z0 + w * 0.5f + 0.01f, hd.z1 - w * 0.5f - 0.01f })
                     {
                         FaceGrid(k2, chrome, m, true, sd * (c - w * 0.55f), sd * (c + w * 0.55f), yc - hh * 1.1f, yc - hh * 1.1f, yc + hh * 1.1f, yc + hh * 1.1f, 0.005f, 3, 2, false);
-                        FaceGrid(k2, lampF, m, true, sd * (c - w * 0.45f), sd * (c + w * 0.45f), yc - hh, yc - hh, yc + hh, yc + hh, 0.009f, 3, 2, false);
+                        FaceGrid(k2, lampFRound, m, true, sd * (c - w * 0.45f), sd * (c + w * 0.45f), yc - hh, yc - hh, yc + hh, yc + hh, 0.009f, 3, 2, false);
                     }
                 }
                 else
@@ -495,7 +564,7 @@ namespace ASBO.Slice
                 var tl = m.tail;
                 float zi = tl.z0, zo = tl.z1;
                 FaceGrid(k2, lampR, m, false, sd * (zi + (zo - zi) * 0.22f), sd * zo, tl.yb[0], tl.yb[1], tl.yt[0], tl.yt[1], 0.008f, 4, 2, false);
-                FaceGrid(k2, chrome, m, false, sd * zi, sd * (zi + (zo - zi) * 0.22f), tl.yb[0], tl.yb[0], tl.yt[0], tl.yt[0], 0.008f, 2, 2, false);
+                FaceGrid(k2, lampClear, m, false, sd * zi, sd * (zi + (zo - zi) * 0.22f), tl.yb[0], tl.yb[0], tl.yt[0], tl.yt[0], 0.008f, 2, 2, false);
                 FaceGrid(k2, amber, m, false, sd * (zi + (zo - zi) * 0.22f), sd * (zi + (zo - zi) * 0.45f), tl.yb[0], tl.yb[0], tl.yb[0] + (tl.yt[0] - tl.yb[0]) * 0.35f, tl.yb[0] + (tl.yt[0] - tl.yb[0]) * 0.35f, 0.01f, 2, 1, false);
             }
             if (m.tail.band > 0) FaceGrid(k2, Plastic("#3a0c0c"), m, false, -m.tail.z0, m.tail.z0, m.tail.yb[0] + 0.02f, m.tail.yb[0] + 0.02f, m.tail.yt[0] - 0.02f, m.tail.yt[0] - 0.02f, 0.007f, 6, 1, false);

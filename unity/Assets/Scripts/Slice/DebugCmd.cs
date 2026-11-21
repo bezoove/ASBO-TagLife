@@ -200,6 +200,26 @@ namespace ASBO.Slice
                 pad = UnityEngine.InputSystem.Gamepad.current;
                 Debug.Log($"[ASBO] touchtest t={(i + 1) * 0.5f:F1}s speed={rcc.Speed * 3.6f:F1} km/h trigger={(pad != null ? pad.rightTrigger.ReadValue() : -1f):F2} throttleIn={M(cc, "throttleInput_V")} rpm={M(cc, "engineRPM")}");
             }
+            // steer: drag the stick knob to the right like a thumb would
+            var knob = TouchControls.I != null ? TouchControls.I.transform.Find("stick/Knob") : null;
+            if (knob != null)
+            {
+                var es = UnityEngine.EventSystems.EventSystem.current;
+                Vector2 start = RectTransformUtility.WorldToScreenPoint(null, knob.position);
+                var ev = new UnityEngine.EventSystems.PointerEventData(es) { position = start, pressPosition = start, button = UnityEngine.EventSystems.PointerEventData.InputButton.Left };
+                UnityEngine.EventSystems.ExecuteEvents.Execute(knob.gameObject, ev, UnityEngine.EventSystems.ExecuteEvents.pointerDownHandler);
+                float yaw0 = rcc.transform.eulerAngles.y;
+                for (int i = 0; i < 6; i++)
+                {
+                    ev.position = start + new Vector2(Mathf.Min(1f, (i + 1) / 3f) * 140f, 0f);
+                    UnityEngine.EventSystems.ExecuteEvents.Execute(knob.gameObject, ev, UnityEngine.EventSystems.ExecuteEvents.dragHandler);
+                    yield return new WaitForSeconds(0.25f);
+                    pad = UnityEngine.InputSystem.Gamepad.current;
+                    Debug.Log($"[ASBO] touchtest steer t={(i + 1) * 0.25f:F2}s stickX={(pad != null ? pad.leftStick.ReadValue().x : -9f):F2} yawChange={Mathf.DeltaAngle(yaw0, rcc.transform.eulerAngles.y):F1} speed={rcc.Speed * 3.6f:F0}");
+                }
+                UnityEngine.EventSystems.ExecuteEvents.Execute(knob.gameObject, ev, UnityEngine.EventSystems.ExecuteEvents.pointerUpHandler);
+            }
+            else Debug.Log("[ASBO] touchtest: no stick knob");
             Press("gas", false);
             Destroy(gameObject);
         }
