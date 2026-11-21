@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -7,63 +8,174 @@ namespace ASBO.Slice
     /// <summary>Anything that can run people over.</summary>
     public interface IVehicle { float Speed { get; } Vector3 Velocity { get; } }
 
+    // ---------------------------------------------------------------- car table (ported from the original game)
+    [Serializable] public class CarGH { public float rb, rrx, fr, fb, roof, crown, rR, rF, curR, curF, beltIn, tumble, pA, pTop, pC, pBelt, bw, qw; public float[] xB, xQ; public bool van; }
+    [Serializable] public class CarBump { public float y0, y1, @out, plateY; public string col, stripe; public float[] intake; public bool step; }
+    [Serializable] public class CarLamp { public float z0, z1; public float[] yt, yb; public int oval, wrap, twin, band, tall; }
+    [Serializable] public class CarGrille { public float z, y0, y1; public int bars, chrome, oval; }
+    [Serializable] public class CarStrip { public float y, h, y0, y1; public string hex, stripe; public bool on; }
+    [Serializable] public class CarModel
+    {
+        public string id; public float L, W, wb, fo, rad, tw, arch, sill, endY, rcF, rcR, floor, crease, seatF, seatR, plateRy;
+        public float[] top, crown, rakeF, rakeR, seamFdF, seamFdR, seamRdR, handles;
+        public CarGH gh; public int doors; public bool van, boot, handleBody, plateROnBumper, indBumper, mirrorBody;
+        public CarBump bumpF, bumpR; public CarLamp head, tail; public CarGrille grille; public CarStrip clad, moulding;
+        public string aerial, wheel; public int fuel;
+        [NonSerialized] public float Le, hw, wxF, wxR, archR, profB1, profC2;
+        [NonSerialized] public CarBody.Mono topC, crownC;
+        [NonSerialized] public List<Vector2> prof;
+    }
+    [Serializable] class CarModelList { public CarModel[] models; }
+
     /// <summary>
-    /// Procedural car bodies (hatchback, saloon, van). The body is a smooth loft: the control profile is resampled with
-    /// Catmull-Rom splines into ~60 stations, each a rounded cross-section (rocker, waist, belt line, tumblehome,
-    /// roof crown), with smooth normals and real wheel-arch cut-outs. Glass is see-through (premultiplied, reflective)
-    /// with an interior behind it — seats, dash, steering wheel on the right. Details: door seams and handles,
-    /// headlamp and tail-lamp clusters, grille, two-tone bumpers, mirrors, UK plates with generated registrations,
-    /// five-spoke alloys with tyre sidewalls, and a soft contact shadow.
-    /// Materials come from templates in Resources/CarMats (so their shader variants survive Android builds).
+    /// UK cars of the original game, built procedurally from its car table (Resources/CarModels.json): nine models
+    /// (three-, four- and five-door hatches, superminis, a booted saloon and a panel van) with each one's plan shape,
+    /// shoulder line, tumblehome, raked ends, greenhouse and pillars, bumpers (body colour or grey plastic with a stripe),
+    /// lamp and grille shapes, cladding, mouldings, mirrors, aerial and steel / hubcap / alloy wheels.
+    /// Every car is a bit rough, council-estate style: faded or mismatched panels, dents, dirt and rust, missing hubcaps,
+    /// tax discs, fluffy dice and air fresheners, roof racks and ladders on vans, old and new style plates.
     /// </summary>
     public static class CarBody
     {
-        public class Spec { public float L, yb = 0.3f, tumble = 0.8f; public float[] u, belt, top, W; public bool van; public float wheelR = 0.31f, wheelZ0 = 0.17f, wheelZ1 = 0.83f; }
-
-        public static readonly Spec Hatch = new Spec
+        public class Spec
         {
-            L = 3.9f,
-            u = new[] { 0.00f, 0.03f, 0.10f, 0.17f, 0.30f, 0.62f, 0.76f, 0.90f, 0.97f, 1.00f },
-            belt = new[] { 0.80f, 0.90f, 0.94f, 0.95f, 0.95f, 0.95f, 0.94f, 0.88f, 0.80f, 0.70f },
-            top = new[] { 0.84f, 0.98f, 1.20f, 1.38f, 1.46f, 1.46f, 1.00f, 0.92f, 0.84f, 0.72f },
-            W = new[] { 0.74f, 0.80f, 0.83f, 0.84f, 0.85f, 0.85f, 0.85f, 0.83f, 0.79f, 0.72f },
-            wheelZ0 = 0.16f, wheelZ1 = 0.84f
-        };
-        public static readonly Spec Saloon = new Spec
-        {
-            L = 4.4f,
-            u = new[] { 0.00f, 0.03f, 0.12f, 0.24f, 0.37f, 0.63f, 0.76f, 0.91f, 0.97f, 1.00f },
-            belt = new[] { 0.82f, 0.90f, 0.94f, 0.95f, 0.95f, 0.95f, 0.94f, 0.88f, 0.80f, 0.70f },
-            top = new[] { 0.86f, 0.96f, 1.00f, 1.05f, 1.42f, 1.42f, 1.00f, 0.92f, 0.84f, 0.72f },
-            W = new[] { 0.76f, 0.83f, 0.86f, 0.87f, 0.87f, 0.87f, 0.87f, 0.85f, 0.80f, 0.73f },
-            wheelZ0 = 0.17f, wheelZ1 = 0.82f
-        };
-        public static readonly Spec Van = new Spec
-        {
-            L = 4.8f, van = true, tumble = 0.93f,
-            u = new[] { 0.00f, 0.02f, 0.60f, 0.70f, 0.79f, 0.91f, 0.97f, 1.00f },
-            belt = new[] { 0.98f, 1.02f, 1.05f, 1.05f, 1.00f, 0.92f, 0.85f, 0.75f },
-            top = new[] { 1.95f, 2.02f, 2.02f, 1.97f, 1.32f, 1.02f, 0.92f, 0.78f },
-            W = new[] { 0.94f, 0.97f, 0.97f, 0.97f, 0.95f, 0.92f, 0.88f, 0.80f },
-            wheelR = 0.34f, wheelZ0 = 0.15f, wheelZ1 = 0.83f
-        };
-
-        // ------------------------------------------------------------------ materials
-        static Material paintTpl, plateTpl, glass, trim, under, chrome, tyre, alloy, lampF, lampR, amber, interior, grille, shadowM;
-        static Mesh wheelMesh;
-
-        static Material Tpl(string n, System.Func<Material> fallback)
-        {
-            var m = Resources.Load<Material>("CarMats/" + n);
-            return m != null ? m : fallback();
+            public CarModel m;
+            public float L => m.L; public bool van => m.van; public float wheelR => m.rad;
+            public float wheelZ0 => (m.wxR + m.Le) / m.L; public float wheelZ1 => (m.wxF + m.Le) / m.L;
         }
 
+        static Dictionary<string, CarModel> models;
+        public static Dictionary<string, CarModel> Models { get { Load(); return models; } }
+        public static Spec Get(string id) { Load(); return new Spec { m = models.TryGetValue(id, out var m) ? m : models["hatch_a"] }; }
+        public static Spec Hatch => Get("hatch_a");
+        public static Spec Saloon => Get("saloon_b");
+        public static Spec Van => Get("van_a");
+
+        static void Load()
+        {
+            if (models != null) return;
+            models = new Dictionary<string, CarModel>();
+            var ta = Resources.Load<TextAsset>("CarModels");
+            if (ta == null) { Debug.LogError("[ASBO] Resources/CarModels.json missing"); return; }
+            foreach (var m in JsonUtility.FromJson<CarModelList>(ta.text).models) { Prepare(m); models[m.id] = m; }
+        }
+
+        // ---------------------------------------------------------------- shape functions (as the original)
+        public class Mono
+        {
+            readonly float[] x, y, m; readonly int n;
+            public Mono(float[] flat)
+            {
+                n = flat.Length / 2; x = new float[n]; y = new float[n]; m = new float[n];
+                for (int i = 0; i < n; i++) { x[i] = flat[2 * i]; y[i] = flat[2 * i + 1]; }
+                if (n < 2) return;
+                var d = new float[n - 1];
+                for (int i = 0; i < n - 1; i++) d[i] = (y[i + 1] - y[i]) / Mathf.Max(1e-5f, x[i + 1] - x[i]);
+                m[0] = d[0]; m[n - 1] = d[n - 2];
+                for (int i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0f ? 0f : (d[i - 1] + d[i]) * 0.5f;
+                for (int i = 0; i < n - 1; i++)
+                {
+                    if (Mathf.Abs(d[i]) < 1e-7f) { m[i] = m[i + 1] = 0f; continue; }
+                    float a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
+                    if (s > 9f) { float t = 3f / Mathf.Sqrt(s); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; }
+                }
+            }
+            public float Eval(float t)
+            {
+                if (n == 1) return y[0];
+                if (t <= x[0]) return y[0];
+                if (t >= x[n - 1]) return y[n - 1];
+                int k = 0; while (k < n - 2 && t > x[k + 1]) k++;
+                float h = x[k + 1] - x[k], s = (t - x[k]) / h, s2 = s * s, s3 = s2 * s;
+                return (2 * s3 - 3 * s2 + 1) * y[k] + (s3 - 2 * s2 + s) * h * m[k] + (-2 * s3 + 3 * s2) * y[k + 1] + (s3 - s2) * h * m[k + 1];
+            }
+        }
+
+        static readonly Mono lowIn = new Mono(new[] { 0.15f, 0.075f, 0.26f, 0.035f, 0.36f, 0.01f, 0.48f, 0f });
+        static float SStep(float a, float b, float x) { float t = Mathf.Clamp01((x - a) / (b - a)); return t * t * (3f - 2f * t); }
+
+        static void Prepare(CarModel m)
+        {
+            m.Le = m.L / 2f; m.hw = m.W / 2f; m.wxF = m.Le - m.fo; m.wxR = m.wxF - m.wb; m.archR = m.rad + m.arch;
+            m.topC = new Mono(m.top); m.crownC = new Mono(m.crown);
+            var G = m.gh;
+            Vector2 A = new Vector2(G.rb, Top(m, G.rb)), B = new Vector2(G.rrx, G.roof), C = new Vector2(G.fr, G.roof), D = new Vector2(G.fb, Top(m, G.fb));
+            Vector2 Toward(Vector2 p, Vector2 q, float d) { float l = Mathf.Max(1e-4f, (q - p).magnitude); float k = Mathf.Min(d / l, 0.45f); return p + (q - p) * k; }
+            Vector2 Bulge(Vector2 p, Vector2 q, float k) { Vector2 mid = (p + q) * 0.5f, dd = q - p; float l = Mathf.Max(1e-4f, dd.magnitude); return new Vector2(mid.x + dd.y / l * k, mid.y - dd.x / l * k); }
+            Vector2 B1 = Toward(B, A, G.rR), B2 = Toward(B, C, G.rR), C1 = Toward(C, B, G.rF), C2 = Toward(C, D, G.rF);
+            var P = new List<Vector2>();
+            void Bez(Vector2 p, Vector2 c, Vector2 q, int nn, bool skip0) { for (int i = skip0 ? 1 : 0; i <= nn; i++) { float t = i / (float)nn, u = 1 - t; P.Add(u * u * p + 2 * u * t * c + t * t * q); } }
+            Bez(A, Bulge(A, B1, G.curR), B1, 6, false); Bez(B1, B, B2, 4, true); Bez(B2, Bulge(B2, C1, 0.015f), C1, 4, true); Bez(C1, C, C2, 4, true); Bez(C2, Bulge(C2, D, G.curF), D, 7, true);
+            for (int i = 1; i < P.Count; i++) if (P[i].x <= P[i - 1].x) P[i] = new Vector2(P[i - 1].x + 1e-4f, P[i].y); // keep x increasing
+            m.prof = P; m.profB1 = B1.x; m.profC2 = C2.x;
+        }
+
+        static float Top(CarModel m, float x) => m.topC.Eval(x);
+        static float Crown(CarModel m, float x) => m.crownC.Eval(x);
+        static float Hp(CarModel m, float x)
+        {
+            float w = m.hw * (1f - 0.025f * Mathf.Pow(x / m.Le, 2));
+            if (x > m.Le - m.rcF) { float d = Mathf.Min(m.rcF, x - (m.Le - m.rcF)); w -= m.rcF - Mathf.Sqrt(Mathf.Max(0, m.rcF * m.rcF - d * d)); }
+            if (x < -m.Le + m.rcR) { float d = Mathf.Min(m.rcR, -m.Le + m.rcR - x); w -= m.rcR - Mathf.Sqrt(Mathf.Max(0, m.rcR * m.rcR - d * d)); }
+            return w;
+        }
+        static float Yb(CarModel m, float x)
+        {
+            float y = x > m.wxR && x < m.wxF ? m.sill : m.endY;
+            foreach (float wx in new[] { m.wxF, m.wxR }) { float d = Mathf.Abs(x - wx); if (d < m.archR) y = Mathf.Max(y, m.rad + Mathf.Sqrt(m.archR * m.archR - d * d)); }
+            return y;
+        }
+        static float Inset(CarModel m, float y, float top)
+        {
+            float cr = top - m.crease - 0.04f;
+            if (y < cr) return lowIn.Eval(y) + (m.van ? 0f : 0.004f * SStep(0.48f, cr, y));
+            float t = Mathf.Clamp01((y - cr) / Mathf.Max(1e-4f, top - cr));
+            return 0.004f + 0.032f * t * t;
+        }
+        static float Warp(CarModel m, float x, float y)
+        {
+            float dx = 0f;
+            if (m.rakeF[1] != 0f) dx -= m.rakeF[1] * Mathf.Max(0f, y - m.rakeF[0]) * SStep(m.Le - 0.7f, m.Le, x);
+            if (m.rakeR[1] != 0f) dx += m.rakeR[1] * Mathf.Max(0f, y - m.rakeR[0]) * SStep(-m.Le + 0.6f, -m.Le, x);
+            return x + dx;
+        }
+        static float HwG(CarModel m, float x, float y) => Hp(m, x) - m.gh.beltIn - m.gh.tumble * Mathf.Max(0f, y - Top(m, x));
+        static float GhY(CarModel m, float x)
+        {
+            var P = m.prof; if (x < P[0].x || x > P[P.Count - 1].x) return float.NaN;
+            for (int i = 0; i < P.Count - 1; i++) if (x <= P[i + 1].x) return Mathf.Lerp(P[i].y, P[i + 1].y, (x - P[i].x) / Mathf.Max(1e-5f, P[i + 1].x - P[i].x));
+            return P[P.Count - 1].y;
+        }
+        /// <summary>Front or rear face position (length axis) at a lateral offset and height: plan rounding and rake.</summary>
+        static float FaceX(CarModel m, bool front, float lat, float y)
+        {
+            float rc = front ? m.rcF : m.rcR, topE = Top(m, front ? m.Le : -m.Le), hwE = m.hw * 0.975f;
+            float zz = Mathf.Min(Mathf.Abs(lat) + Inset(m, y, topE), hwE - 0.004f), e = Mathf.Max(0f, zz - (hwE - rc));
+            float x = (m.Le - rc + Mathf.Sqrt(Mathf.Max(0f, rc * rc - e * e))) * (front ? 1f : -1f);
+            return Warp(m, x, y);
+        }
+        /// <summary>Point on the lower body side at length x and height y (side = +1 right, -1 left), pushed out by off.</summary>
+        static Vector3 Side(CarModel m, float x, float y, int side, float off)
+        {
+            float lat = Hp(m, x) - Inset(m, y, Top(m, x)) + off;
+            return new Vector3(lat * side, y, Warp(m, x, y));
+        }
+
+        // ---------------------------------------------------------------- materials
+        static Material paintTpl, plateTpl, glass, glassHaze, trim, under, chrome, tyre, alloy, lampF, lampR, amber, interior, grilleM, shadowM, steelM, discM;
+        static readonly Dictionary<string, Material> plastic = new Dictionary<string, Material>();
+        static Mesh wheelSteel, wheelCap, wheelAlloy, wheelBare;
+        static Texture2D[] grime;
+
+        static Material Tpl(string n, Func<Material> fallback) { var m = Resources.Load<Material>("CarMats/" + n); return m != null ? m : fallback(); }
         static void Init()
         {
+            Load();
             if (glass != null) return;
             paintTpl = Tpl("Paint", () => Gfx.Mat(Color.white, null, 0.82f, 0.35f));
             plateTpl = Tpl("Plate", () => Gfx.Mat(Color.white, null, 0.35f));
             glass = Tpl("Glass", () => Gfx.Mat(new Color(0.05f, 0.07f, 0.09f), null, 0.95f, 0.2f));
+            glassHaze = new Material(glass) { name = "GlassHaze" }; glassHaze.SetColor("_BaseColor", new Color(0.16f, 0.17f, 0.16f, 0.68f)); glassHaze.SetFloat("_Smoothness", 0.72f);
             trim = Tpl("Trim", () => Gfx.Mat(new Color(0.03f, 0.03f, 0.035f), null, 0.55f));
             under = Tpl("Under", () => Gfx.Mat(new Color(0.035f, 0.035f, 0.035f), null, 0.08f));
             chrome = Tpl("Chrome", () => Gfx.Mat(new Color(0.8f, 0.81f, 0.83f), null, 0.9f, 1f));
@@ -73,318 +185,458 @@ namespace ASBO.Slice
             lampR = Tpl("LampRear", () => Gfx.Emissive(new Color(0.85f, 0.05f, 0.04f), 1.1f));
             amber = Tpl("LampAmber", () => Gfx.Emissive(new Color(1f, 0.5f, 0.05f), 0.6f));
             interior = Tpl("Interior", () => Gfx.Mat(new Color(0.07f, 0.07f, 0.075f), null, 0.15f));
-            grille = Tpl("Grille", () => Gfx.Mat(new Color(0.02f, 0.02f, 0.025f), null, 0.35f, 0.2f));
-            shadowM = Resources.Load<Material>("CarMats/Shadow"); // no fallback: an opaque quad would be worse than none
-            wheelMesh = BuildWheel();
+            grilleM = Tpl("Grille", () => Gfx.Mat(new Color(0.02f, 0.02f, 0.025f), null, 0.35f, 0.2f));
+            shadowM = Resources.Load<Material>("CarMats/Shadow");
+            steelM = new Material(grilleM) { name = "SteelWheel" }; steelM.SetColor("_BaseColor", new Color(0.13f, 0.135f, 0.14f)); steelM.SetFloat("_Smoothness", 0.45f);
+            discM = new Material(plateTpl) { name = "TaxDisc" }; discM.SetColor("_BaseColor", new Color(0.35f, 0.65f, 0.45f));
+            wheelSteel = BuildWheel("steel"); wheelCap = BuildWheel("cap"); wheelAlloy = BuildWheel("alloy"); wheelBare = BuildWheel("bare");
+            grime = new[] { GrimeTex(1, 0.35f, false), GrimeTex(2, 0.6f, false), GrimeTex(3, 0.85f, false), GrimeTex(4, 0.7f, true), GrimeTex(5, 0.9f, true) };
         }
 
-        // ------------------------------------------------------------------ body
-        struct St { public float u, z, belt, top, W, yb, cab; }
-
-        static float CR(float p0, float p1, float p2, float p3, float t)
+        static Material Plastic(string hex)
         {
-            float t2 = t * t, t3 = t2 * t;
-            return 0.5f * (2f * p1 + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 + (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
-        }
-
-        static float Sample(float[] a, float f)
-        {
-            int n = a.Length; int i = Mathf.Clamp(Mathf.FloorToInt(f), 0, n - 2); float t = f - i;
-            float p0 = a[Mathf.Max(i - 1, 0)], p1 = a[i], p2 = a[i + 1], p3 = a[Mathf.Min(i + 2, n - 1)];
-            return CR(p0, p1, p2, p3, t);
-        }
-
-        const int R = 11; // points per half cross-section, floor centre (0) to roof centre (10)
-
-        static Vector3[] Section(Spec s, St st)
-        {
-            float W = st.W, yb = st.yb, belt = st.belt, top = st.top, cab = st.cab;
-            float Wt = W * Mathf.Lerp(0.95f, s.tumble, cab);
-            float edge = top - Mathf.Lerp(0.015f, 0.06f, cab);
-            float crown = Mathf.Lerp(0.008f, 0.018f, cab);
-            float waist = Mathf.Lerp(yb + 0.06f, belt, 0.5f);
-            return new[]
+            if (!plastic.TryGetValue(hex, out var m))
             {
-                new Vector3(0f, yb, st.z),
-                new Vector3(W - 0.08f, yb, st.z),
-                new Vector3(W - 0.012f, yb + 0.055f, st.z),
-                new Vector3(W + 0.012f, waist, st.z),
-                new Vector3(W + 0.002f, belt - 0.05f, st.z),
-                new Vector3(W - 0.022f, belt, st.z),
-                new Vector3(Mathf.Lerp(W - 0.022f, Wt, 0.55f), Mathf.Lerp(belt, edge, 0.55f), st.z),
-                new Vector3(Wt, edge, st.z),
-                new Vector3(Wt - Mathf.Lerp(0.03f, 0.08f, cab), top - 0.004f, st.z),
-                new Vector3(Wt * 0.45f, top + crown * 0.8f, st.z),
-                new Vector3(0f, top + crown, st.z),
-            };
+                ColorUtility.TryParseHtmlString(hex, out var c);
+                m = new Material(trim) { name = "Plastic " + hex }; m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", 0.3f);
+                plastic[hex] = m;
+            }
+            return m;
         }
 
-        /// <summary>Builds the body under parent (local origin at ground centre, front = +z). Returns 4 wheel visuals FL, FR, RL, RR.</summary>
-        public static Transform[] Build(Transform parent, Spec s, Color paintCol, bool castShadow = true, int seed = -1)
+        /// <summary>Multiply texture for paint: road grime up the sills, speckle, and (rusty) brown corrosion round the arches and edges.</summary>
+        static Texture2D GrimeTex(int seed, float amount, bool rust)
+        {
+            // u runs the length of the car (0 rear .. 1 front, + 0.5 for the other side), v = height / 1.55 m
+            const int W = 256, H = 128;
+            var rng = new System.Random(seed); float R() => (float)rng.NextDouble();
+            var px = new Color[W * H];
+            for (int y = 0; y < H; y++)
+                for (int x = 0; x < W; x++)
+                {
+                    float v = y / (float)H, u = x / (float)W;
+                    float sill = Mathf.Clamp01(1f - v / 0.33f); sill = sill * sill * (3f - 2f * sill);
+                    float streak = Mathf.PerlinNoise(u * 40f + seed, v * 3f) * 0.5f + Mathf.PerlinNoise(u * 7f, v * 2f + seed) * 0.5f;
+                    float film = Mathf.PerlinNoise(u * 5f + seed * 1.7f, v * 4f) * 0.12f;
+                    float dirt = amount * (sill * (0.45f + 0.35f * streak) + film * (1f - v));
+                    px[y * W + x] = Color.Lerp(Color.white, new Color(0.62f, 0.57f, 0.49f), Mathf.Clamp01(dirt));
+                }
+            if (rust)
+            {
+                // rot along the bottom edge and the arch lips, broken up with noise
+                for (int y = 0; y < H; y++)
+                    for (int x = 0; x < W; x++)
+                    {
+                        float v = y / (float)H, u = (x / (float)W) % 0.5f * 2f;
+                        float edge = Mathf.Clamp01(1f - v / 0.12f);
+                        float arch = 0f;
+                        foreach (float cu in new[] { 0.21f, 0.79f }) { float d = Mathf.Abs(u - cu); if (d < 0.09f) arch = Mathf.Max(arch, Mathf.Clamp01(1f - Mathf.Abs(v - (0.27f - d * d * 18f)) / 0.035f)); }
+                        float n = Mathf.PerlinNoise(x * 0.18f + seed * 5f, y * 0.18f);
+                        float a = Mathf.Clamp01((Mathf.Max(edge * 0.9f, arch) - 0.35f + n * 0.6f - 0.3f) * 2.2f);
+                        if (a > 0f) px[y * W + x] = Color.Lerp(px[y * W + x], new Color(0.45f, 0.23f, 0.11f), a * 0.85f);
+                    }
+                for (int k = 0; k < 5; k++)
+                {
+                    int cx = rng.Next(W), cy = (int)(R() * H * 0.4f); float rad = 1.5f + R() * 2.5f;
+                    for (int yy = -4; yy <= 4; yy++) for (int xx = -4; xx <= 4; xx++)
+                    {
+                        float d = Mathf.Sqrt(xx * xx + yy * yy) / rad; if (d > 1f) continue;
+                        int X = (cx + xx + W) % W, Y = Mathf.Clamp(cy + yy, 0, H - 1);
+                        px[Y * W + X] = Color.Lerp(px[Y * W + X], new Color(0.42f, 0.22f, 0.12f), (1f - d) * 0.8f);
+                    }
+                }
+            }
+            var t = new Texture2D(W, H, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Repeat, name = "CarGrime" + seed };
+            t.SetPixels(px); t.Apply(true, true);
+            return t;
+        }
+
+        // ---------------------------------------------------------------- per-car roughness
+        class Rough
+        {
+            public bool rust, haze, dice, fresh, tax, tow, rack, ladder, rails, capMiss, panel, clutter, metallic;
+            public string wheel; public float fade; public int grime, panelDoor; public Color panelCol, freshCol;
+            public List<Vector4> dents = new List<Vector4>();
+        }
+
+        static Rough MakeRough(CarModel m, System.Random r, bool rough)
+        {
+            float R() => (float)r.NextDouble();
+            var o = new Rough();
+            o.metallic = R() < 0.3f;
+            o.wheel = m.wheel;
+            if (!rough) { o.grime = 0; o.fade = 0.03f; o.tax = true; return o; }
+            o.fade = R() * R() * 0.32f;
+            o.rust = R() < 0.3f;
+            o.grime = o.rust ? 3 + r.Next(2) : r.Next(3);
+            o.haze = R() < 0.4f;
+            o.dice = R() < 0.18f; o.fresh = R() < 0.55f; o.tax = R() < 0.55f;
+            o.freshCol = new[] { new Color(0.18f, 0.6f, 0.29f), new Color(0.75f, 0.2f, 0.18f), new Color(0.9f, 0.82f, 0.13f), new Color(0.63f, 0.25f, 0.75f), new Color(0.48f, 0.82f, 0.94f) }[r.Next(5)];
+            o.tow = R() < (m.van ? 0.5f : 0.15f);
+            o.rack = m.van && R() < 0.55f; o.ladder = o.rack && R() < 0.6f;
+            o.rails = !m.van && m.L > 4f && R() < 0.12f;
+            o.clutter = R() < 0.3f;
+            if (o.wheel == "alloy" && R() < 0.35f) o.wheel = "cap";
+            else if (o.wheel == "cap" && R() < 0.25f) o.wheel = "steel";
+            o.capMiss = o.wheel == "cap" && R() < 0.3f;
+            o.panel = R() < 0.22f;
+            if (o.panel) { o.panelDoor = r.Next(m.doors >= 4 ? 4 : 2); o.panelCol = R() < 0.4f ? new Color(0.48f, 0.5f, 0.5f) : RandomPaint(r); }
+            int dn = R() < 0.4f ? 1 + r.Next(3) : 0;
+            for (int i = 0; i < dn; i++) o.dents.Add(new Vector4(Mathf.Lerp(m.wxR - 0.3f, m.wxF + 0.4f, R()), Mathf.Lerp(m.sill + 0.12f, Top(m, 0) - 0.12f, R()), r.Next(2) == 0 ? -1 : 1, 0.1f + R() * 0.12f));
+            return o;
+        }
+
+        // ---------------------------------------------------------------- build
+        const int R_ = 15; // points per half section: floor centre .. roof centre
+
+        /// <summary>Builds the car under parent (local origin at ground centre, front = +z). Returns 4 wheel visuals FL, FR, RL, RR.</summary>
+        public static Transform[] Build(Transform parent, Spec s, Color paintCol, bool castShadow = true, int seed = -1, bool rough = true)
         {
             Init();
+            var m = s.m; var G = m.gh;
             var rng = new System.Random(seed >= 0 ? seed : UnityEngine.Random.Range(0, int.MaxValue));
+            var ro = MakeRough(m, rng, rough);
+            Color faded = Color.Lerp(paintCol, Color.Lerp(paintCol, new Color(0.78f, 0.78f, 0.76f), 0.6f), ro.fade);
             var paint = new Material(paintTpl) { name = "CarPaint" };
-            paint.SetColor("_BaseColor", paintCol);
-            float lum = paintCol.r * 0.3f + paintCol.g * 0.59f + paintCol.b * 0.11f;
-            bool metallic = rng.NextDouble() < 0.6;
-            paint.SetFloat("_Metallic", metallic ? Mathf.Lerp(0.55f, 0.35f, lum) : 0.05f);
-            paint.SetFloat("_Smoothness", metallic ? 0.86f : 0.8f);
+            paint.SetColor("_BaseColor", faded);
+            paint.SetTexture("_BaseMap", grime[Mathf.Clamp(ro.grime, 0, grime.Length - 1)]);
+            paint.SetFloat("_Metallic", ro.metallic ? 0.45f : 0.04f);
+            paint.SetFloat("_Smoothness", Mathf.Lerp(ro.metallic ? 0.82f : 0.74f, 0.42f, ro.fade * 2.5f + (ro.rust ? 0.15f : 0f)));
+            Material panelM = paint;
+            if (ro.panel) { panelM = new Material(paint) { name = "CarPanel" }; panelM.SetColor("_BaseColor", ro.panelCol); panelM.SetFloat("_Smoothness", 0.55f); }
+            var glassM = ro.haze ? glassHaze : glass;
 
-            int n = s.u.Length, S = 64;
-            var st = new St[S];
-            float wr = s.wheelR, rA = s.wheelR + 0.075f;
-            float zw0 = (s.wheelZ0 - 0.5f) * s.L, zw1 = (s.wheelZ1 - 0.5f) * s.L;
+            int S = Mathf.Clamp(Mathf.RoundToInt(m.L / 0.05f), 60, 110);
+            var xs = new float[S];
+            for (int j = 0; j < S; j++) xs[j] = Mathf.Lerp(-m.Le, m.Le, j / (S - 1f));
+            float vScale = m.van ? 2.15f : 1.55f;
+
+            // ---- sections
+            var P = new Vector3[S][]; var gv = new float[S];
             for (int j = 0; j < S; j++)
             {
-                float f = j / (S - 1f) * (n - 1);
-                var x = new St { u = Mathf.Clamp01(Sample(s.u, f)), belt = Sample(s.belt, f), top = Sample(s.top, f), W = Sample(s.W, f) };
-                x.u = j == 0 ? 0f : j == S - 1 ? 1f : x.u;
-                x.z = (x.u - 0.5f) * s.L;
-                x.top = Mathf.Max(x.top, x.belt + 0.015f);
-                x.cab = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.12f, 0.34f, x.top - x.belt));
-                // wheel arches: the bottom edge of the body follows the arch
-                float yb = s.yb;
-                foreach (float wz in new[] { zw0, zw1 })
+                float x = xs[j], top = Top(m, x), yb = Mathf.Min(Yb(m, x), top - 0.1f), hp = Hp(m, x), cr = Crown(m, x);
+                float gy = GhY(m, x); bool has = !float.IsNaN(gy) && gy > top + 0.005f;
+                float g = has ? SStep(0f, 0.14f, gy - top) : 0f; gv[j] = g;
+                var row = new Vector3[R_];
+                row[0] = new Vector3(0f, yb, x);
+                row[1] = new Vector3(Mathf.Max(0f, hp - Inset(m, yb, top) - 0.06f), yb, x);
+                float[] f = { 0.03f, 0.2f, 0.42f, 0.62f, 0.8f, 0.93f };
+                for (int k = 0; k < 6; k++) { float y = Mathf.Lerp(yb, top, f[k]); row[2 + k] = new Vector3(hp - Inset(m, y, top), y, x); }
+                float shoulder = hp - Inset(m, top, top);
+                row[8] = new Vector3(shoulder, top, x);
+                // bonnet / boot deck: shoulder to centre with the crown
+                float[] fd = { 0.1f, 0.3f, 0.55f, 0.75f, 0.9f, 1f };
+                var deck = new Vector3[6];
+                for (int k = 0; k < 6; k++) { float t = fd[k]; deck[k] = new Vector3(Mathf.Lerp(shoulder, 0f, t), top + cr * (1f - (1f - t) * (1f - t)) + 0.004f * (1 - t), x); }
+                if (g > 0f)
                 {
-                    float dz = x.z - wz;
-                    if (Mathf.Abs(dz) < rA) yb = Mathf.Max(yb, wr + Mathf.Sqrt(rA * rA - dz * dz));
+                    float yL = top + G.pBelt, yU = Mathf.Max(gy - G.pTop, yL + 0.002f), yM = (yL + yU) * 0.5f, rw = Mathf.Max(0.05f, HwG(m, x, gy));
+                    var gh = new[]
+                    {
+                        new Vector3(HwG(m, x, yL), yL, x), new Vector3(HwG(m, x, yM), yM, x), new Vector3(HwG(m, x, yU), yU, x),
+                        new Vector3(rw - Mathf.Min(0.05f, rw * 0.3f), gy - 0.004f, x), new Vector3(rw * 0.5f, gy + G.crown * 0.8f, x), new Vector3(0f, gy + G.crown, x)
+                    };
+                    for (int k = 0; k < 6; k++) row[9 + k] = Vector3.Lerp(deck[k], gh[k], g);
                 }
-                x.yb = Mathf.Min(yb, x.belt - 0.14f);
-                st[j] = x;
+                else for (int k = 0; k < 6; k++) row[9 + k] = deck[k];
+                P[j] = row;
             }
-            var P = new Vector3[S][];
-            for (int j = 0; j < S; j++) P[j] = Section(s, st[j]);
-            // smooth normals (side +1), outward
-            var Nn = new Vector3[S][];
+            // dents: push the side in round a few points
+            foreach (var d in ro.dents)
+                for (int j = 0; j < S; j++)
+                    for (int r = 2; r <= 8; r++)
+                    {
+                        var p = P[j][r]; float dd = new Vector2(p.z - d.x, p.y - d.y).magnitude / d.w;
+                        if (dd < 1f) P[j][r].x -= 0.02f * (1f - dd * dd) * (1f - dd * dd);
+                    }
+            // rake the ends
+            for (int j = 0; j < S; j++) for (int r = 0; r < R_; r++) { var p = P[j][r]; P[j][r] = new Vector3(p.x, p.y, Warp(m, p.z, p.y)); }
+
+            // normals (right side), outward
+            var N = new Vector3[S][];
             for (int j = 0; j < S; j++)
             {
-                Nn[j] = new Vector3[R];
-                for (int r = 0; r < R; r++)
+                N[j] = new Vector3[R_];
+                for (int r = 0; r < R_; r++)
                 {
                     Vector3 ta = P[Mathf.Min(j + 1, S - 1)][r] - P[Mathf.Max(j - 1, 0)][r];
-                    Vector3 tb = P[j][Mathf.Min(r + 1, R - 1)] - P[j][Mathf.Max(r - 1, 0)];
+                    Vector3 tb = P[j][Mathf.Min(r + 1, R_ - 1)] - P[j][Mathf.Max(r - 1, 0)];
                     Vector3 nn = Vector3.Cross(ta, tb);
-                    Vector3 c = new Vector3(0f, (st[j].yb + st[j].top) * 0.5f, st[j].z);
+                    Vector3 c = new Vector3(0f, (P[j][0].y + P[j][R_ - 1].y) * 0.5f, P[j][r].z);
                     if (Vector3.Dot(nn, P[j][r] - c) < 0f) nn = -nn;
-                    if (nn.sqrMagnitude < 1e-10f) nn = (P[j][r] - c);
-                    if (r == 0 || r == R - 1) nn.x = 0f;
-                    Nn[j][r] = nn.normalized;
+                    if (nn.sqrMagnitude < 1e-10f) nn = P[j][r] - c;
+                    if (r == 0 || r == R_ - 1) nn.x = 0f;
+                    N[j][r] = nn.normalized;
                 }
             }
 
-            // where the glass goes
-            float slopeAt(int j) { int a = Mathf.Max(j, 0), b = Mathf.Min(j + 1, S - 1); return Mathf.Abs(st[b].top - st[a].top) / Mathf.Max(Mathf.Abs(st[b].z - st[a].z), 1e-4f); }
-            int flatA = -1, flatB = -1; // first and last column of the flat roof
-            for (int j = 0; j < S - 1; j++) if (st[j].cab > 0.8f && st[j + 1].cab > 0.8f && slopeAt(j) < 0.4f) { if (flatA < 0) flatA = j; flatB = j; }
-            int bPillar = flatA >= 0 ? Mathf.RoundToInt(Mathf.Lerp(flatA, flatB, s.van ? 1f : 0.56f)) : -1;
-            float glassStartU = s.van ? 0.62f : 0f;
-
-            var k = new MeshKit();
-            var idx = new int[2, S, R];
-            for (int side = 0; side < 2; side++)
+            // ---- glass and panels
+            float xBm = G.xB != null && G.xB.Length == 2 ? (G.xB[0] + G.xB[1]) * 0.5f : 99f;
+            float xQm = G.xQ != null && G.xQ.Length == 2 ? (G.xQ[0] + G.xQ[1]) * 0.5f : 99f;
+            float gx0 = G.van ? xBm + G.bw * 0.5f : G.rrx + G.pC * 0.6f, gx1 = G.fb - G.pA;
+            bool SideGlass(float xm, float gm) => gm > 0.85f && xm > gx0 && xm < gx1 && Mathf.Abs(xm - xBm) > G.bw * 0.5f && Mathf.Abs(xm - xQm) > G.qw * 0.5f && GhY(m, xm) - Top(m, xm) > 0.12f;
+            bool Pillar(float xm, float gm) => gm > 0.85f && (Mathf.Abs(xm - xBm) <= G.bw * 0.5f || Mathf.Abs(xm - xQm) <= G.qw * 0.5f) && xm > G.rb && xm < G.fb;
+            // door panels between seams (for a mismatched door)
+            float fdF = m.seamFdF != null && m.seamFdF.Length > 0 ? m.seamFdF[0] : G.fb, fdR = m.seamFdR != null && m.seamFdR.Length > 0 ? m.seamFdR[0] : 0f, rdR = m.seamRdR != null && m.seamRdR.Length > 0 ? m.seamRdR[0] : fdR;
+            bool InDoor(float xm, int side)
             {
-                float sx = side == 0 ? 1f : -1f;
-                for (int j = 0; j < S; j++)
-                    for (int r = 0; r < R; r++)
-                    {
-                        var p = P[j][r]; var q = Nn[j][r];
-                        idx[side, j, r] = k.Vert(new Vector3(p.x * sx, p.y, p.z), new Vector3(q.x * sx, q.y, q.z), Vector2.zero);
-                    }
+                if (!ro.panel) return false;
+                int door = ro.panelDoor; int ds = door % 2 == 0 ? 1 : -1; bool front = door < 2;
+                if (ds != side) return false;
+                return front ? xm < fdF && xm > fdR : (m.doors >= 4 && xm < fdR && xm > rdR);
             }
-            Material SideGlass(int j)
+            Material QuadMat(int j, int r, int side)
             {
-                bool cabinCols = st[j].cab > 0.55f && st[j + 1].cab > 0.55f;
-                bool steep = slopeAt(j) > 0.42f && (st[j].cab > 0.35f || st[j + 1].cab > 0.35f);
-                if (cabinCols && st[j].u >= glassStartU && j >= flatA && j <= flatB)
-                {
-                    if (j == bPillar || j == bPillar - 1) return trim;
-                    if (j == flatA || j == flatB) return paint;
-                    return glass;
-                }
-                if (cabinCols && !steep && st[j].u >= glassStartU) return glass; // quarter-lights where the roof slopes gently
-                return null;
-            }
-            Material QuadMat(int j, int r)
-            {
+                float xm = (xs[j] + xs[j + 1]) * 0.5f, gm = Mathf.Min(gv[j], gv[j + 1]);
                 if (r == 0) return under;
                 if (r == 1) return trim;
-                bool steep = slopeAt(j) > 0.42f && (st[j].cab > 0.35f || st[j + 1].cab > 0.35f);
-                if (r >= 5 && steep && r <= 9) return glass; // windscreen / rear screen
-                var sg = SideGlass(j);
-                if (r == 5 || r == 6) return sg ?? paint;
-                if ((r == 4 || r == 7) && sg == glass) return trim; // black window surround: belt moulding and drip rail
+                bool sg = SideGlass(xm, gm);
+                if (r <= 7) return InDoor(xm, side) ? panelM : paint;
+                if (r == 8) return sg ? trim : (InDoor(xm, side) ? panelM : paint);
+                if (r == 9 || r == 10) { if (sg) return glassM; if (Pillar(xm, gm)) return trim; return paint; }
+                if (r == 11) return paint;
+                if (gm > 0.3f && (xm > m.profC2 + 0.02f || (xm < m.profB1 - 0.02f && xm > G.rb + 0.04f && !G.van))) return glassM; // windscreen / rear screen
                 return paint;
             }
-            for (int side = 0; side < 2; side++)
-                for (int j = 0; j < S - 1; j++)
-                    for (int r = 0; r < R - 1; r++)
-                    {
-                        int a = idx[side, j, r], b = idx[side, j + 1, r], c = idx[side, j + 1, r + 1], d = idx[side, j, r + 1];
-                        Vector3 nAvg = k.N[a] + k.N[b] + k.N[c] + k.N[d];
-                        var m = QuadMat(j, r);
-                        TriOut(k, m, a, b, c, nAvg); TriOut(k, m, a, c, d, nAvg);
-                    }
-            // end caps
-            Cap(k, P[0], paint, Vector3.back); Cap(k, P[S - 1], paint, Vector3.forward);
 
-            // inner shell: dark interior behind the glass (floor, door panels, headlining)
-            for (int side = 0; side < 2; side++)
+            var k2 = new MeshKit();
+            var idx = new int[2, S, R_];
+            for (int sd = 0; sd < 2; sd++)
             {
-                float sx = side == 0 ? 1f : -1f;
-                var inner = new int[S, R];
+                float sx = sd == 0 ? 1f : -1f;
                 for (int j = 0; j < S; j++)
-                    for (int r = 0; r < R; r++)
+                    for (int r = 0; r < R_; r++)
                     {
-                        var p = P[j][r]; var q = Nn[j][r];
-                        Vector3 pi = new Vector3(p.x * sx, p.y, p.z) - new Vector3(q.x * sx, q.y, q.z) * 0.02f;
-                        inner[j, r] = k.Vert(pi, new Vector3(-q.x * sx, -q.y, -q.z), Vector2.zero);
+                        var p = P[j][r]; var q = N[j][r];
+                        idx[sd, j, r] = k2.Vert(new Vector3(p.x * sx, p.y, p.z), new Vector3(q.x * sx, q.y, q.z), new Vector2((p.z + m.Le) / m.L + (sd == 0 ? 0f : 0.5f), p.y / vScale));
+                    }
+            }
+            for (int sd = 0; sd < 2; sd++)
+                for (int j = 0; j < S - 1; j++)
+                    for (int r = 0; r < R_ - 1; r++)
+                    {
+                        int a = idx[sd, j, r], b = idx[sd, j + 1, r], c = idx[sd, j + 1, r + 1], d = idx[sd, j, r + 1];
+                        Vector3 o = k2.N[a] + k2.N[b] + k2.N[c] + k2.N[d];
+                        var mat = QuadMat(j, r, sd == 0 ? 1 : -1);
+                        TriOut(k2, mat, a, b, c, o); TriOut(k2, mat, a, c, d, o);
+                    }
+            Cap(k2, P[0], paint, Vector3.back); Cap(k2, P[S - 1], paint, Vector3.forward);
+
+            // ---- inner shell behind the glass
+            for (int sd = 0; sd < 2; sd++)
+            {
+                float sx = sd == 0 ? 1f : -1f;
+                var inner = new int[S, R_];
+                for (int j = 0; j < S; j++)
+                    for (int r = 0; r < R_; r++)
+                    {
+                        var p = P[j][r]; var q = N[j][r];
+                        inner[j, r] = k2.Vert(new Vector3(p.x * sx, p.y, p.z) - new Vector3(q.x * sx, q.y, q.z) * 0.025f, new Vector3(-q.x * sx, -q.y, -q.z), Vector2.zero);
                     }
                 for (int j = 0; j < S - 1; j++)
                 {
-                    if (st[j].cab < 0.3f && st[j + 1].cab < 0.3f) continue;
-                    for (int r = 0; r < R - 1; r++)
+                    if (gv[j] < 0.3f && gv[j + 1] < 0.3f) continue;
+                    for (int r = 0; r < R_ - 1; r++)
                     {
-                        if (r == 5 || r == 6) continue; // that's where the glass is
+                        if (r == 9 || r == 10) continue;
+                        float xm = (xs[j] + xs[j + 1]) * 0.5f;
+                        if (r >= 11 && (xm > m.profC2 || xm < m.profB1)) continue; // see-through screens
                         int a = inner[j, r], b = inner[j + 1, r], c = inner[j + 1, r + 1], d = inner[j, r + 1];
-                        Vector3 nAvg = k.N[a] + k.N[b] + k.N[c] + k.N[d];
-                        TriOut(k, interior, a, b, c, nAvg); TriOut(k, interior, a, c, d, nAvg);
+                        Vector3 o = k2.N[a] + k2.N[b] + k2.N[c] + k2.N[d];
+                        TriOut(k2, interior, a, b, c, o); TriOut(k2, interior, a, c, d, o);
                     }
                 }
             }
 
-            float zf = s.L / 2f, zr = -s.L / 2f;
-            float wf = st[S - 1].W, wb = st[0].W, beltF = st[S - 1].belt, beltR = st[0].belt;
-            // ---- front: bumper (paint over black), grille, lamps, plate
-            k.Box(paint, new Vector3(-wf - 0.03f, 0.38f, zf - 0.1f), new Vector3(wf + 0.03f, 0.5f, zf + 0.065f));
-            k.Box(trim, new Vector3(-wf - 0.02f, 0.26f, zf - 0.12f), new Vector3(wf + 0.02f, 0.38f, zf + 0.05f));
-            k.Box(grille, new Vector3(-0.42f, 0.29f, zf + 0.05f), new Vector3(0.42f, 0.36f, zf + 0.056f));
-            float gy0 = Mathf.Min(0.53f, beltF - 0.22f), gy1 = Mathf.Min(gy0 + 0.13f, beltF - 0.05f);
-            k.Box(grille, new Vector3(-0.36f, gy0, zf - 0.02f), new Vector3(0.36f, gy1, zf + 0.012f));
-            for (int q = 0; q < 3; q++) { float y = Mathf.Lerp(gy0 + 0.025f, gy1 - 0.025f, q / 2f); k.Box(chrome, new Vector3(-0.35f, y - 0.006f, zf + 0.012f), new Vector3(0.35f, y + 0.006f, zf + 0.02f)); }
+            // ---- ends: bumpers, lamps, grille, plates
             var reg = Registration(rng);
-            var plateF = new Material(plateTpl) { name = "PlateF" }; plateF.SetTexture("_BaseMap", PlateTex(reg, false)); plateF.SetColor("_BaseColor", Color.white);
-            var plateR = new Material(plateTpl) { name = "PlateR" }; plateR.SetTexture("_BaseMap", PlateTex(reg, true)); plateR.SetColor("_BaseColor", Color.white);
-            PlateQuad(k, plateF, new Vector3(0, 0.425f, zf + 0.068f), 0.52f, 0.11f, 1f);
-            foreach (int sd in new[] { -1, 1 })
+            Bumper(k2, m, true, m.bumpF, paint, rng);
+            Bumper(k2, m, false, m.bumpR, paint, rng);
+            var plateF = new Material(plateTpl) { name = "PlateF" }; plateF.SetTexture("_BaseMap", PlateTex(reg, false)); plateF.SetColor("_BaseColor", Color.Lerp(Color.white, new Color(0.8f, 0.76f, 0.66f), ro.grime * 0.15f));
+            var plateR = new Material(plateTpl) { name = "PlateR" }; plateR.SetTexture("_BaseMap", PlateTex(reg, true)); plateR.SetColor("_BaseColor", plateF.GetColor("_BaseColor"));
+            float pfY = m.bumpF.plateY > 0 ? m.bumpF.plateY : (m.bumpF.y0 + m.bumpF.y1) * 0.5f;
+            PlateQuad(k2, plateF, new Vector3(0, pfY, FaceX(m, true, 0, pfY) + m.bumpF.@out + 0.008f), 0.52f, 0.11f, 1f);
+            float prY = m.plateRy; float prZ = m.plateROnBumper ? FaceX(m, false, 0, prY) - m.bumpR.@out - 0.008f : FaceX(m, false, 0, prY) - 0.012f;
+            PlateQuad(k2, plateR, new Vector3(0, prY, prZ), 0.52f, 0.11f, -1f);
+            // grille
+            var gr = m.grille;
+            if (gr != null && gr.z > 0f)
             {
-                float x = sd * (wf - 0.2f), ly = Mathf.Min(beltF - 0.11f, 0.68f);
-                k.Box(chrome, new Vector3(x - 0.17f, ly - 0.07f, zf - 0.05f), new Vector3(x + 0.17f, ly + 0.065f, zf + 0.008f));
-                k.Box(lampF, new Vector3(x - 0.14f, ly - 0.045f, zf + 0.008f), new Vector3(x + 0.1f, ly + 0.04f, zf + 0.018f));
-                k.Box(amber, new Vector3(sd > 0 ? x + 0.1f : x - 0.15f, ly - 0.045f, zf + 0.008f), new Vector3(sd > 0 ? x + 0.15f : x - 0.1f, ly + 0.04f, zf + 0.016f));
-                // fog lamp in the lower bumper
-                k.Box(lampF, new Vector3(x - 0.05f, 0.3f, zf + 0.05f), new Vector3(x + 0.05f, 0.34f, zf + 0.058f));
-            }
-            // ---- rear: bumper, lamp clusters wrapping round the corners, plate
-            k.Box(paint, new Vector3(-wb - 0.03f, 0.38f, zr - 0.065f), new Vector3(wb + 0.03f, 0.52f, zr + 0.1f));
-            k.Box(trim, new Vector3(-wb - 0.02f, 0.26f, zr - 0.05f), new Vector3(wb + 0.02f, 0.38f, zr + 0.12f));
-            float rly = s.van ? 0.95f : Mathf.Min(beltR - 0.08f, 0.78f);
-            PlateQuad(k, plateR, new Vector3(0, s.van ? 0.62f : Mathf.Min(0.62f, beltR - 0.1f), zr - 0.012f), 0.52f, 0.11f, -1f);
-            foreach (int sd in new[] { -1, 1 })
-            {
-                float x = sd * (wb - 0.16f), h = s.van ? 0.22f : 0.09f;
-                k.Box(lampR, new Vector3(x - 0.15f, rly - h, zr - 0.018f), new Vector3(x + 0.15f, rly + h * 0.6f, zr + 0.02f));
-                k.Box(amber, new Vector3(x - 0.05f, rly - h - 0.05f, zr - 0.016f), new Vector3(x + 0.05f, rly - h, zr + 0.02f));
-                // wrap-round on the flank
-                float fx = sd * (wb + 0.004f);
-                k.Box(lampR, new Vector3(Mathf.Min(fx, fx + sd * 0.012f), rly - h * 0.8f, zr + 0.02f), new Vector3(Mathf.Max(fx, fx + sd * 0.012f), rly + h * 0.5f, zr + 0.2f));
-            }
-
-            // ---- doors: seams and handles, mirrors
-            int Col(float u) { for (int j = 0; j < S - 1; j++) if (st[j + 1].u >= u) return j; return S - 2; }
-            var seams = new List<int>();
-            // station index runs rear (0) to front (S-1): flatB is the front of the cabin roof, flatA the back
-            if (!s.van && flatA >= 0)
-            {
-                int frontDoorFront = Mathf.Min(flatB + Mathf.RoundToInt((flatB - flatA) * 0.12f) + 1, S - 2);
-                seams.Add(frontDoorFront); seams.Add(bPillar);
-                if (s == Saloon || rng.NextDouble() < 0.6) seams.Add(Mathf.Max(flatA - 1, 1)); // 5-door / saloon rear door
-            }
-            else if (s.van) { seams.Add(Col(0.78f)); seams.Add(Col(0.64f)); seams.Add(Col(0.3f)); }
-            seams.Sort((a, b) => b.CompareTo(a)); // front to back
-            foreach (int sideSign in new[] { 1, -1 })
-            {
-                foreach (int j in seams)
+                FaceGrid(k2, grilleM, m, true, -gr.z, gr.z, gr.y0, gr.y0, gr.y1, gr.y1, 0.006f, 6, 2, false);
+                for (int b = 0; b < gr.bars; b++)
                 {
-                    if (j <= 0 || j >= S - 1) continue;
-                    for (int r = 2; r < 5; r++) SeamQuad(k, P[j][r], P[j][r + 1], Nn[j][r], Nn[j][r + 1], sideSign);
+                    float y = Mathf.Lerp(gr.y0, gr.y1, (b + 1f) / (gr.bars + 1f));
+                    FaceGrid(k2, gr.chrome > 0 ? chrome : trim, m, true, -gr.z * 0.96f, gr.z * 0.96f, y - 0.006f, y - 0.006f, y + 0.006f, y + 0.006f, 0.01f, 6, 1, false);
                 }
-                for (int i = 0; i + 1 < seams.Count; i++)
-                {
-                    int jm = Mathf.Clamp(seams[i + 1] + 4, seams[i + 1] + 1, seams[i] - 1); // near the back edge of each door
-                    if (s.van && i > 0) break;
-                    var hp = P[jm][4]; var hn = Nn[jm][4];
-                    Vector3 c = new Vector3(hp.x * sideSign, hp.y - 0.06f, hp.z) + new Vector3(hn.x * sideSign, 0, 0) * 0.01f;
-                    k.Box(trim, c + new Vector3(-0.012f, -0.012f, -0.07f), c + new Vector3(0.012f, 0.012f, 0.07f));
-                }
-                // mirror at the A-pillar
-                int mj = flatB >= 0 ? Mathf.Min(flatB + 2, S - 2) : Col(0.66f);
-                if (s.van) mj = Col(0.73f);
-                var mp = P[Mathf.Clamp(mj, 0, S - 1)][5];
-                float mx = mp.x * sideSign;
-                k.Box(paint, new Vector3(Mathf.Min(mx, mx + sideSign * 0.2f), mp.y + 0.02f, mp.z - 0.07f), new Vector3(Mathf.Max(mx, mx + sideSign * 0.2f), mp.y + 0.13f, mp.z + 0.04f));
-                k.Box(chrome, new Vector3(Mathf.Min(mx + sideSign * 0.02f, mx + sideSign * 0.18f), mp.y + 0.035f, mp.z - 0.075f), new Vector3(Mathf.Max(mx + sideSign * 0.02f, mx + sideSign * 0.18f), mp.y + 0.115f, mp.z - 0.07f));
+                if (gr.chrome > 0) { FaceGrid(k2, chrome, m, true, -gr.z - 0.01f, gr.z + 0.01f, gr.y1, gr.y1, gr.y1 + 0.012f, gr.y1 + 0.012f, 0.008f, 6, 1, false); }
             }
-
-            // ---- interior: dash, seats with headrests, steering wheel on the right (UK)
-            if (flatA >= 0)
+            // head lamps
+            var hd = m.head;
+            foreach (int sd in new[] { 1, -1 })
             {
-                int ws = flatB; while (ws < S - 1 && st[ws + 1].cab > 0.3f) ws++; // windscreen base (front of the cabin)
-                float zDash = st[ws].z - (s.van ? 0.15f : 0.05f);
-                float wIn = st[flatA].W - 0.1f, bl = st[flatA].belt;
-                k.Box(interior, new Vector3(-wIn, bl - 0.25f, zDash - 0.45f), new Vector3(wIn, bl + 0.04f, zDash));
-                // rear bench just inside the back of the flat roof, front seats ahead of it (so nothing pokes through the rear screen)
-                float zRear = st[flatA].z + 0.32f;
-                float zSeat = s.van ? zDash - 0.75f : Mathf.Min(zDash - 0.95f, zRear + 0.85f);
-                float seatW = 0.46f;
-                foreach (float sx in new[] { -0.36f, 0.36f }) Seat(k, new Vector3(sx * wIn, s.yb + 0.05f, zSeat), seatW, bl);
-                if (!s.van && zSeat - zRear > 0.6f) Seat(k, new Vector3(0f, s.yb + 0.05f, zRear), wIn * 1.7f, bl);
-                if (s.van) k.Box(interior, new Vector3(-wIn, s.yb, zSeat - 0.25f), new Vector3(wIn, st[flatA].top - 0.05f, zSeat - 0.2f)); // bulkhead
-                // steering wheel
-                var swc = new Vector3(0.36f * wIn, bl + 0.06f, zDash - 0.5f);
-                k.Push(Matrix4x4.TRS(swc, Quaternion.Euler(-62f, 0f, 0f), Vector3.one));
-                k.Cyl(trim, new Vector3(0, -0.015f, 0), 0.18f, 0.03f, 14, true);
-                k.Pop();
+                if (hd.twin > 0)
+                {
+                    float w = (hd.z1 - hd.z0) * 0.42f, yc = (hd.yt[0] + hd.yb[0]) * 0.5f, hh = (hd.yt[0] - hd.yb[0]) * 0.46f;
+                    foreach (float c in new[] { hd.z0 + w * 0.5f + 0.01f, hd.z1 - w * 0.5f - 0.01f })
+                    {
+                        FaceGrid(k2, chrome, m, true, sd * (c - w * 0.55f), sd * (c + w * 0.55f), yc - hh * 1.1f, yc - hh * 1.1f, yc + hh * 1.1f, yc + hh * 1.1f, 0.005f, 3, 2, false);
+                        FaceGrid(k2, lampF, m, true, sd * (c - w * 0.45f), sd * (c + w * 0.45f), yc - hh, yc - hh, yc + hh, yc + hh, 0.009f, 3, 2, false);
+                    }
+                }
+                else
+                {
+                    FaceGrid(k2, chrome, m, true, sd * (hd.z0 - 0.008f), sd * (hd.z1 + 0.004f), hd.yb[0] - 0.008f, hd.yb[1] - 0.008f, hd.yt[0] + 0.008f, hd.yt[1] + 0.008f, 0.004f, 6, 2, false);
+                    FaceGrid(k2, lampF, m, true, sd * hd.z0, sd * (m.indBumper ? hd.z1 : hd.z1 - 0.07f), hd.yb[0], hd.yb[1], hd.yt[0], hd.yt[1], 0.008f, 6, 2, false);
+                    if (!m.indBumper) FaceGrid(k2, amber, m, true, sd * (hd.z1 - 0.065f), sd * hd.z1, hd.yb[1], hd.yb[1], hd.yt[1], hd.yt[1], 0.008f, 2, 2, false);
+                }
+                if (m.indBumper) { float y = m.bumpF.y1 - 0.07f; FaceGrid(k2, amber, m, true, sd * (m.hw * 0.975f - 0.2f), sd * (m.hw * 0.975f - 0.06f), y - 0.03f, y - 0.03f, y + 0.03f, y + 0.03f, m.bumpF.@out + 0.006f, 2, 1, false); }
+                // tail lamps (+ reversing light inboard)
+                var tl = m.tail;
+                float zi = tl.z0, zo = tl.z1;
+                FaceGrid(k2, lampR, m, false, sd * (zi + (zo - zi) * 0.22f), sd * zo, tl.yb[0], tl.yb[1], tl.yt[0], tl.yt[1], 0.008f, 4, 2, false);
+                FaceGrid(k2, chrome, m, false, sd * zi, sd * (zi + (zo - zi) * 0.22f), tl.yb[0], tl.yb[0], tl.yt[0], tl.yt[0], 0.008f, 2, 2, false);
+                FaceGrid(k2, amber, m, false, sd * (zi + (zo - zi) * 0.22f), sd * (zi + (zo - zi) * 0.45f), tl.yb[0], tl.yb[0], tl.yb[0] + (tl.yt[0] - tl.yb[0]) * 0.35f, tl.yb[0] + (tl.yt[0] - tl.yb[0]) * 0.35f, 0.01f, 2, 1, false);
+            }
+            if (m.tail.band > 0) FaceGrid(k2, Plastic("#3a0c0c"), m, false, -m.tail.z0, m.tail.z0, m.tail.yb[0] + 0.02f, m.tail.yb[0] + 0.02f, m.tail.yt[0] - 0.02f, m.tail.yt[0] - 0.02f, 0.007f, 6, 1, false);
+
+            // ---- sides: cladding, moulding, seams, handles, mirrors, fuel flap, aerial
+            float xa = m.wxR + m.archR + 0.03f, xb = m.wxF - m.archR - 0.03f;
+            foreach (int sd in new[] { 1, -1 })
+            {
+                if (m.clad != null && m.clad.on) SideStrip(k2, m, xa, xb, m.clad.y0, m.clad.y1, sd, 0.008f, Plastic(m.clad.hex));
+                if (m.moulding != null && m.moulding.on)
+                {
+                    var mm = m.moulding.hex == "body" ? paint : Plastic(m.moulding.hex);
+                    SideStrip(k2, m, xa, xb, m.moulding.y - m.moulding.h * 0.5f, m.moulding.y + m.moulding.h * 0.5f, sd, 0.01f, mm);
+                    if (!string.IsNullOrEmpty(m.moulding.stripe)) SideStrip(k2, m, xa, xb, m.moulding.y - 0.006f, m.moulding.y + 0.006f, sd, 0.013f, Plastic(m.moulding.stripe));
+                }
+                Seam(k2, m, m.seamFdF, sd); Seam(k2, m, m.seamFdR, sd); Seam(k2, m, m.seamRdR, sd);
+                if (m.handles != null)
+                    foreach (float hx in m.handles)
+                    {
+                        float y = Top(m, hx) - 0.09f; var c = Side(m, hx, y, sd, 0.008f);
+                        k2.Box(m.handleBody ? paint : trim, c + new Vector3(-0.012f, -0.014f, -0.07f), c + new Vector3(0.012f, 0.014f, 0.07f));
+                    }
+                // mirror at the A-pillar foot
+                {
+                    float mx = G.fb - 0.08f, my = Top(m, mx) + 0.04f; float lat = HwG(m, mx, my);
+                    var mmat = m.mirrorBody ? paint : trim;
+                    float l0 = lat - 0.01f, l1 = lat + 0.17f;
+                    k2.Box(mmat, new Vector3(sd > 0 ? l0 : -l1, my, mx - 0.08f), new Vector3(sd > 0 ? l1 : -l0, my + 0.12f, mx + 0.03f));
+                    k2.Box(chrome, new Vector3(sd > 0 ? l0 + 0.02f : -l1 + 0.01f, my + 0.015f, mx - 0.085f), new Vector3(sd > 0 ? l1 - 0.01f : -l0 - 0.02f, my + 0.105f, mx - 0.08f));
+                }
+                if (m.fuel == sd)
+                {
+                    float fx = m.wxR + m.archR * 0.2f + 0.12f, fy = Top(m, fx) - 0.15f;
+                    var a0 = Side(m, fx - 0.08f, fy - 0.06f, sd, 0.004f); var a1 = Side(m, fx + 0.08f, fy + 0.06f, sd, 0.004f);
+                    SeamLine(k2, Side(m, fx - 0.08f, fy - 0.06f, sd, 0.004f), Side(m, fx + 0.08f, fy - 0.06f, sd, 0.004f), sd);
+                    SeamLine(k2, Side(m, fx - 0.08f, fy + 0.06f, sd, 0.004f), Side(m, fx + 0.08f, fy + 0.06f, sd, 0.004f), sd);
+                    SeamLine(k2, Side(m, fx - 0.08f, fy - 0.06f, sd, 0.004f), Side(m, fx - 0.08f, fy + 0.06f, sd, 0.004f), sd);
+                    SeamLine(k2, Side(m, fx + 0.08f, fy - 0.06f, sd, 0.004f), Side(m, fx + 0.08f, fy + 0.06f, sd, 0.004f), sd);
+                }
+            }
+            if (!string.IsNullOrEmpty(m.aerial))
+            {
+                Vector3 b; float lean = -0.35f;
+                if (m.aerial == "wing") { float ax = G.fb + 0.12f; b = new Vector3(-(Hp(m, ax) - 0.12f), Top(m, ax), ax); }
+                else { float ax = m.aerial == "roofF" ? G.fr - 0.12f : G.rrx + 0.12f; b = new Vector3(0f, G.roof + G.crown, ax); }
+                k2.Push(Matrix4x4.TRS(b, Quaternion.Euler(lean * Mathf.Rad2Deg, 0f, 0f), Vector3.one));
+                k2.Box(trim, new Vector3(-0.004f, 0f, -0.004f), new Vector3(0.004f, m.aerial == "wing" ? 0.75f : 0.42f, 0.004f));
+                k2.Pop();
             }
 
-            var body = k.Build("Body", parent, false, castShadow ? ShadowCastingMode.On : ShadowCastingMode.Off);
+            // ---- roof extras
+            float roofY = G.roof + G.crown;
+            if (ro.rack)
+            {
+                float rx0 = G.rrx + 0.05f, rx1 = G.fr - 0.05f, rw = HwG(m, (rx0 + rx1) * 0.5f, G.roof) - 0.05f;
+                for (int b = 0; b < 4; b++) { float bx = Mathf.Lerp(rx0, rx1, b / 3f); k2.Box(steelM, new Vector3(-rw, roofY + 0.06f, bx - 0.02f), new Vector3(rw, roofY + 0.1f, bx + 0.02f)); }
+                foreach (int sd in new[] { -1, 1 }) k2.Box(steelM, new Vector3(sd * rw - 0.02f, roofY + 0.1f, rx0), new Vector3(sd * rw + 0.02f, roofY + 0.14f, rx1));
+                if (ro.ladder)
+                {
+                    var wood = Plastic("#9a8a6a");
+                    foreach (float lx in new[] { -0.22f, 0.22f }) k2.Box(wood, new Vector3(lx - 0.025f, roofY + 0.14f, rx0 - 0.3f), new Vector3(lx + 0.025f, roofY + 0.2f, rx1 + 0.15f));
+                    for (float z = rx0 - 0.2f; z < rx1 + 0.1f; z += 0.3f) k2.Box(wood, new Vector3(-0.22f, roofY + 0.16f, z - 0.015f), new Vector3(0.22f, roofY + 0.18f, z + 0.015f));
+                }
+            }
+            if (ro.rails)
+                foreach (int sd in new[] { -1, 1 })
+                {
+                    float rx0 = G.rrx + 0.02f, rx1 = G.fr - 0.05f, rw = HwG(m, (rx0 + rx1) * 0.5f, G.roof) - 0.12f;
+                    k2.Box(trim, new Vector3(sd * rw - 0.02f, roofY + 0.02f, rx0), new Vector3(sd * rw + 0.02f, roofY + 0.07f, rx1));
+                }
+            if (ro.tow) { float tz = -m.Le - m.bumpR.@out - 0.12f; k2.Box(steelM, new Vector3(-0.03f, 0.3f, tz), new Vector3(0.03f, 0.36f, -m.Le + 0.1f)); k2.Box(chrome, new Vector3(-0.03f, 0.36f, tz - 0.03f), new Vector3(0.03f, 0.42f, tz + 0.03f)); }
+
+            // ---- interior: seats, dash, steering wheel on the right, dice / air freshener, tax disc
+            {
+                float waist = Top(m, (G.fb + G.rb) * 0.5f);
+                float cabH = G.roof - waist;
+                float fsx = G.fb - (m.van ? 1.05f : 1.2f);
+                float wIn = Hp(m, fsx) - 0.12f;
+                float RoomAt(float x) { float gy = GhY(m, x); return (float.IsNaN(gy) ? G.roof : gy) - 0.06f - waist; } // headroom so headrests stay inside
+                foreach (float zc in new[] { -0.4f, 0.4f }) SeatBack(k2, new Vector3(zc * wIn / 0.75f, waist, fsx), 0.44f, Mathf.Min(cabH, RoomAt(fsx - 0.1f) / 0.85f));
+                if (!m.van && m.seatR > -50f) { float rsx = Mathf.Max(G.rb + (m.L > 4.4f ? 0.55f : 0.4f), G.rrx + 0.12f); if (rsx < fsx - 0.6f) { foreach (float zc in new[] { -0.5f, 0f, 0.5f }) SeatBack(k2, new Vector3(zc * wIn / 0.75f, waist, rsx), zc == 0f ? 0.4f : 0.48f, Mathf.Min(cabH, RoomAt(rsx - 0.1f) / 0.85f)); } }
+                if (m.van) k2.Box(interior, new Vector3(-wIn, m.floor, fsx - 0.42f), new Vector3(wIn, G.roof - 0.05f, fsx - 0.38f));
+                float dashX = G.fb - 0.06f;
+                k2.Box(interior, new Vector3(-wIn, waist - 0.22f, dashX - 0.45f), new Vector3(wIn, waist + 0.03f, dashX));
+                var swc = new Vector3(0.4f * wIn / 0.75f, waist + 0.06f, dashX - 0.5f);
+                k2.Push(Matrix4x4.TRS(swc, Quaternion.Euler(-62f, 0f, 0f), Vector3.one)); k2.Cyl(trim, new Vector3(0, -0.015f, 0), 0.18f, 0.03f, 14, true); k2.Pop();
+                // rear-view mirror with whatever's hanging off it
+                float rvx = G.fr - 0.06f, rvy = G.roof - 0.06f;
+                k2.Box(trim, new Vector3(-0.11f, rvy - 0.025f, rvx - 0.02f), new Vector3(0.11f, rvy + 0.025f, rvx + 0.02f));
+                if (ro.dice) { k2.Box(Plastic("#f4f4f0"), new Vector3(-0.045f, rvy - 0.16f, rvx - 0.025f), new Vector3(0.005f, rvy - 0.11f, rvx + 0.025f)); k2.Box(Plastic("#c62828"), new Vector3(0.01f, rvy - 0.19f, rvx - 0.025f), new Vector3(0.06f, rvy - 0.14f, rvx + 0.025f)); }
+                if (ro.fresh) { var fm = Plastic("#" + ColorUtility.ToHtmlStringRGB(ro.freshCol)); k2.Box(fm, new Vector3(-0.004f, rvy - 0.2f, rvx - 0.045f), new Vector3(0.004f, rvy - 0.08f, rvx + 0.045f)); }
+                if (ro.tax)
+                {
+                    float ty = Top(m, G.fb) + 0.08f; float tx = G.fb - 0.05f;
+                    k2.Push(Matrix4x4.TRS(new Vector3(-0.5f * Hp(m, tx) / 0.85f, ty, tx), Quaternion.Euler(-35f, 0f, 0f), Vector3.one));
+                    k2.Box(discM, new Vector3(-0.035f, -0.035f, -0.003f), new Vector3(0.035f, 0.035f, 0.003f));
+                    k2.Pop();
+                }
+                if (ro.clutter)
+                {
+                    var cl = new[] { Plastic("#b08850"), Plastic("#2a5aa0"), Plastic("#d8d0c0") };
+                    for (int c = 0; c < 3; c++) { float cx = Mathf.Lerp(-0.4f, 0.4f, (float)rng.NextDouble()), cz = G.rb + 0.2f + (float)rng.NextDouble() * 0.4f; k2.Box(cl[c], new Vector3(cx - 0.12f, waist - 0.05f, cz - 0.1f), new Vector3(cx + 0.12f, waist + 0.1f, cz + 0.1f)); }
+                }
+            }
+
+            var body = k2.Build("Body", parent, false, castShadow ? ShadowCastingMode.On : ShadowCastingMode.Off);
             var bmr = body.GetComponent<MeshRenderer>(); bmr.lightProbeUsage = LightProbeUsage.BlendProbes; bmr.reflectionProbeUsage = ReflectionProbeUsage.BlendProbes;
 
-            // contact shadow
-            if (shadowM != null) {
-            var sh = new GameObject("ContactShadow"); sh.transform.SetParent(parent, false);
-            sh.transform.localPosition = new Vector3(0, 0.025f, 0);
-            var shm = new Mesh { name = "CarShadow" };
-            float hw = Mathf.Max(s.W) + 0.22f, hl = s.L / 2f + 0.28f;
-            shm.vertices = new[] { new Vector3(-hw, 0, -hl), new Vector3(hw, 0, -hl), new Vector3(hw, 0, hl), new Vector3(-hw, 0, hl) };
-            shm.uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
-            shm.normals = new[] { Vector3.up, Vector3.up, Vector3.up, Vector3.up };
-            shm.triangles = new[] { 0, 2, 1, 0, 3, 2 };
-            sh.AddComponent<MeshFilter>().sharedMesh = shm;
-            var shr = sh.AddComponent<MeshRenderer>(); shr.sharedMaterial = shadowM; shr.shadowCastingMode = ShadowCastingMode.Off; shr.receiveShadows = false;
-            shr.lightProbeUsage = LightProbeUsage.Off; shr.reflectionProbeUsage = ReflectionProbeUsage.Off;
+            if (shadowM != null)
+            {
+                var sh = new GameObject("ContactShadow"); sh.transform.SetParent(parent, false); sh.transform.localPosition = new Vector3(0, 0.025f, 0);
+                var shm = new Mesh { name = "CarShadow" }; float hw2 = m.hw + 0.2f, hl = m.Le + 0.25f;
+                shm.vertices = new[] { new Vector3(-hw2, 0, -hl), new Vector3(hw2, 0, -hl), new Vector3(hw2, 0, hl), new Vector3(-hw2, 0, hl) };
+                shm.uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
+                shm.normals = new[] { Vector3.up, Vector3.up, Vector3.up, Vector3.up }; shm.triangles = new[] { 0, 2, 1, 0, 3, 2 };
+                sh.AddComponent<MeshFilter>().sharedMesh = shm;
+                var shr = sh.AddComponent<MeshRenderer>(); shr.sharedMaterial = shadowM; shr.shadowCastingMode = ShadowCastingMode.Off; shr.receiveShadows = false; shr.lightProbeUsage = LightProbeUsage.Off; shr.reflectionProbeUsage = ReflectionProbeUsage.Off;
             }
 
-            // wheels
+            // ---- wheels
             var wheels = new Transform[4];
-            float[] zs = { zw1, zw1, zw0, zw0 };
+            float[] wz = { m.wxF, m.wxF, m.wxR, m.wxR };
             for (int i = 0; i < 4; i++)
             {
                 float side = i % 2 == 0 ? -1 : 1;
                 var g = new GameObject("Wheel" + i); g.transform.SetParent(parent, false);
-                float wz = zs[i]; int jj = Col(Mathf.InverseLerp(-s.L / 2f, s.L / 2f, wz));
-                g.transform.localPosition = new Vector3(side * (st[jj].W - 0.1f), s.wheelR, wz);
+                g.transform.localPosition = new Vector3(side * (Hp(m, wz[i]) - m.tw * 0.5f - 0.025f), m.rad, wz[i]);
                 g.transform.localRotation = Quaternion.Euler(0, 0, 90f);
-                g.transform.localScale = new Vector3(s.wheelR, 1f, s.wheelR);
-                g.AddComponent<MeshFilter>().sharedMesh = wheelMesh;
-                var mr = g.AddComponent<MeshRenderer>(); mr.sharedMaterials = new[] { tyre, alloy, under };
-                mr.shadowCastingMode = castShadow ? ShadowCastingMode.On : ShadowCastingMode.Off;
-                mr.lightProbeUsage = LightProbeUsage.BlendProbes;
+                g.transform.localScale = new Vector3(m.rad, m.tw / 0.2f, m.rad);
+                string wt = ro.wheel; if (ro.capMiss && i == 2) wt = "bare";
+                var mesh = wt == "alloy" ? wheelAlloy : wt == "cap" ? wheelCap : wt == "bare" ? wheelBare : wheelSteel;
+                g.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var mr = g.AddComponent<MeshRenderer>();
+                mr.sharedMaterials = new[] { tyre, wt == "alloy" || wt == "cap" ? alloy : steelM, under };
+                mr.shadowCastingMode = castShadow ? ShadowCastingMode.On : ShadowCastingMode.Off; mr.lightProbeUsage = LightProbeUsage.BlendProbes;
                 wheels[i] = g.transform;
             }
             return wheels;
         }
 
+        // ---------------------------------------------------------------- detail helpers
         static void TriOut(MeshKit k, Material m, int a, int b, int c, Vector3 outward)
         {
             Vector3 pa = k.V[a], pb = k.V[b], pc = k.V[c];
@@ -393,78 +645,202 @@ namespace ASBO.Slice
 
         static void Cap(MeshKit k, Vector3[] sec, Material m, Vector3 n)
         {
-            Vector3 c = new Vector3(0, (sec[0].y + sec[R - 1].y) / 2f, sec[0].z);
+            Vector3 c = new Vector3(0, (sec[0].y + sec[R_ - 1].y) / 2f, (sec[0].z + sec[R_ - 1].z) * 0.5f);
             for (int side = -1; side <= 1; side += 2)
-                for (int e = 0; e < R - 1; e++) k.TriN(m, c, new Vector3(sec[e].x * side, sec[e].y, sec[e].z), new Vector3(sec[e + 1].x * side, sec[e + 1].y, sec[e + 1].z), n);
+                for (int e = 0; e < R_ - 1; e++) k.TriN(m, c, new Vector3(sec[e].x * side, sec[e].y, sec[e].z), new Vector3(sec[e + 1].x * side, sec[e + 1].y, sec[e + 1].z), n);
         }
 
-        /// <summary>A narrow dark strip lying on the body between two section points: a panel gap.</summary>
-        static void SeamQuad(MeshKit k, Vector3 a, Vector3 b, Vector3 na, Vector3 nb, int side)
+        /// <summary>A patch lying on the front/rear face: lateral from l0 to l1, bottom yb0→yb1, top yt0→yt1 (both along lateral), pushed out by off.</summary>
+        static void FaceGrid(MeshKit k, Material mat, CarModel m, bool front, float l0, float l1, float yb0, float yb1, float yt0, float yt1, float off, int nu, int nv, bool unused)
         {
-            const float hw = 0.0045f, off = 0.0025f;
-            Vector3 A = new Vector3(a.x * side, a.y, a.z) + new Vector3(na.x * side, na.y, na.z) * off;
-            Vector3 B = new Vector3(b.x * side, b.y, b.z) + new Vector3(nb.x * side, nb.y, nb.z) * off;
-            Vector3 n = new Vector3((na.x + nb.x) * side, na.y + nb.y, na.z + nb.z).normalized;
-            Vector3 dz = Vector3.forward * hw;
-            k.Quad(under, A - dz, A + dz, B + dz, B - dz, n);
+            float fs = front ? 1f : -1f;
+            var id = new int[nu + 1, nv + 1];
+            for (int i = 0; i <= nu; i++)
+                for (int j = 0; j <= nv; j++)
+                {
+                    float u = i / (float)nu, v = j / (float)nv;
+                    float lat = Mathf.Lerp(l0, l1, u), y = Mathf.Lerp(Mathf.Lerp(yb0, yb1, u), Mathf.Lerp(yt0, yt1, u), v);
+                    float z = FaceX(m, front, lat, y);
+                    float latOut = Mathf.Clamp01((Mathf.Abs(lat) - (m.hw * 0.975f - (front ? m.rcF : m.rcR))) / Mathf.Max(0.05f, front ? m.rcF : m.rcR));
+                    Vector3 n = new Vector3(Mathf.Sign(lat) * latOut, 0f, fs * (1f - latOut * 0.6f)).normalized;
+                    id[i, j] = k.Vert(new Vector3(lat, y, z) + n * off, n, new Vector2(u, v));
+                }
+            for (int i = 0; i < nu; i++)
+                for (int j = 0; j < nv; j++)
+                {
+                    int a = id[i, j], b = id[i + 1, j], c = id[i + 1, j + 1], d = id[i, j + 1];
+                    Vector3 o = k.N[a] + k.N[b] + k.N[c] + k.N[d];
+                    TriOut(k, mat, a, b, c, o); TriOut(k, mat, a, c, d, o);
+                }
+        }
+
+        static void Bumper(MeshKit k, CarModel m, bool front, CarBump b, Material paint, System.Random rng)
+        {
+            if (b == null) return;
+            var mat = string.IsNullOrEmpty(b.col) || b.col == "body" ? paint : Plastic(b.col);
+            float fs = front ? 1f : -1f, outw = b.@out;
+            float hwE = m.hw * 0.975f;
+            // outline: wrap from one side round the face to the other
+            var pts = new List<Vector3>(); var nrm = new List<Vector3>();
+            float yMid = (b.y0 + b.y1) * 0.5f;
+            float xw = front ? m.Le - (m.rcF + 0.25f) : -m.Le + (m.rcR + 0.25f);
+            void Add(float lat, float x, Vector3 n) { pts.Add(new Vector3(lat, 0f, x)); nrm.Add(n.normalized); }
+            float sideLat = Hp(m, xw) - Inset(m, yMid, Top(m, xw));
+            Add(-(sideLat + outw * 0.7f), xw, Vector3.left);
+            int n = 16;
+            for (int i = 0; i <= n; i++)
+            {
+                float lat = Mathf.Lerp(-hwE + 0.005f, hwE - 0.005f, i / (float)n);
+                float x = FaceX(m, front, lat, yMid);
+                float rc = front ? m.rcF : m.rcR; float t = Mathf.Clamp01((Mathf.Abs(lat) - (hwE - rc)) / Mathf.Max(0.05f, rc));
+                Vector3 nn = new Vector3(Mathf.Sign(lat) * t, 0f, fs * (1f - t * 0.7f));
+                Add(lat + nn.normalized.x * outw, x + nn.normalized.z * outw, nn);
+            }
+            Add(sideLat + outw * 0.7f, xw, Vector3.right);
+            for (int i = 0; i < pts.Count - 1; i++)
+            {
+                Vector3 a = pts[i], c = pts[i + 1];
+                Vector3 nn = (nrm[i] + nrm[i + 1]).normalized;
+                k.Quad(mat, a + Vector3.up * b.y0, c + Vector3.up * b.y0, c + Vector3.up * b.y1, a + Vector3.up * b.y1, nn);
+                // top and bottom lips back to the body
+                Vector3 ai = a - nrm[i] * (outw + 0.03f), ci = c - nrm[i + 1] * (outw + 0.03f);
+                k.Quad(mat, a + Vector3.up * b.y1, c + Vector3.up * b.y1, ci + Vector3.up * b.y1, ai + Vector3.up * b.y1, Vector3.up);
+                k.Quad(under, a + Vector3.up * b.y0, c + Vector3.up * b.y0, ci + Vector3.up * b.y0, ai + Vector3.up * b.y0, Vector3.down);
+                if (!string.IsNullOrEmpty(b.stripe))
+                {
+                    float sy = b.y0 + (b.y1 - b.y0) * 0.62f;
+                    k.Quad(Plastic(b.stripe), a + nrm[i] * 0.003f + Vector3.up * (sy - 0.012f), c + nrm[i + 1] * 0.003f + Vector3.up * (sy - 0.012f), c + nrm[i + 1] * 0.003f + Vector3.up * (sy + 0.012f), a + nrm[i] * 0.003f + Vector3.up * (sy + 0.012f), nn);
+                }
+            }
+            // lower intake / air dam
+            if (b.intake != null && b.intake.Length >= 3)
+            {
+                float y0 = b.intake[0], y1 = b.intake[1], w = b.intake[2];
+                for (int i = 0; i < 6; i++)
+                {
+                    float l0 = Mathf.Lerp(-w, w, i / 6f), l1 = Mathf.Lerp(-w, w, (i + 1) / 6f);
+                    float x0 = FaceX(m, front, l0, (y0 + y1) * 0.5f) + fs * (outw + 0.004f), x1 = FaceX(m, front, l1, (y0 + y1) * 0.5f) + fs * (outw + 0.004f);
+                    k.Quad(grilleM, new Vector3(l0, y0, x0), new Vector3(l1, y0, x1), new Vector3(l1, y1, x1), new Vector3(l0, y1, x0), Vector3.forward * fs);
+                }
+            }
+            if (b.step) { float x = FaceX(m, false, 0, b.y0) - outw - 0.12f; k.Box(steelM, new Vector3(-0.45f, b.y0 - 0.06f, x), new Vector3(0.45f, b.y0, x + 0.15f)); }
+        }
+
+        static void SideStrip(MeshKit k, CarModel m, float x0, float x1, float y0, float y1, int sd, float off, Material mat)
+        {
+            int n = 10;
+            for (int i = 0; i < n; i++)
+            {
+                float xa = Mathf.Lerp(x0, x1, i / (float)n), xb = Mathf.Lerp(x0, x1, (i + 1) / (float)n);
+                Vector3 a0 = Side(m, xa, y0, sd, off), b0 = Side(m, xb, y0, sd, off), b1 = Side(m, xb, y1, sd, off), a1 = Side(m, xa, y1, sd, off);
+                k.Quad(mat, a0, b0, b1, a1, new Vector3(sd, 0, 0));
+                // little top and bottom faces so it stands proud
+                Vector3 a0i = Side(m, xa, y0, sd, off - 0.012f), b0i = Side(m, xb, y0, sd, off - 0.012f), a1i = Side(m, xa, y1, sd, off - 0.012f), b1i = Side(m, xb, y1, sd, off - 0.012f);
+                k.Quad(mat, a1, b1, b1i, a1i, Vector3.up); k.Quad(mat, a0, b0, b0i, a0i, Vector3.down);
+            }
+        }
+
+        /// <summary>Panel gap along a polyline of (length x, t) where t runs sill (0) to shoulder (1).</summary>
+        static void Seam(MeshKit k, CarModel m, float[] poly, int sd)
+        {
+            if (poly == null || poly.Length < 4) return;
+            var pts = new List<Vector3>();
+            for (int i = 0; i + 1 < poly.Length; i += 2)
+            {
+                float x = poly[i], t = poly[i + 1];
+                float yb = Yb(m, x), top = Top(m, x), y = Mathf.Lerp(yb + 0.02f, top - 0.01f, t);
+                pts.Add(Side(m, x, y, sd, 0.003f));
+            }
+            for (int i = 0; i < pts.Count - 1; i++)
+            {
+                // subdivide so the line hugs the curve
+                for (int s = 0; s < 4; s++)
+                {
+                    Vector3 a = Vector3.Lerp(pts[i], pts[i + 1], s / 4f), b = Vector3.Lerp(pts[i], pts[i + 1], (s + 1) / 4f);
+                    float ax = a.z, ay = a.y, bx = b.z, by = b.y;
+                    SeamLine(k, Side(m, ax, ay, sd, 0.003f), Side(m, bx, by, sd, 0.003f), sd);
+                }
+            }
+        }
+
+        static void SeamLine(MeshKit k, Vector3 a, Vector3 b, int sd)
+        {
+            Vector3 dir = (b - a); if (dir.sqrMagnitude < 1e-8f) return; dir.Normalize();
+            Vector3 n = new Vector3(sd, 0, 0);
+            Vector3 w = Vector3.Cross(n, dir).normalized * 0.0045f;
+            k.Quad(under, a - w, a + w, b + w, b - w, n);
         }
 
         static void PlateQuad(MeshKit k, Material m, Vector3 c, float w, float h, float facing)
         {
-            Vector3 x = Vector3.right * (w / 2f) * -facing, y = Vector3.up * (h / 2f); // reads left-to-right for someone facing the plate
+            Vector3 x = Vector3.right * (w / 2f) * -facing, y = Vector3.up * (h / 2f);
             Vector3 n = Vector3.forward * facing;
             k.QuadUV(m, c - x - y, c + x - y, c + x + y, c - x + y, n, new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1));
-            k.Box(trim, c - x * 1.04f - y * 1.12f - n * 0.01f, c + x * 1.04f + y * 1.12f - n * 0.002f);
+            k.Box(trim, c - new Vector3(w * 0.52f, h * 0.56f, 0f) - n * 0.012f, c + new Vector3(w * 0.52f, h * 0.56f, 0f) - n * 0.002f);
         }
 
-        static void Seat(MeshKit k, Vector3 basePos, float w, float belt)
+        static void SeatBack(MeshKit k, Vector3 pos, float wd, float cabH)
         {
-            float back = belt + 0.16f - basePos.y;
-            k.Box(interior, basePos + new Vector3(-w / 2f, 0.18f, -0.05f), basePos + new Vector3(w / 2f, 0.3f, 0.45f)); // cushion
-            k.Push(Matrix4x4.TRS(basePos + new Vector3(0, 0.28f, -0.02f), Quaternion.Euler(-14f, 0f, 0f), Vector3.one));
-            k.Box(interior, new Vector3(-w / 2f, 0f, -0.06f), new Vector3(w / 2f, back - 0.25f, 0.06f));
-            int heads = w > 0.8f ? 3 : 1;
-            for (int h = 0; h < heads; h++)
-            {
-                float hx = heads == 1 ? 0f : Mathf.Lerp(-w * 0.36f, w * 0.36f, h / (heads - 1f));
-                k.Box(interior, new Vector3(hx - 0.12f, back - 0.2f, -0.05f), new Vector3(hx + 0.12f, back - 0.02f, 0.05f));
-            }
+            float bh = Mathf.Clamp(Mathf.Min(0.36f, cabH * 0.55f), 0.08f, Mathf.Max(0.08f, cabH * 0.85f - 0.2f));
+            k.Push(Matrix4x4.TRS(pos, Quaternion.Euler(-12f, 0f, 0f), Vector3.one));
+            k.Box(interior, new Vector3(-wd / 2f, 0.03f, -0.05f), new Vector3(wd / 2f, 0.03f + bh, 0.05f));
+            k.Box(interior, new Vector3(-wd * 0.23f, 0.03f + bh + 0.01f, -0.035f), new Vector3(wd * 0.23f, 0.03f + bh + 0.15f, 0.035f));
             k.Pop();
+            k.Box(interior, new Vector3(pos.x - wd / 2f, pos.y - 0.02f, pos.z + 0.02f), new Vector3(pos.x + wd / 2f, pos.y + 0.07f, pos.z + 0.42f));
         }
 
-        // ------------------------------------------------------------------ wheels
-        static Mesh BuildWheel()
+        // ---------------------------------------------------------------- wheels
+        static Mesh BuildWheel(string type)
         {
             var k = new MeshKit();
             const int seg = 28;
-            // tyre: tread with shoulders, bulging sidewalls (radius 1 = tyre outer; axle along Y, ±0.1 m wide)
             var tyreProf = new[] { new Vector2(0.64f, -0.088f), new Vector2(0.8f, -0.104f), new Vector2(0.93f, -0.1f), new Vector2(0.985f, -0.085f), new Vector2(1f, -0.06f), new Vector2(1f, 0.06f), new Vector2(0.985f, 0.085f), new Vector2(0.93f, 0.1f), new Vector2(0.8f, 0.104f), new Vector2(0.64f, 0.088f) };
             Lathe(k, tyre, tyreProf, seg, new Vector2(0.82f, 0f));
-            // rim lip and dark barrel behind the spokes
-            Lathe(k, alloy, new[] { new Vector2(0.58f, 0.07f), new Vector2(0.645f, 0.09f), new Vector2(0.66f, 0.083f) }, seg, new Vector2(0.62f, 0f));
-            Lathe(k, alloy, new[] { new Vector2(0.66f, -0.083f), new Vector2(0.645f, -0.09f), new Vector2(0.58f, -0.07f) }, seg, new Vector2(0.62f, 0f));
+            var dish = type == "alloy" || type == "cap" ? alloy : steelM;
             foreach (float sy in new[] { 1f, -1f })
             {
-                Disc(k, under, 0.6f, 0.02f * sy, sy, seg);
-                Disc(k, alloy, 0.17f, 0.078f * sy, sy, 14); // hub
-                // five spokes
-                for (int sp = 0; sp < 5; sp++)
+                Lathe(k, dish, new[] { new Vector2(0.58f, 0.07f * sy), new Vector2(0.645f, 0.09f * sy), new Vector2(0.66f, 0.083f * sy) }, seg, new Vector2(0.62f, 0f));
+                if (type == "alloy")
                 {
-                    float a = sp * Mathf.PI * 2f / 5f + (sy > 0 ? 0f : 0.31f);
-                    Vector3 dir = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)), perp = new Vector3(-dir.z, 0, dir.x);
-                    Vector3 i0 = dir * 0.15f - perp * 0.075f, i1 = dir * 0.15f + perp * 0.075f, o0 = dir * 0.6f - perp * 0.045f, o1 = dir * 0.6f + perp * 0.045f;
-                    float yf = 0.072f * sy, yb = 0.035f * sy;
-                    Vector3 up = Vector3.up * sy;
-                    k.Quad(alloy, i0 + Vector3.up * yf, i1 + Vector3.up * yf, o1 + Vector3.up * (yf - 0.01f * sy), o0 + Vector3.up * (yf - 0.01f * sy), up);
-                    k.Quad(alloy, i0 + Vector3.up * yf, o0 + Vector3.up * (yf - 0.01f * sy), o0 + Vector3.up * yb, i0 + Vector3.up * yb, -perp);
-                    k.Quad(alloy, i1 + Vector3.up * yf, o1 + Vector3.up * (yf - 0.01f * sy), o1 + Vector3.up * yb, i1 + Vector3.up * yb, perp);
+                    Disc(k, under, 0.6f, 0.02f * sy, sy, seg);
+                    Disc(k, dish, 0.17f, 0.078f * sy, sy, 14);
+                    for (int sp = 0; sp < 5; sp++)
+                    {
+                        float a = sp * Mathf.PI * 2f / 5f + (sy > 0 ? 0f : 0.31f);
+                        Vector3 dir = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)), perp = new Vector3(-dir.z, 0, dir.x);
+                        Vector3 i0 = dir * 0.15f - perp * 0.075f, i1 = dir * 0.15f + perp * 0.075f, o0 = dir * 0.6f - perp * 0.045f, o1 = dir * 0.6f + perp * 0.045f;
+                        float yf = 0.072f * sy, yb = 0.035f * sy;
+                        k.Quad(dish, i0 + Vector3.up * yf, i1 + Vector3.up * yf, o1 + Vector3.up * (yf - 0.01f * sy), o0 + Vector3.up * (yf - 0.01f * sy), Vector3.up * sy);
+                        k.Quad(dish, i0 + Vector3.up * yf, o0 + Vector3.up * (yf - 0.01f * sy), o0 + Vector3.up * yb, i0 + Vector3.up * yb, -perp);
+                        k.Quad(dish, i1 + Vector3.up * yf, o1 + Vector3.up * (yf - 0.01f * sy), o1 + Vector3.up * yb, i1 + Vector3.up * yb, perp);
+                    }
+                    Disc(k, dish, 0.42f, 0.028f * sy, sy, 20);
                 }
-                // brake disc seen between the spokes
-                Disc(k, alloy, 0.42f, 0.028f * sy, sy, 20);
+                else if (type == "cap")
+                {
+                    // plastic wheel trim: domed disc with a ring of slots
+                    Lathe(k, dish, new[] { new Vector2(0.001f, 0.1f * sy), new Vector2(0.2f, 0.098f * sy), new Vector2(0.45f, 0.088f * sy), new Vector2(0.6f, 0.078f * sy) }, seg, new Vector2(0f, -0.5f * sy));
+                    for (int s = 0; s < 10; s++)
+                    {
+                        float a = s * Mathf.PI * 2f / 10f; Vector3 dir = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)), perp = new Vector3(-dir.z, 0, dir.x);
+                        Vector3 c0 = dir * 0.3f, c1 = dir * 0.5f; float y = 0.095f * sy;
+                        k.Quad(under, c0 - perp * 0.035f + Vector3.up * y, c1 - perp * 0.05f + Vector3.up * (y - 0.006f * sy), c1 + perp * 0.05f + Vector3.up * (y - 0.006f * sy), c0 + perp * 0.035f + Vector3.up * y, Vector3.up * sy);
+                    }
+                }
+                else
+                {
+                    // pressed steel wheel (bare = its hubcap's gone)
+                    Lathe(k, dish, new[] { new Vector2(0.001f, 0.04f * sy), new Vector2(0.16f, 0.045f * sy), new Vector2(0.3f, 0.05f * sy), new Vector2(0.45f, 0.035f * sy), new Vector2(0.58f, 0.06f * sy) }, seg, new Vector2(0.3f, -0.5f * sy));
+                    for (int s = 0; s < 6; s++)
+                    {
+                        float a = s * Mathf.PI * 2f / 6f; Vector3 c = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 0.38f;
+                        k.Quad(under, c + new Vector3(-0.04f, 0.052f * sy, -0.04f), c + new Vector3(0.04f, 0.052f * sy, -0.04f), c + new Vector3(0.04f, 0.052f * sy, 0.04f), c + new Vector3(-0.04f, 0.052f * sy, 0.04f), Vector3.up * sy);
+                    }
+                    if (type != "bare") Disc(k, chrome, 0.12f, 0.058f * sy, sy, 12);
+                }
             }
-            var g = k.Build("WheelProto", null, false);
-            var mesh = g.GetComponent<MeshFilter>().sharedMesh; Object.Destroy(g);
-            // the order of submeshes follows first use: tyre, alloy, under
+            var g = k.Build("Wheel_" + type, null, false);
+            var mesh = g.GetComponent<MeshFilter>().sharedMesh; UnityEngine.Object.Destroy(g);
             return mesh;
         }
 
@@ -478,7 +854,7 @@ namespace ASBO.Slice
                 {
                     Vector2 t = prof[Mathf.Min(p + 1, np - 1)] - prof[Mathf.Max(p - 1, 0)];
                     Vector2 n2 = new Vector2(t.y, -t.x).normalized;
-                    if (Vector2.Dot(n2, prof[p] - centre) < 0f) n2 = -n2; // away from the profile's middle
+                    if (Vector2.Dot(n2, prof[p] - centre) < 0f) n2 = -n2;
                     id[s, p] = k.Vert(new Vector3(prof[p].x * ca, prof[p].y, prof[p].x * sa), new Vector3(n2.x * ca, n2.y, n2.x * sa), new Vector2(s / (float)seg, p / (float)(np - 1)));
                 }
             }
@@ -495,17 +871,17 @@ namespace ASBO.Slice
         {
             Vector3 n = Vector3.up * face;
             int c = k.Vert(new Vector3(0, y, 0), n, new Vector2(0.5f, 0.5f));
-            int first = -1, prev = -1;
+            int prev = -1;
             for (int s = 0; s <= seg; s++)
             {
                 float a = s * Mathf.PI * 2f / seg;
                 int v = k.Vert(new Vector3(Mathf.Cos(a) * r, y, Mathf.Sin(a) * r), n, new Vector2(0.5f + Mathf.Cos(a) * 0.5f, 0.5f + Mathf.Sin(a) * 0.5f));
                 if (prev >= 0) TriOut(k, m, c, prev, v, n);
-                if (first < 0) first = v; prev = v;
+                prev = v;
             }
         }
 
-        // ------------------------------------------------------------------ number plates
+        // ---------------------------------------------------------------- number plates
         static readonly Dictionary<char, string[]> Glyph = new Dictionary<char, string[]>
         {
             ['0'] = new[] { " ### ", "#   #", "#  ##", "# # #", "##  #", "#   #", " ### " },
@@ -543,11 +919,17 @@ namespace ASBO.Slice
             ['Y'] = new[] { "#   #", "#   #", " # # ", "  #  ", "  #  ", "  #  ", "  #  " },
         };
 
+        /// <summary>Old prefix plates (P716 FVN) on older cars, current style (KX09 DUK) on the rest.</summary>
         static string Registration(System.Random r)
         {
             const string L = "ABCDEFGHJKLMNOPRSTUVWXY";
             char C() => L[r.Next(L.Length)];
-            int age = new[] { 15, 65, 16, 66, 17, 67, 18, 68, 19, 69, 20, 70, 21, 71, 22, 72, 23, 73, 24, 74 }[r.Next(20)];
+            if (r.NextDouble() < 0.35)
+            {
+                const string pre = "FGHJKLMNPRSTVWXY";
+                return "" + pre[r.Next(pre.Length)] + r.Next(10, 999) + " " + C() + C() + C();
+            }
+            int age = new[] { 51, 2, 52, 3, 53, 4, 54, 5, 55, 6, 56, 7, 57, 8, 58, 9, 59, 10, 60, 11, 61, 12, 62, 13, 63, 14, 64, 15, 65, 16, 66, 17, 67, 18, 68, 19 }[r.Next(36)];
             return "" + C() + C() + age.ToString("00") + " " + C() + C() + C();
         }
 
@@ -559,36 +941,61 @@ namespace ASBO.Slice
             var ink = new Color32(18, 18, 20, 255);
             var px = new Color32[W * H];
             for (int i = 0; i < px.Length; i++) px[i] = bg;
-            // thin border
             for (int x = 0; x < W; x++) { px[x] = px[(H - 1) * W + x] = new Color32(40, 40, 40, 255); }
             for (int y = 0; y < H; y++) { px[y * W] = px[y * W + W - 1] = new Color32(40, 40, 40, 255); }
+            bool modern = reg.Length > 1 && char.IsLetter(reg[1]);
+            int x0 = 0;
+            if (modern)
+            {
+                // blue band with GB
+                for (int y = 1; y < H - 1; y++) for (int x = 1; x < 22; x++) px[y * W + x] = new Color32(18, 60, 148, 255);
+                DrawText(px, W, H, "GB", 3, 6, 2, 2, new Color32(255, 212, 0, 255));
+                x0 = 20;
+            }
             int charW = 5 * sx, gap = 4, space = 12;
             int total = 0; foreach (char ch in reg) total += ch == ' ' ? space : charW + gap; total -= gap;
-            int cx = (W - total) / 2, cy = (H - 7 * sy) / 2;
+            int cx = x0 + (W - x0 - total) / 2, cy = (H - 7 * sy) / 2;
             foreach (char ch in reg)
             {
                 if (ch == ' ') { cx += space; continue; }
-                if (Glyph.TryGetValue(ch, out var g))
-                    for (int gy = 0; gy < 7; gy++)
-                        for (int gx = 0; gx < 5; gx++)
-                            if (g[gy][gx] == '#')
-                                for (int yy = 0; yy < sy; yy++)
-                                    for (int xx = 0; xx < sx; xx++)
-                                    {
-                                        int X = cx + gx * sx + xx, Y = cy + (6 - gy) * sy + yy;
-                                        if (X >= 0 && X < W && Y >= 0 && Y < H) px[Y * W + X] = ink;
-                                    }
+                DrawChar(px, W, H, ch, cx, cy, sx, sy, ink);
                 cx += charW + gap;
             }
             tex.SetPixels32(px); tex.Apply(true, true);
             return tex;
         }
 
-        public static Spec Random(System.Random r) { int v = r.Next(10); return v < 5 ? Hatch : v < 8 ? Saloon : Van; }
+        static void DrawText(Color32[] px, int W, int H, string s, int x, int y, int sx, int sy, Color32 c) { foreach (char ch in s) { DrawChar(px, W, H, ch, x, y, sx, sy, c); x += 6 * sx; } }
+        static void DrawChar(Color32[] px, int W, int H, char ch, int cx, int cy, int sx, int sy, Color32 ink)
+        {
+            if (!Glyph.TryGetValue(ch, out var g)) return;
+            for (int gy = 0; gy < 7; gy++)
+                for (int gx = 0; gx < 5; gx++)
+                    if (g[gy][gx] == '#')
+                        for (int yy = 0; yy < sy; yy++)
+                            for (int xx = 0; xx < sx; xx++)
+                            {
+                                int X = cx + gx * sx + xx, Y = cy + (6 - gy) * sy + yy;
+                                if (X >= 0 && X < W && Y >= 0 && Y < H) px[Y * W + X] = ink;
+                            }
+        }
+
+        // ---------------------------------------------------------------- what's on the estate
+        static readonly (string id, int w)[] Mix = { ("hatch_a", 16), ("hatch_b", 12), ("saloon_b", 9), ("supermini_a", 14), ("supermini_b", 13), ("micro_a", 10), ("hatch_c", 9), ("hatch_d", 7), ("van_a", 13) };
+        public static Spec Random(System.Random r)
+        {
+            int tot = 0; foreach (var e in Mix) tot += e.w;
+            int k = r.Next(tot);
+            foreach (var e in Mix) { if (k < e.w) return Get(e.id); k -= e.w; }
+            return Get("hatch_a");
+        }
+        /// <summary>Paint from the original game's estate cars: tired greys, navy, maroon, bottle green, beige, white van white.</summary>
         public static Color RandomPaint(System.Random r)
         {
-            Color[] c = { new Color(0.72f, 0.73f, 0.75f), new Color(0.06f, 0.06f, 0.07f), new Color(0.9f, 0.9f, 0.88f), new Color(0.1f, 0.2f, 0.42f), new Color(0.48f, 0.05f, 0.06f), new Color(0.13f, 0.27f, 0.18f), new Color(0.32f, 0.33f, 0.35f), new Color(0.55f, 0.46f, 0.3f), new Color(0.2f, 0.32f, 0.55f), new Color(0.62f, 0.62f, 0.58f) };
-            return c[r.Next(c.Length)];
+            string[] hex = { "#7a7f86", "#2a3f6a", "#b8b2a2", "#8a1f22", "#2f3a2e", "#d0d4d8", "#2f4a84", "#d9d8cf", "#aab0b6", "#4a6a45", "#d8c038", "#c9c4bc", "#6c2434", "#5a6e86", "#8a8f86", "#e8e8e8", "#1f3657", "#6e2530", "#3a5a8a", "#5e7a52", "#6e6a72", "#9a2a1e" };
+            ColorUtility.TryParseHtmlString(hex[r.Next(hex.Length)], out var c);
+            return c;
         }
+        public static Color VanPaint(System.Random r) { ColorUtility.TryParseHtmlString(r.NextDouble() < 0.7 ? "#e8e6dc" : r.NextDouble() < 0.5 ? "#c8c4b6" : "#2a3f6a", out var c); return c; }
     }
 }

@@ -42,19 +42,17 @@ namespace ASBO.Slice
             var lp = models.Select(m => transform.InverseTransformPoint(m.position)).ToArray();
             float zF = lp.Max(p => p.z), zR = lp.Min(p => p.z), track = lp.Average(p => Mathf.Abs(p.x));
             float groundY = lp.Average(p => p.y) - r;
-            var b = CarBody.Hatch; // the demo car's short wheelbase suits a hatchback
-            float L = (zF - zR) / (b.wheelZ1 - b.wheelZ0);
-            float wAtWheel = 0.85f - 0.1f;
-            var spec = new CarBody.Spec { L = L, u = b.u, belt = b.belt, top = b.top, W = b.W.Select(x => x * track / wAtWheel).ToArray(), wheelR = r, wheelZ0 = b.wheelZ0, wheelZ1 = b.wheelZ1, tumble = b.tumble };
+            var spec = CarBody.Get("hatch_a"); var cm = spec.m; // the estate's five-door hatch, scaled so its arches sit on RCC's wheels
+            float scale = (zF - zR) / cm.wb;
             foreach (var mr in GetComponentsInChildren<MeshRenderer>(true)) mr.enabled = false;
             // RCC's motion-blur wheel discs get switched back on by the controller: remove them outright
             foreach (var t in GetComponentsInChildren<Transform>(true).Where(t => t != transform && t.name.ToLowerInvariant().Contains("blur")).ToList()) t.gameObject.SetActive(false);
             foreach (var w in wcs) { var f = w.GetType().GetField("wheelBlurRenderers", F); if (f != null && f.FieldType.IsArray) f.SetValue(w, System.Array.CreateInstance(f.FieldType.GetElementType(), 0)); }
             foreach (var smr in GetComponentsInChildren<SkinnedMeshRenderer>(true)) smr.enabled = false;
             var vis = new GameObject("ASBO_Body").transform; vis.SetParent(transform, false);
-            float zc = (zF + zR) / 2f - ((b.wheelZ0 + b.wheelZ1) / 2f - 0.5f) * L;
-            vis.localPosition = new Vector3(0f, groundY, zc); vis.localRotation = Quaternion.identity;
-            var ours = CarBody.Build(vis, spec, paint, true, 4242);
+            float zc = (zF + zR) / 2f - scale * (cm.wxF + cm.wxR) / 2f;
+            vis.localPosition = new Vector3(0f, groundY, zc); vis.localRotation = Quaternion.identity; vis.localScale = Vector3.one * scale;
+            var ours = CarBody.Build(vis, spec, paint, true, 4242, false);
             foreach (var w in ours)
             {
                 Vector3 wl = transform.InverseTransformPoint(w.position);

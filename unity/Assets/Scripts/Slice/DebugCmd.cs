@@ -188,37 +188,30 @@ namespace ASBO.Slice
             foreach (var t in TrafficCar.All.ToArray()) if (t != null) t.gameObject.SetActive(false);
             World.HideHud = true;
             string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots"); System.IO.Directory.CreateDirectory(dir);
-            var specs = new[] { CarBody.Hatch, CarBody.Saloon, CarBody.Van };
-            var cols = new[] { new Color(0.5f, 0.05f, 0.06f), new Color(0.72f, 0.73f, 0.75f), new Color(0.9f, 0.9f, 0.88f) };
-            var cars = new Transform[3];
-            float z = World.RoadZ + 1.9f;
-            for (int i = 0; i < 3; i++)
+            var ids = new System.Collections.Generic.List<string>(CarBody.Models.Keys);
+            var cars = new Transform[ids.Count];
+            float z = World.RoadZ + 1.9f; var rng = new System.Random(7);
+            for (int i = 0; i < ids.Count; i++)
             {
-                var g = new GameObject("ShowCar" + i).transform;
-                Vector3 p = new Vector3(-36f + i * 7.5f, 5f, z);
+                var g = new GameObject("ShowCar_" + ids[i]).transform;
+                Vector3 p = new Vector3(-60f + i * 7f, 5f, z);
                 if (Physics.Raycast(p, Vector3.down, out var hit, 20f, ~(1 << 2), QueryTriggerInteraction.Ignore)) p.y = hit.point.y; else p.y = 0f;
                 g.position = p; g.rotation = Quaternion.Euler(0, 90f, 0);
-                CarBody.Build(g, specs[i], cols[i], true, 100 + i);
+                var spec = CarBody.Get(ids[i]);
+                CarBody.Build(g, spec, spec.van ? CarBody.VanPaint(rng) : CarBody.RandomPaint(rng), true, 300 + i * 17);
                 cars[i] = g;
             }
             var cg = new GameObject("ShowCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 40f; cam.nearClipPlane = 0.05f;
             var main = Camera.main; if (main != null) { var src = main.GetComponent<UniversalAdditionalCameraData>(); var dst = cam.GetUniversalAdditionalCameraData(); if (src != null) { dst.renderPostProcessing = src.renderPostProcessing; dst.antialiasing = src.antialiasing; } }
             yield return null; yield return null;
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < cars.Length; i++)
             {
-                var c = cars[i]; Vector3 f = c.forward, l = -c.right, u = Vector3.up, at = c.position + u * 0.75f;
-                var views = new (string, Vector3, Vector3)[]
-                {
-                    ("front", c.position + f * 4.6f + l * 3.4f + u * 1.35f, at + f * 0.3f),
-                    ("side", c.position + l * 6.2f + u * 1.1f, at),
-                    ("rear", c.position - f * 4.6f - l * 3.0f + u * 1.5f, at - f * 0.3f),
-                    ("wheel", c.position + f * (specs[i].wheelZ1 - 0.5f) * specs[i].L + l * 1.9f + u * 0.55f, c.position + f * (specs[i].wheelZ1 - 0.5f) * specs[i].L + l * 0.8f + u * 0.4f),
-                };
-                foreach (var (name, pos, look) in views)
+                var c = cars[i]; Vector3 f = c.forward, l = -c.right, u = Vector3.up, at = c.position + u * 0.7f;
+                foreach (var (name, pos, look) in new[] { ("front", c.position + f * 4.4f + l * 3.2f + u * 1.3f, at + f * 0.3f), ("rear", c.position - f * 4.4f - l * 3.0f + u * 1.4f, at - f * 0.3f) })
                 {
                     cg.transform.position = pos; cg.transform.LookAt(look);
                     yield return null; yield return null;
-                    ScreenCapture.CaptureScreenshot(dir + "/carshow_" + i + "_" + name + ".png", 2);
+                    ScreenCapture.CaptureScreenshot(dir + "/cars_" + ids[i] + "_" + name + ".png");
                     yield return null; yield return null;
                 }
             }

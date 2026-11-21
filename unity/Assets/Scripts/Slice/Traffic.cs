@@ -27,7 +27,7 @@ namespace ASBO.Slice
             g.transform.rotation = Quaternion.Euler(0, dir > 0 ? 90f : -90f, 0);
             var spec = CarBody.Random(r);
             t.L = spec.L;
-            t.wheels = CarBody.Build(g.transform, spec, CarBody.RandomPaint(r));
+            t.wheels = CarBody.Build(g.transform, spec, spec.van ? CarBody.VanPaint(r) : CarBody.RandomPaint(r), true, r.Next());
             var bc = g.AddComponent<BoxCollider>();
             float h = spec.van ? 2.0f : 1.4f;
             bc.center = new Vector3(0, 0.3f + h / 2f, 0); bc.size = new Vector3(1.7f, h, spec.L);
