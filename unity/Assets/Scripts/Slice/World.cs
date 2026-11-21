@@ -19,6 +19,7 @@ namespace ASBO.Slice
         {
             for (int i = 0; i < 32; i++) Physics.IgnoreLayerCollision(CamBlockLayer, i, true);
             if (Application.isEditor) Application.runInBackground = true; // keep playing while the editor is unfocused (scripted captures)
+            if (Application.isMobilePlatform) { Application.targetFrameRate = 60; Screen.sleepTimeout = SleepTimeout.NeverSleep; }
             if (inst != null || FindFirstObjectByType<World>() != null) return;
             var g = new GameObject("ASBO_Slice"); inst = g.AddComponent<World>();
             DontDestroyOnLoad(g);
@@ -159,7 +160,9 @@ namespace ASBO.Slice
         {
             if (HideHud) return;
             string lvl = Gore.Level == 2 ? "Full" : Gore.Level == 1 ? "Reduced" : "Off";
-            GUI.Label(new Rect(12, 8, 700, 120), "ASBO — Abbots Wend slice   WASD move/drive • Shift run • E enter/exit car • Space jump/brake • R reset • G gore: " + lvl);
+            GUI.Label(new Rect(12, 8, 700, 120), TouchControls.Wanted
+                ? "ASBO — Abbots Wend (Unity test)   Left thumb: move/steer • Drag: look • CAR by a car to drive"
+                : "ASBO — Abbots Wend slice   WASD move/drive • Shift run • E enter/exit car • Space jump/brake • R reset • G gore: " + lvl);
             if (!string.IsNullOrEmpty(Ambulance.Status)) GUI.Label(new Rect(12, 28, 700, 30), Ambulance.Status);
             GUI.Label(new Rect(12, 46, 900, 30), Mathf.RoundToInt(1f / Time.smoothDeltaTime) + " fps   1-0: visit cottage (Shift = inside)   " + lastHouse + "   " + Resident.Stats() + "  traffic " + TrafficCar.All.Count);
         }

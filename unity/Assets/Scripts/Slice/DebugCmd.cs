@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
@@ -73,6 +74,9 @@ namespace ASBO.Slice
             Vector3 d = c - from; float yaw = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
             pc.Teleport(from, yaw, 18f);
         }
+        /// <summary>Park one of each traffic body on the road and photograph them from a few angles (Shots/carshow_*).</summary>
+        public static void CarShow() { new GameObject("CarShow").AddComponent<CarShowRun>(); }
+        public static void Touch(int on) { PlayerPrefs.SetInt("asbo_touch", on); PlayerPrefs.Save(); }
         public static void Stock(int on) { PlayerPrefs.SetInt("asbo_stock", on); PlayerPrefs.Save(); Debug.Log("[ASBO] stock bodies " + on); }
         public static void ShowGaitFrom(float speed, int frames, float camOffset, float swing, float radius)
         {
@@ -168,6 +172,56 @@ namespace ASBO.Slice
             Time.captureFramerate = 0;
             Debug.Log("[ASBO] crash test: hit " + hit + " at frame " + hitFrame + ", target now " + target.state);
             Destroy(cg); World.HideHud = false; Destroy(gameObject);
+        }
+    }
+
+    public class CarShowRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            foreach (var t in TrafficCar.All.ToArray()) if (t != null) t.gameObject.SetActive(false);
+            World.HideHud = true;
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots"); System.IO.Directory.CreateDirectory(dir);
+            var specs = new[] { CarBody.Hatch, CarBody.Saloon, CarBody.Van };
+            var cols = new[] { new Color(0.5f, 0.05f, 0.06f), new Color(0.72f, 0.73f, 0.75f), new Color(0.9f, 0.9f, 0.88f) };
+            var cars = new Transform[3];
+            float z = World.RoadZ + 1.9f;
+            for (int i = 0; i < 3; i++)
+            {
+                var g = new GameObject("ShowCar" + i).transform;
+                Vector3 p = new Vector3(-36f + i * 7.5f, 5f, z);
+                if (Physics.Raycast(p, Vector3.down, out var hit, 20f, ~(1 << 2), QueryTriggerInteraction.Ignore)) p.y = hit.point.y; else p.y = 0f;
+                g.position = p; g.rotation = Quaternion.Euler(0, 90f, 0);
+                CarBody.Build(g, specs[i], cols[i], true, 100 + i);
+                cars[i] = g;
+            }
+            var cg = new GameObject("ShowCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 40f; cam.nearClipPlane = 0.05f;
+            var main = Camera.main; if (main != null) { var src = main.GetComponent<UniversalAdditionalCameraData>(); var dst = cam.GetUniversalAdditionalCameraData(); if (src != null) { dst.renderPostProcessing = src.renderPostProcessing; dst.antialiasing = src.antialiasing; } }
+            yield return null; yield return null;
+            for (int i = 0; i < 3; i++)
+            {
+                var c = cars[i]; Vector3 f = c.forward, l = -c.right, u = Vector3.up, at = c.position + u * 0.75f;
+                var views = new (string, Vector3, Vector3)[]
+                {
+                    ("front", c.position + f * 4.6f + l * 3.4f + u * 1.35f, at + f * 0.3f),
+                    ("side", c.position + l * 6.2f + u * 1.1f, at),
+                    ("rear", c.position - f * 4.6f - l * 3.0f + u * 1.5f, at - f * 0.3f),
+                    ("wheel", c.position + f * (specs[i].wheelZ1 - 0.5f) * specs[i].L + l * 1.9f + u * 0.55f, c.position + f * (specs[i].wheelZ1 - 0.5f) * specs[i].L + l * 0.8f + u * 0.4f),
+                };
+                foreach (var (name, pos, look) in views)
+                {
+                    cg.transform.position = pos; cg.transform.LookAt(look);
+                    yield return null; yield return null;
+                    ScreenCapture.CaptureScreenshot(dir + "/carshow_" + i + "_" + name + ".png", 2);
+                    yield return null; yield return null;
+                }
+            }
+            Destroy(cg);
+            foreach (var c in cars) Destroy(c.gameObject);
+            foreach (var t in TrafficCar.All.ToArray()) if (t != null) t.gameObject.SetActive(true);
+            World.HideHud = false;
+            Debug.Log("[ASBO] car show done");
+            Destroy(gameObject);
         }
     }
 }

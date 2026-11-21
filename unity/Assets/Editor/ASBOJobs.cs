@@ -10,9 +10,32 @@ namespace ASBO.EditorTools
     {
         const string JobFile = "Library/asbo_job.txt";
         static double next;
-        static ASBOJobs() { EditorApplication.update += Poll; }
+        const string LogFile = "Library/asbo_log.txt";
+        static ASBOJobs()
+        {
+            EditorApplication.update += Poll;
+            // our own log of warnings/errors/[ASBO] lines (Editor.log can be hijacked by a second Unity instance)
+            Application.logMessageReceivedThreaded -= OnLog; Application.logMessageReceivedThreaded += OnLog;
+        }
+        static readonly object logLock = new object();
+        static void OnLog(string msg, string stack, LogType type)
+        {
+            if (type == LogType.Log && !msg.StartsWith("[ASBO]")) return;
+            if (type == LogType.Warning && !msg.StartsWith("[ASBO]")) return;
+            try
+            {
+                lock (logLock)
+                    File.AppendAllText(LogFile, System.DateTime.Now.ToString("HH:mm:ss") + " " + type + " " + msg.Replace("\n", " | ") + (type == LogType.Exception || type == LogType.Error ? " @ " + (stack ?? "").Split('\n')[0] : "") + "\n");
+            }
+            catch { }
+        }
         static void Poll()
         {
+            // "stop" always works, even while a recompile is queued behind play mode
+            if (EditorApplication.isPlaying && File.Exists(JobFile))
+            {
+                try { if (File.ReadAllText(JobFile).Trim() == "stop") { File.Delete(JobFile); EditorApplication.isPlaying = false; return; } } catch { }
+            }
             if (EditorApplication.timeSinceStartup < next || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
             next = EditorApplication.timeSinceStartup + 1.5;
             if (!File.Exists(JobFile)) return;

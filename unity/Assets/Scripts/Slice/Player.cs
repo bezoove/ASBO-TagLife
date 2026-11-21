@@ -15,6 +15,7 @@ namespace ASBO.Slice
     {
         public Car car; RccVehicle rcc;
         [System.NonSerialized] public string scripted; float scriptT;
+        [System.NonSerialized] public float showSpeed = -1f, showYaw = float.NaN, showRadius = -1f, showPitch = float.NaN;
         CharacterController cc; Person person; Camera cam;
         CinemachineCamera vcam; CinemachineOrbitalFollow orbit; Transform camTarget;
         float yaw, pitch = 12f, vy, bodyYaw, yawVel, turnLeft, turnTimer; Vector3 vel, velRef;
@@ -52,7 +53,9 @@ namespace ASBO.Slice
             deocc.CollideAgainst = ~(1 << 2);
             deocc.MinimumDistanceFromTarget = 0.25f;
             var av = deocc.AvoidObstacles; av.Enabled = true; av.CameraRadius = 0.12f; deocc.AvoidObstacles = av;
-            Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false;
+            touch = TouchControls.Wanted;
+            if (touch) TouchControls.Create(this);
+            else { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
             yaw = bodyYaw = transform.eulerAngles.y;
         }
 
@@ -65,22 +68,29 @@ namespace ASBO.Slice
             if (vcam != null) vcam.PreviousStateIsValid = false;
         }
 
+        public bool InCar => inCar; bool touch;
+        Vector2 lookAdd;
+        /// <summary>Camera turn from touch drags (degrees).</summary>
+        public void AddLook(Vector2 deg) { lookAdd += deg; }
+
         void SetVisible(bool v) { foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = v; }
 
         void Update()
         {
-            var kb = Keyboard.current; var ms = Mouse.current;
-            if (kb == null) return;
-            if (kb.escapeKey.wasPressedThisFrame) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
-            if (ms != null && ms.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
-            if (ms != null && Cursor.lockState == CursorLockMode.Locked)
+            var kb = Keyboard.current; var ms = Mouse.current; var gp = Gamepad.current;
+            if (kb != null && kb.escapeKey.wasPressedThisFrame) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
+            if (!touch && ms != null && ms.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
+            if (!touch && ms != null && Cursor.lockState == CursorLockMode.Locked)
             {
                 Vector2 d = ms.delta.ReadValue() * 0.12f;
                 yaw += d.x; pitch = Mathf.Clamp(pitch - d.y, -25f, 60f);
             }
-            if (kb.eKey.wasPressedThisFrame) ToggleCar();
-            if (kb.vKey.wasPressedThisFrame) spectate = !spectate;
-            if (kb.f9Key.wasPressedThisFrame)
+            // touch drags and the gamepad's right stick turn the camera too
+            if (lookAdd != Vector2.zero) { yaw += lookAdd.x; pitch = Mathf.Clamp(pitch - lookAdd.y, -25f, 60f); lookAdd = Vector2.zero; }
+            if (gp != null) { var rs = gp.rightStick.ReadValue(); if (rs.sqrMagnitude > 0.02f) { yaw += rs.x * 150f * Time.deltaTime; pitch = Mathf.Clamp(pitch - rs.y * 90f * Time.deltaTime, -25f, 60f); } }
+            if ((kb != null && kb.eKey.wasPressedThisFrame) || (gp != null && gp.selectButton.wasPressedThisFrame)) ToggleCar();
+            if (kb != null && kb.vKey.wasPressedThisFrame) spectate = !spectate;
+            if (kb != null && kb.f9Key.wasPressedThisFrame)
             {
                 string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots"); System.IO.Directory.CreateDirectory(dir);
                 ScreenCapture.CaptureScreenshot(dir + "/shot_" + (shotN++) + ".png");
@@ -92,8 +102,15 @@ namespace ASBO.Slice
 
         void Move(Keyboard kb)
         {
+            if (showSpeed >= 0f)
+            {
+                // showcase: play a gait on the spot (blend tree lands exactly on that clip)
+                vel = Vector3.zero; transform.rotation = Quaternion.Euler(0, bodyYaw, 0);
+                person.SetMove(new Vector2(0f, showSpeed)); person.SetGrounded(true);
+                return;
+            }
             Quaternion camYaw = Quaternion.Euler(0, yaw, 0);
-            Vector2 inp = new Vector2((kb.dKey.isPressed ? 1 : 0) - (kb.aKey.isPressed ? 1 : 0), (kb.wKey.isPressed ? 1 : 0) - (kb.sKey.isPressed ? 1 : 0));
+            Vector2 inp = kb == null ? Vector2.zero : new Vector2((kb.dKey.isPressed ? 1 : 0) - (kb.aKey.isPressed ? 1 : 0), (kb.wKey.isPressed ? 1 : 0) - (kb.sKey.isPressed ? 1 : 0));
             bool fakeSprint = false;
             if (!string.IsNullOrEmpty(scripted))
             {
@@ -110,8 +127,8 @@ namespace ASBO.Slice
             var pad = Gamepad.current; if (pad != null && pad.leftStick.ReadValue().sqrMagnitude > 0.04f) inp = pad.leftStick.ReadValue();
             float mag = Mathf.Clamp01(inp.magnitude);
             Vector3 dir = camYaw * new Vector3(inp.x, 0, inp.y); if (dir.sqrMagnitude > 1e-4f) dir.Normalize();
-            bool sprint = fakeSprint || kb.leftShiftKey.isPressed || (pad != null && pad.leftStickButton.isPressed);
-            bool walk = kb.leftCtrlKey.isPressed || (mag > 0.05f && mag < 0.5f);
+            bool sprint = fakeSprint || (kb != null && kb.leftShiftKey.isPressed) || (pad != null && pad.leftStickButton.isPressed);
+            bool walk = (kb != null && kb.leftCtrlKey.isPressed) || (mag > 0.05f && mag < 0.5f);
             float pace = sprint ? sp.sprint : walk ? sp.walk : sp.run;
             Vector3 want = mag < 0.05f ? Vector3.zero : dir * pace;
             bool grounded = cc.isGrounded;
@@ -150,7 +167,7 @@ namespace ASBO.Slice
             transform.rotation = Quaternion.Euler(0, bodyYaw, 0);
 
             if (grounded && vy < 0f) vy = -2f; else vy -= 19.6f * Time.deltaTime;
-            if (grounded && turnTimer <= 0f && (kb.spaceKey.wasPressedThisFrame || (pad != null && pad.buttonSouth.wasPressedThisFrame))) { vy = 4.6f; person.Jump(); }
+            if (grounded && turnTimer <= 0f && ((kb != null && kb.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonSouth.wasPressedThisFrame))) { vy = 4.6f; person.Jump(); }
             cc.Move((vel + Vector3.up * vy) * Time.deltaTime);
             person.SetGrounded(cc.isGrounded);
 
@@ -191,6 +208,9 @@ namespace ASBO.Slice
             if (inCar && VehT != null && VehSpeed > 2f && Vector3.Dot(VehVel, VehT.forward) > 0) yaw = Mathf.LerpAngle(yaw, VehT.eulerAngles.y, 2f * Time.deltaTime);
             bool indoors = !inCar && GameAudio.I != null && GameAudio.I.InsideAny(transform.position + Vector3.up);
             orbit.Radius = Mathf.Lerp(orbit.Radius, inCar ? 8f : indoors ? 2.4f : spectate ? 6f : 4.2f, 4f * Time.deltaTime);
+            if (!float.IsNaN(showYaw)) yaw = showYaw;
+            if (!float.IsNaN(showPitch)) pitch = showPitch;
+            if (showRadius > 0f) orbit.Radius = showRadius;
             var h = orbit.HorizontalAxis; h.Value = yaw; orbit.HorizontalAxis = h;
             var v = orbit.VerticalAxis; v.Range = new Vector2(-25f, 60f); v.Value = pitch; orbit.VerticalAxis = v;
         }
