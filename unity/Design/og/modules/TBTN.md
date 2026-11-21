@@ -1,6 +1,6 @@
 # TBTN (old game, v95)
 
-Part of: Punches, kicks, shove, guard and fists up
+Part of: Punches, kicks, shove and fists up
 
 Source in game.pretty.js: 128334-128447, 131336-131343, 143328-143340, 146793-146802
 

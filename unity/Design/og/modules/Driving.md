@@ -1,6 +1,6 @@
 # Driving (old game, v95)
 
-Part of: Old game's controls and handling, with reverse
+Part of: Car controls: brake into reverse, handbrake skids, fast
 
 Source in game.pretty.js: 163350-163508, 163512-163512, 163519-163794, 163842-163842, 163916-163916, 163918-163918
 

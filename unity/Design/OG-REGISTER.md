@@ -36,7 +36,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 - [ ] **Intro: released from Marshfield Secure Unit, tag fitted**: "Eighteen months. You'd think they'd do a cake." The bag of belongings, licence conditions, the walk home.
   - You asked: Released from a detention centre but put on an ankle tag; the tag limits the player to the playable map.
   - Old game: [Release](og/modules/Release.md), [Intro](og/modules/Intro.md), [Intro4](og/modules/Intro4.md), [Intro5](og/modules/Intro5.md), [IntroSets](og/modules/IntroSets.md), [IntroLook](og/modules/IntroLook.md), [IntroHand](og/modules/IntroHand.md), [IntroAudio](og/modules/IntroAudio.md), [Cine](og/modules/Cine.md) (152 behaviours, 78 lines said or shown, 156 tuning numbers)
-- [ ] **Electronic tag and zone**: Phone buzzes near the edge; leaving is a violation and the tag reports you.
+- [~] **Electronic tag and zone**: v10: the zone round the estate; the phone buzzes near the edge with the distance; outside is a violation with a countdown before it phones it in; lingering at the edge gets reported too. Still to come: what the police do about it.
   - You asked: Tag limits extended to cover the long road out of the estate.
   - Old game: [Tag](og/modules/Tag.md), [BUZZ](og/modules/BUZZ.md) (22 behaviours, 12 lines said or shown, 18 tuning numbers)
 - [ ] **Home: the flat over the Golden Dragon, with Mum**: One bedroom, you sleep on the sofa; Mum's day, tea, meals, rent, notes.
@@ -45,7 +45,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 - [ ] **Safe stash at home**: Items in it can't be stolen.
   - You asked: A safe item stash at home that items can't be stolen from.
   - Old game: [Stash](og/modules/Stash.md) (10 behaviours, 22 lines said or shown, 10 tuning numbers)
-- [ ] **Day, night, weather and the clock**: Pub hours, "Time, gentlemen, please!", shop hours, daily events.
+- [~] **Day, night, weather and the clock**: v10: the clock (starts the evening you get out), sun and moon, dark blue nights, residents go in for the night and come out in the morning. Still to come: weather, shop and pub hours. Pub hours, "Time, gentlemen, please!", shop hours, daily events.
   - You asked: In-game time is not tied to pub opening hours.
   - Old game: [DayNight](og/modules/DayNight.md), [Clock](og/modules/Clock.md), [ClockFix](og/modules/ClockFix.md), [TIME_SCHED](og/modules/TIME_SCHED.md), [TIME](og/modules/TIME.md), [Weather](og/modules/Weather.md), [NightLight](og/modules/NightLight.md), [Game:day](og/modules/Game-day.md) (69 behaviours, 33 lines said or shown, 142 tuning numbers)
 - [ ] **Saving and loading**: Save slots, autosave, saving on a wee.
@@ -78,6 +78,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 - [ ] **The estate: flats, Hawthorn Court tower, garages, courtyard**
   - You asked: A block of flats.
   - You asked: A community playground area.
+  - You asked: Built like the council estate photos: three-storey yellow-brick maisonettes, flat roofs, white window bands, garages with coloured doors, grass greens with trees, low walls, fences, bins.
   - Old game: [ASH](og/modules/ASH.md), [HC](og/modules/HC.md), [FL](og/modules/FL.md), [FlatsDoors](og/modules/FlatsDoors.md), [Dwell](og/modules/Dwell.md), [Blind](og/modules/Blind.md), [EST](og/modules/EST.md) (154 behaviours, 52 lines said or shown, 94 tuning numbers)
 - [ ] **The Eggy Duck pub**: Bar, carpet, garden, benches, toilets, fruit machine, pool room, hidden areas.
   - You asked: Bigger pub with a complex layout and hidden stealth areas.
@@ -125,9 +126,9 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - Old game: [NPCs](og/modules/NPCs.md), [Bar](og/modules/Bar.md), [Closing](og/modules/Closing.md), [DRINKS](og/modules/DRINKS.md), [Ambience](og/modules/Ambience.md), [BARKS](og/modules/BARKS.md), [BRENDA](og/modules/BRENDA.md), [BRENDA_EVAC](og/modules/BRENDA_EVAC.md), [CHEERS](og/modules/CHEERS.md) (155 behaviours, 72 lines said or shown, 87 tuning numbers)
 - [ ] **The named cast**: Brenda, Callum, Terry, Shaz, Deano, Reg, Kev, Priya, Mickey, Tank, Moira, Ron, Dave, The Duke, PCSO Biggs, PCSO Pook.
   - Old game: [CAST](og/modules/CAST.md) (0 behaviours, 30 lines said or shown, 25 tuning numbers)
-- [ ] **Talking to people**: Conversations, likes and dislikes, mates, gifts, flirting, dates, rumours, persuading, borrowing.
+- [~] **Talking to people**: v10: TALK to anyone nearby; greetings by how well they know and like you; natter, flirt, leave it; likes you / proper mate milestones; romance stages. Still to come: gifts, persuading, borrowing, buying drinks. Conversations, likes and dislikes, mates, gifts, flirting, dates, rumours, persuading, borrowing.
   - Old game: [Social](og/modules/Social.md), [LINES](og/modules/LINES.md), [LINES2](og/modules/LINES2.md), [ICONS](og/modules/ICONS.md), [SAY](og/modules/SAY.md), [NEUTRAL](og/modules/NEUTRAL.md), [CF_LINES](og/modules/CF_LINES.md), [PS_LINES](og/modules/PS_LINES.md), [UI:talk](og/modules/UI-talk.md), [Game:talk](og/modules/Game-talk.md), [PD](og/modules/PD.md) (75 behaviours, 896 lines said or shown, 41 tuning numbers)
-- [ ] **People starting conversations with you**: They come over for a chat, a game, to cadge, to challenge you; not when you're busy or driving.
+- [~] **People starting conversations with you**: v10: they come over for a chat, to say hello, drunk, to cadge a quid, with gossip about your fights, smiling, or for a word if you floored them (which can turn into a scrap); remarks about your black eye. They come over for a chat, a game, to cadge, to challenge you; not when you're busy or driving.
   - You asked: NPCs start interactions with the player (old game).
   - You asked: Chatty NPCs fixed.
   - Old game: [Approach](og/modules/Approach.md), [Chatty](og/modules/Chatty.md) (31 behaviours, 11 lines said or shown, 25 tuning numbers)
@@ -151,6 +152,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 
 - [x] **Walk, run, sprint, jump, landing**: Faster running in v8.
   - You asked: Movement must look human: a massive overhaul of running, jumping, throwing and walking with motion capture.
+  - You asked: Legs not so bent when walking, for you and everyone else (v10: bodies stand on the real ground, legs straighter).
   - Old game: [Player](og/modules/Player.md), [Gait](og/modules/Gait.md), [Moves](og/modules/Moves.md), [Mocap](og/modules/Mocap.md), [MocapData](og/modules/MocapData.md), [Anim](og/modules/Anim.md), [Anim2](og/modules/Anim2.md), [Input](og/modules/Input.md) (91 behaviours, 16 lines said or shown, 122 tuning numbers)
 - [ ] **Sit on chairs, stools and benches**
   - You asked: Player can sit on upright chairs (old game).
@@ -169,8 +171,10 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 
 ## Fighting, injury and emergency services
 
-- [x] **Punches, kicks, shove, guard and fists up**: v9: tap PUNCH for jab, cross, hook, body shot; hold for an overhand. KICK, SHOVE (gets through a guard), hold GUARD to block, FISTS to keep them up. Stamina: tired punches are slow and weak. All motion capture.
+- [x] **Punches, kicks, shove and fists up**: v10: tap PUNCH for jab, cross, hook, body shot; hold for an overhand. KICK, SHOVE, FISTS to keep them up, right up by the face. No guard button. Stamina: tired punches are slow and weak. All motion capture.
   - You asked: Punches, kicks and running a lot faster.
+  - You asked: Fists higher in fights.
+  - You asked: No guard button: concentrate on fun fights.
   - Old game: [Fight](og/modules/Fight.md), [Fists](og/modules/Fists.md), [FIGHT_ANIMS](og/modules/FIGHT_ANIMS.md), [ATK](og/modules/ATK.md), [TBTN](og/modules/TBTN.md) (104 behaviours, 20 lines said or shown, 62 tuning numbers)
 - [~] **People fight back or run; knockouts; getting up; limping**: v9: anyone hit squares up and fights smart (blocks, mixes punches, circles, hits back); big hits knock people down and they get up and carry on; the faint-hearted leg it home when badly hurt; onlookers stop and watch, the lairy cheer, others wince and shout; "word will get around" afterwards. Still to come: mates wading in (needs the talking-to-people system), Brenda breaking it up (with the pub), dropping drinks.
   - You asked: Survivors get up and limp.
@@ -181,8 +185,14 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 - [~] **Gore, injuries and blood**: Car-hit gore, pools; blood squares fixed in v8. Injuries that last, dismemberment not yet.
   - You asked: Injury, death, gore, ambulances and car-hit ragdoll.
   - Old game: [Gore](og/modules/Gore.md), [Injury](og/modules/Injury.md), [Ragdoll](og/modules/Ragdoll.md), [RagCar](og/modules/RagCar.md), [Rip](og/modules/Rip.md), [BURNS](og/modules/BURNS.md) (82 behaviours, 28 lines said or shown, 147 tuning numbers)
-- [~] **Ambulance and paramedics**: New ambulance in v8; their lines and hospital trip not yet.
+- [~] **Ambulance and paramedics**: v10: parks up with blues on, crew in green and hi-vis take bags, defib and oxygen from the back, kneel and treat (hands on, oxygen mask), fetch the stretcher and wheel it over, lift the casualty onto it under a blanket, push it to the van; doors open, it goes in, they drive off. AMBULANCE on the bodywork, chevrons, beacons. Solid: cars wait, people walk round. Still to come: the hospital.
   - You asked: Ambulances match the new car style.
+  - You asked: A more detailed ambulance; lettering on the bodywork, not flat 2D text.
+  - You asked: Paramedics dressed like paramedics.
+  - You asked: They carry medical bags and equipment and use them on the injured person.
+  - You asked: The body goes on the stretcher; the medics move the stretcher (it doesn't move on its own).
+  - You asked: The ambulance doors open and the stretcher goes in.
+  - You asked: Cars and people don't go through ambulances.
   - Old game: [Amb](og/modules/Amb.md), [AmbKit](og/modules/AmbKit.md), [HV](og/modules/HV.md) (74 behaviours, 25 lines said or shown, 88 tuning numbers)
 - [ ] **Searching people who've been knocked out**: "Still warm. Not your size, probably."
   - Old game: [Loot](og/modules/Loot.md) (38 behaviours, 38 lines said or shown, 19 tuning numbers)
@@ -255,7 +265,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 
 ## Money and items
 
-- [ ] **Money, prices and haggling**
+- [~] **Money, prices and haggling**: v10: your cash on screen, giving people a quid. Still to come: prices, shops, haggling.
   - Old game: [Econ](og/modules/Econ.md) (9 behaviours, 1 lines said or shown, 0 tuning numbers)
 - [ ] **Loans from Mickey, favours, errands**: Mickey's interest, Tank at the door.
   - Old game: [TIME_SCHED](og/modules/TIME_SCHED.md) (0 behaviours, 0 lines said or shown, 2 tuning numbers)
@@ -285,8 +295,12 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 
 ## Driving
 
-- [x] **Old game's controls and handling, with reverse**: Forward (hold to speed up, drag up to boost), Reverse, Brake, Left and Right. v8.
+- [x] **Car controls: brake into reverse, handbrake skids, fast**: v10: FORWARD (drag up to boost), BRAKE slows you then reverses once stopped, HANDBRAKE locks the back so it skids round, LEFT and RIGHT. About 70 mph flat out (90 with the boost), quick reverse, tight turning circle, tyre squeal.
   - You asked: Car controls replicate the old game's.
+  - You asked: Reverse is the brake.
+  - You asked: A handbrake button to skid.
+  - You asked: Cars a lot faster, forward and reverse.
+  - You asked: Turning circle much tighter.
   - Old game: [Driving](og/modules/Driving.md), [Vehicles](og/modules/Vehicles.md), [DRIVE3](og/modules/DRIVE3.md), [STEER_DMG](og/modules/STEER_DMG.md), [VBTN](og/modules/VBTN.md) (26 behaviours, 7 lines said or shown, 93 tuning numbers)
 - [~] **Getting in and out, horn, lights**: In; the old game's door and exit routing not yet.
   - Old game: [Cars](og/modules/Cars.md), [CarExit](og/modules/CarExit.md), [World:cars](og/modules/World-cars.md) (139 behaviours, 55 lines said or shown, 104 tuning numbers)
@@ -295,6 +309,11 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - Old game: [CarDmg](og/modules/CarDmg.md), [CarBump](og/modules/CarBump.md), [CARBUMP](og/modules/CARBUMP.md), [SkidMarks](og/modules/SkidMarks.md), [Glass](og/modules/Glass.md) (89 behaviours, 16 lines said or shown, 66 tuning numbers)
 - [ ] **You visible in the driver's seat**
   - Old game: [Drivers](og/modules/Drivers.md) (8 behaviours, 0 lines said or shown, 5 tuning numbers)
+- [ ] **Car models built from your photos**: Period UK-style cars (70s hatch, 80s coupe, 90s estate, modified rally saloon) and rough ones: rust, dents, mismatched panels, dirt, smashed windows, flat tyres, burnt-out shells. No badges or real names.
+  - You asked: Cars should look like the photos sent (they don't yet).
+  - You asked: Crappy cars mixed in with the modern clean ones.
+  - You asked: Look up real cars to get them right.
+  - Old game: [World:cars](og/modules/World-cars.md) (33 behaviours, 7 lines said or shown, 32 tuning numbers)
 
 ## Sound and music
 

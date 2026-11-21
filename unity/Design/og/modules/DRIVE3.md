@@ -1,6 +1,6 @@
 # DRIVE3 (old game, v95)
 
-Part of: Old game's controls and handling, with reverse
+Part of: Car controls: brake into reverse, handbrake skids, fast
 
 Source in game.pretty.js: 163293-163349, 203526-203526
 
