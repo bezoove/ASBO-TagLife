@@ -42,12 +42,23 @@ namespace ASBO.EditorTools
         [System.Serializable] class Speeds { public float walk, run, sprint, turnSecs; }
 
         [MenuItem("ASBO/Test/2 Build Locomotion Controllers")]
-        public static void BuildControllers() { foreach (var ik in new[] { true, false }) { Build("M", "Male", ik); Build("F", "Female", ik); } AssetDatabase.SaveAssets(); }
+        public static void BuildControllers() { foreach (var ik in new[] { true, false }) { Build("M", "Male", ik); Build("F", "Female", ik); } Build("M", "Male", true, true); Build("F", "Female", true, true); AssetDatabase.SaveAssets(); }
 
-        static void Build(string s, string folder, bool ik)
+        const string SABase = "Assets/Starter Assets/Runtime/ThirdPersonController/Character/Animations/";
+        /// <summary>Unity's Starter Assets mocap walk/run (imported Asset Store pack), for an A/B against the current set.</summary>
+        static AnimationClip SAClip(string file)
+        {
+            var path = SABase + file + ".anim.fbx";
+            var mi = AssetImporter.GetAtPath(path) as ModelImporter;
+            if (mi == null) { Debug.LogWarning("[ASBO] missing " + path); return null; }
+            if (mi.animationType != ModelImporterAnimationType.Human) Debug.LogWarning("[ASBO] " + file + " is " + mi.animationType + ", not Humanoid");
+            return AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>().FirstOrDefault(x => !x.name.StartsWith("__preview__"));
+        }
+
+        static void Build(string s, string folder, bool ik, bool sa = false)
         {
             string p = folder + "/", h = "Human" + s + "@";
-            string ctrlPath = Out + "Loco" + s + (ik ? "" : "_Stock") + ".controller";
+            string ctrlPath = Out + "Loco" + s + (sa ? "_SA" : ik ? "" : "_Stock") + ".controller";
             Directory.CreateDirectory(Out);
             if (File.Exists(ctrlPath)) AssetDatabase.DeleteAsset(ctrlPath);
             var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
@@ -75,6 +86,25 @@ namespace ASBO.EditorTools
             }
             var eight = new[] { "Forward", "ForwardLeft", "ForwardRight", "Left", "Right", "Backward", "BackwardLeft", "BackwardRight" };
             Dirs("Walk", eight); Dirs("Run", eight); Dirs("Sprint", new[] { "Forward", "ForwardLeft", "ForwardRight", "Left", "Right" });
+            if (sa)
+            {
+                // forward walk and run from Starter Assets, played at the speed our walk/run move at so the feet don't slide
+                var kids = tree.children;
+                // Starter Assets clips are in place; their own controller plays the walk at 2.0 m/s and the run at sprint, 5.335 m/s
+                foreach (var (kev, file, authored) in new[] { ("Walk01_Forward", "Locomotion--Walk_N", 2.0f), ("Sprint01_Forward", "Locomotion--Run_N", 5.335f) })
+                {
+                    var c = SAClip(file); if (c == null) continue;
+                    for (int i = 0; i < kids.Length; i++)
+                    {
+                        if (kids[i].motion == null || !kids[i].motion.name.Contains(kev) || Mathf.Abs(kids[i].position.x) > 0.1f) continue;
+                        float kevSpeed = kids[i].position.y, saSpeed = c.averageSpeed.z > 0.2f ? c.averageSpeed.z : authored;
+                        kids[i].motion = c;
+                        kids[i].timeScale = kevSpeed / saSpeed;
+                        Debug.Log($"[ASBO] SA {file}: clip speed {saSpeed:F2} m/s, ours {kevSpeed:F2} -> timeScale {kids[i].timeScale:F2}, len {c.length:F2}s, loop {c.isLooping}");
+                    }
+                }
+                tree.children = kids;
+            }
             sm.defaultState = move;
 
             AnimatorState St(string name, AnimationClip c, Vector3 pos) { var st = sm.AddState(name, pos); st.motion = c; return st; }
@@ -110,6 +140,7 @@ namespace ASBO.EditorTools
             if (ik) { var ls = ac.layers; ls[0].iKPass = true; ac.layers = ls; } // ground-aware feet (FootGround.OnAnimatorIK)
             if (!ik) { EditorUtility.SetDirty(ac); return; }
             EditorUtility.SetDirty(ac);
+            if (sa) return;
             File.WriteAllText(Out + "LocoSpeeds" + s + ".json", JsonUtility.ToJson(sp));
             AssetDatabase.ImportAsset(Out + "LocoSpeeds" + s + ".json");
             Debug.Log($"[ASBO] Loco{s}: {tree.children.Length} clips, walk {sp.walk:F2} run {sp.run:F2} sprint {sp.sprint:F2} m/s, turn {sp.turnSecs:F2}s");

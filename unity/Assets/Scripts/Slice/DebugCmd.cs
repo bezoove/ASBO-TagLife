@@ -103,6 +103,7 @@ namespace ASBO.Slice
         public static void EditSwitch() { if (TouchControls.I != null) TouchControls.I.SwitchEditSet(); }
         public static void EditPreset() { if (TouchControls.I != null) TouchControls.I.NextPreset(); }
         public static void Touch(int on) { PlayerPrefs.SetInt("asbo_touch", on); PlayerPrefs.Save(); }
+        public static void SA(int on) { PlayerPrefs.SetInt("asbo_sa", on); PlayerPrefs.Save(); Debug.Log("[ASBO] starter-assets walk " + on); }
         public static void Stock(int on) { PlayerPrefs.SetInt("asbo_stock", on); PlayerPrefs.Save(); Debug.Log("[ASBO] stock bodies " + on); }
         public static void ShowGaitFrom(float speed, int frames, float camOffset, float swing, float radius)
         {

@@ -522,9 +522,13 @@ namespace ASBO.Slice
                 {
                     float mx = G.fb - 0.08f, my = Top(m, mx) + 0.04f; float lat = HwG(m, mx, my);
                     var mmat = m.mirrorBody ? paint : trim;
-                    float l0 = lat - 0.01f, l1 = lat + 0.17f;
-                    k2.Box(mmat, new Vector3(sd > 0 ? l0 : -l1, my, mx - 0.08f), new Vector3(sd > 0 ? l1 : -l0, my + 0.12f, mx + 0.03f));
-                    k2.Box(chrome, new Vector3(sd > 0 ? l0 + 0.02f : -l1 + 0.01f, my + 0.015f, mx - 0.085f), new Vector3(sd > 0 ? l1 - 0.01f : -l0 - 0.02f, my + 0.105f, mx - 0.08f));
+                    // short stalk off the door, then a rounded housing with the glass facing back
+                    k2.Box(trim, new Vector3(sd > 0 ? lat - 0.01f : -lat - 0.05f, my + 0.005f, mx - 0.03f), new Vector3(sd > 0 ? lat + 0.05f : -lat + 0.01f, my + 0.035f, mx + 0.03f));
+                    var hc = new Vector3(sd * (lat + 0.115f), my + 0.055f, mx - 0.015f);
+                    k2.Sphere(mmat, hc, new Vector3(0.085f, 0.052f, 0.042f), 14, 8);
+                    k2.Push(Matrix4x4.TRS(hc + new Vector3(0f, 0f, -0.03f), Quaternion.identity, Vector3.one));
+                    k2.Sphere(chrome, Vector3.zero, new Vector3(0.072f, 0.042f, 0.014f), 14, 6);
+                    k2.Pop();
                 }
                 if (m.fuel == sd)
                 {
@@ -674,42 +678,86 @@ namespace ASBO.Slice
                 }
         }
 
+        /// <summary>
+        /// Bumper moulded round the end of the car: a rounded section (soft top and bottom edges, slightly bowed face)
+        /// swept across the face and round the corners, then along the sides, thinning until it melts into the wings.
+        /// </summary>
         static void Bumper(MeshKit k, CarModel m, bool front, CarBump b, Material paint, System.Random rng)
         {
             if (b == null) return;
             var mat = string.IsNullOrEmpty(b.col) || b.col == "body" ? paint : Plastic(b.col);
-            float fs = front ? 1f : -1f, outw = b.@out;
-            float hwE = m.hw * 0.975f;
-            // outline: wrap from one side round the face to the other
-            var pts = new List<Vector3>(); var nrm = new List<Vector3>();
-            float yMid = (b.y0 + b.y1) * 0.5f;
-            float xw = front ? m.Le - (m.rcF + 0.25f) : -m.Le + (m.rcR + 0.25f);
-            void Add(float lat, float x, Vector3 n) { pts.Add(new Vector3(lat, 0f, x)); nrm.Add(n.normalized); }
-            float sideLat = Hp(m, xw) - Inset(m, yMid, Top(m, xw));
-            Add(-(sideLat + outw * 0.7f), xw, Vector3.left);
-            int n = 16;
-            for (int i = 0; i <= n; i++)
+            float fs = front ? 1f : -1f, outw = Mathf.Max(0.02f, b.@out);
+            float hwE = m.hw * 0.975f, rc = front ? m.rcF : m.rcR;
+            float h = b.y1 - b.y0, yMid = (b.y0 + b.y1) * 0.5f;
+            float rb = Mathf.Min(0.04f, h * 0.32f), rt = Mathf.Min(0.045f, h * 0.36f);
+            // section (outward offset, height), bottom-inside to top-inside
+            var prof = new List<Vector2> { new Vector2(-0.02f, b.y0 + rb * 0.3f) };
+            for (int i = 0; i <= 3; i++) { float a = Mathf.PI * 0.5f * i / 3f; prof.Add(new Vector2(outw - rb + Mathf.Sin(a) * rb, b.y0 + rb - Mathf.Cos(a) * rb)); }
+            prof.Add(new Vector2(outw + Mathf.Min(0.008f, outw * 0.15f), yMid));
+            for (int i = 0; i <= 3; i++) { float a = Mathf.PI * 0.5f * i / 3f; prof.Add(new Vector2(outw - rt + Mathf.Cos(a) * rt, b.y1 - rt + Mathf.Sin(a) * rt)); }
+            prof.Add(new Vector2(-0.015f, b.y1 - 0.004f));
+            int np = prof.Count;
+            // sweep: along the right side from the wing to the corner, across the face, back along the left side
+            var stations = new List<(Func<float, float, Vector3> pos, Vector3 n, float scale)>();
+            float xEnd = front ? m.Le - rc - 0.32f : -m.Le + rc + 0.32f, xCorner = front ? m.Le - rc * 0.6f : -m.Le + rc * 0.6f;
+            // never run the side return into the wheel arch
+            float archEdge = front ? m.wxF + m.archR + 0.03f : m.wxR - m.archR - 0.03f;
+            xEnd = front ? Mathf.Max(xEnd, archEdge) : Mathf.Min(xEnd, archEdge);
+            bool sides = front ? xEnd < xCorner - 0.04f : xEnd > xCorner + 0.04f;
+            void SideStations(int sd, bool toCorner)
             {
-                float lat = Mathf.Lerp(-hwE + 0.005f, hwE - 0.005f, i / (float)n);
-                float x = FaceX(m, front, lat, yMid);
-                float rc = front ? m.rcF : m.rcR; float t = Mathf.Clamp01((Mathf.Abs(lat) - (hwE - rc)) / Mathf.Max(0.05f, rc));
-                Vector3 nn = new Vector3(Mathf.Sign(lat) * t, 0f, fs * (1f - t * 0.7f));
-                Add(lat + nn.normalized.x * outw, x + nn.normalized.z * outw, nn);
-            }
-            Add(sideLat + outw * 0.7f, xw, Vector3.right);
-            for (int i = 0; i < pts.Count - 1; i++)
-            {
-                Vector3 a = pts[i], c = pts[i + 1];
-                Vector3 nn = (nrm[i] + nrm[i + 1]).normalized;
-                k.Quad(mat, a + Vector3.up * b.y0, c + Vector3.up * b.y0, c + Vector3.up * b.y1, a + Vector3.up * b.y1, nn);
-                // top and bottom lips back to the body
-                Vector3 ai = a - nrm[i] * (outw + 0.03f), ci = c - nrm[i + 1] * (outw + 0.03f);
-                k.Quad(mat, a + Vector3.up * b.y1, c + Vector3.up * b.y1, ci + Vector3.up * b.y1, ai + Vector3.up * b.y1, Vector3.up);
-                k.Quad(under, a + Vector3.up * b.y0, c + Vector3.up * b.y0, ci + Vector3.up * b.y0, ai + Vector3.up * b.y0, Vector3.down);
-                if (!string.IsNullOrEmpty(b.stripe))
+                if (!sides) return;
+                for (int i = 0; i <= 4; i++)
                 {
-                    float sy = b.y0 + (b.y1 - b.y0) * 0.62f;
-                    k.Quad(Plastic(b.stripe), a + nrm[i] * 0.003f + Vector3.up * (sy - 0.012f), c + nrm[i + 1] * 0.003f + Vector3.up * (sy - 0.012f), c + nrm[i + 1] * 0.003f + Vector3.up * (sy + 0.012f), a + nrm[i] * 0.003f + Vector3.up * (sy + 0.012f), nn);
+                    float t = toCorner ? i / 4f : 1f - i / 4f;
+                    float x = Mathf.Lerp(xEnd, xCorner, t), sc = Mathf.Lerp(0.15f, 0.8f, t * t * (3f - 2f * t));
+                    stations.Add(((o, y) => Side(m, x, y, sd, o), new Vector3(sd, 0f, 0f), sc));
+                }
+            }
+            SideStations(-1, true);
+            int nf = 22;
+            for (int i = 0; i <= nf; i++)
+            {
+                float lat = Mathf.Lerp(-hwE + 0.01f, hwE - 0.01f, i / (float)nf);
+                float t = Mathf.Clamp01((Mathf.Abs(lat) - (hwE - rc)) / Mathf.Max(0.05f, rc));
+                Vector3 nn = new Vector3(Mathf.Sign(lat) * t, 0f, fs * (1f - t * 0.7f)).normalized;
+                float l = lat;
+                stations.Add(((o, y) => new Vector3(l, y, FaceX(m, front, l, y)) + nn * o, nn, Mathf.Lerp(1f, 0.8f, t)));
+            }
+            SideStations(1, false);
+            int ns = stations.Count;
+            var id = new int[ns, np];
+            for (int si = 0; si < ns; si++)
+            {
+                var st = stations[si];
+                for (int pi = 0; pi < np; pi++)
+                {
+                    var pr = prof[pi];
+                    float o = pr.x > 0f ? pr.x * st.scale : pr.x;
+                    // section tangent -> normal (blend of the station's outward direction and up/down)
+                    Vector2 tg = prof[Mathf.Min(pi + 1, np - 1)] - prof[Mathf.Max(pi - 1, 0)];
+                    Vector2 n2 = new Vector2(tg.y, -tg.x).normalized; // outward in (o, y)
+                    Vector3 nrm = (st.n * n2.x + Vector3.up * n2.y).normalized;
+                    id[si, pi] = k.Vert(st.pos(o, pr.y), nrm, new Vector2(si / (float)(ns - 1), pi / (float)(np - 1)));
+                }
+            }
+            for (int si = 0; si < ns - 1; si++)
+                for (int pi = 0; pi < np - 1; pi++)
+                {
+                    int a = id[si, pi], bb = id[si + 1, pi], c = id[si + 1, pi + 1], d = id[si, pi + 1];
+                    Vector3 o = k.N[a] + k.N[bb] + k.N[c] + k.N[d];
+                    var mm = pi == 0 ? under : mat;
+                    TriOut(k, mm, a, bb, c, o); TriOut(k, mm, a, c, d, o);
+                }
+            // rubbing strip across the face
+            if (!string.IsNullOrEmpty(b.stripe))
+            {
+                float sy = b.y0 + h * 0.6f; var sm = Plastic(b.stripe);
+                for (int si = 5; si < ns - 6; si++)
+                {
+                    var A = stations[si]; var B = stations[si + 1];
+                    float oa = (outw + 0.006f) * A.scale, ob = (outw + 0.006f) * B.scale;
+                    k.Quad(sm, A.pos(oa, sy - 0.014f), B.pos(ob, sy - 0.014f), B.pos(ob, sy + 0.014f), A.pos(oa, sy + 0.014f), (A.n + B.n).normalized);
                 }
             }
             // lower intake / air dam
@@ -719,7 +767,7 @@ namespace ASBO.Slice
                 for (int i = 0; i < 6; i++)
                 {
                     float l0 = Mathf.Lerp(-w, w, i / 6f), l1 = Mathf.Lerp(-w, w, (i + 1) / 6f);
-                    float x0 = FaceX(m, front, l0, (y0 + y1) * 0.5f) + fs * (outw + 0.004f), x1 = FaceX(m, front, l1, (y0 + y1) * 0.5f) + fs * (outw + 0.004f);
+                    float x0 = FaceX(m, front, l0, (y0 + y1) * 0.5f) + fs * (outw + 0.01f), x1 = FaceX(m, front, l1, (y0 + y1) * 0.5f) + fs * (outw + 0.01f);
                     k.Quad(grilleM, new Vector3(l0, y0, x0), new Vector3(l1, y0, x1), new Vector3(l1, y1, x1), new Vector3(l0, y1, x0), Vector3.forward * fs);
                 }
             }
