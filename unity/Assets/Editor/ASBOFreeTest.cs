@@ -65,6 +65,47 @@ namespace ASBO.EditorTools
             return bt;
         }
 
+        /// <summary>1D blend on a whole-number parameter (0, 1, 2, ...): set to one of those, it plays just that motion.</summary>
+        static Motion Pick(AnimatorController ac, string name, string param, (Motion m, float ts, float off)[] kids)
+        {
+            var ok = kids.Where(k => k.m != null).ToArray();
+            if (ok.Length == 0) return null; if (ok.Length == 1 && ok[0].ts == 1f && ok[0].off == 0f) return ok[0].m;
+            var bt = new BlendTree { name = name, blendType = BlendTreeType.Simple1D, blendParameter = param, useAutomaticThresholds = false, hideFlags = HideFlags.HideInHierarchy };
+            AssetDatabase.AddObjectToAsset(bt, ac);
+            for (int i = 0; i < ok.Length; i++) bt.AddChild(ok[i].m, i);
+            var ch = bt.children; for (int i = 0; i < ch.Length; i++) { ch[i].timeScale = ok[i].ts; ch[i].cycleOffset = ok[i].off; } bt.children = ch;
+            return bt;
+        }
+
+        /// <summary>
+        /// Swap the straight-ahead child of the 8-way blend (between yMin and yMax m/s) for the Mixamo versions, one per
+        /// "Gait": each played at the pace that slot moves at (no foot slide) and offset in its cycle so its left foot
+        /// comes forward when the clip it replaced did.
+        /// </summary>
+        static void GaitSlot(AnimatorController ac, BlendTree tree, float yMin, float yMax, params (string file, string clip, float speed)[] takes)
+        {
+            var kids = tree.children;
+            for (int i = 0; i < kids.Length; i++)
+            {
+                if (Mathf.Abs(kids[i].position.x) > 0.1f || kids[i].position.y < yMin || kids[i].position.y > yMax || !(kids[i].motion is AnimationClip was)) continue;
+                float slot = kids[i].position.y, wasPhase = ASBOMixamo.Phase(was);
+                var list = new List<(Motion, float, float)>();
+                foreach (var (file, clip, known) in takes)
+                {
+                    var c = ASBOMixamo.ClipFrom(file, clip); if (c == null) continue;
+                    float v = c.averageSpeed.magnitude; if (v < 0.4f) v = known; if (v < 0.4f) { Debug.LogWarning("[ASBO] mixamo " + clip + ": can't tell its pace"); continue; }
+                    float ts = slot / v; if (ts < 0.7f || ts > 1.6f) { Debug.LogWarning($"[ASBO] mixamo {clip}: {v:F2} m/s is too far from {slot:F2}"); continue; }
+                    float off = Mathf.Repeat(ASBOMixamo.Phase(c) - wasPhase, 1f);
+                    list.Add((c, ts, off));
+                    Debug.Log($"[ASBO] mixamo {clip} at {slot:F2} m/s: own pace {v:F2}, timeScale {ts:F2}, cycle offset {off:F2} (replaces {was.name})");
+                }
+                if (list.Count == 0) continue;
+                kids[i].motion = Pick(ac, "Gait " + slot.ToString("F1"), "Gait", list.ToArray()); kids[i].timeScale = 1f;
+                if (list.Count == 1) { kids[i].timeScale = list[0].Item2; kids[i].cycleOffset = list[0].Item3; }
+            }
+            tree.children = kids;
+        }
+
         const string KO = "Assets/MoCapCentral/MC_Sample/Animations/Fight/MCU_am_Ready_Fight_01_Knockdown_A.FBX";
         /// <summary>
         /// Cut the moves out of MoCap Central's 25 s fight take. Ranges found by measuring the body through the take
@@ -115,21 +156,42 @@ namespace ASBO.EditorTools
             SplitFightClips();
             foreach (var n in new[] { "Punch", "Cross", "Hook", "Body", "Hay", "Kick", "Shove", "Struck", "StruckBody" }) if (!ac.parameters.Any(q => q.name == n)) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
             foreach (var n in new[] { "Guard" }) if (!ac.parameters.Any(q => q.name == n)) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
-            var clips = new (string trig, AnimationClip c, float speed)[] {
-                ("Punch", KOClip("ASBO_Punch"), 2.1f), ("Cross", KOClip("ASBO_Cross"), 1.6f), ("Hook", KOClip("ASBO_Hook"), 1.9f), ("Body", KOClip("ASBO_Body"), 1.55f),
-                ASBOMixamo.ClipNamed("MX_Uppercut") != null ? ("Hay", ASBOMixamo.ClipNamed("MX_Uppercut"), 1.4f) : ("Hay", KOClip("ASBO_Over"), 1.7f), ("Kick", KOClip("ASBO_Kick"), 1.8f),
-                ("Shove", AnyClip(KevBase + "Male/Combat/Shield/HumanM@AttackShield01.fbx"), 1.5f),
-                ("Struck", AnyClip(KevBase + "Male/Combat/HumanM@CombatDamage01.fbx"), 1.4f), ("StruckBody", KOClip("ASBO_Buckle"), 1.5f) };
+            foreach (var n in new[] { "AVar", "RVar" }) if (!ac.parameters.Any(q => q.name == n)) ac.AddParameter(n, AnimatorControllerParameterType.Float);
+            // the first version of each move (MoCap Central / Kevin Iglesias): clip, play speed, when it lands and when you can go again (s at that speed), how close the bodies are
+            var old = new (string trig, AnimationClip c, float speed, float imp, float dur, float contact)[] {
+                ("Punch", KOClip("ASBO_Punch"), 2.1f, 0.29f, 0.40f, 0.85f), ("Cross", KOClip("ASBO_Cross"), 1.6f, 0.21f, 0.42f, 0.88f), ("Hook", KOClip("ASBO_Hook"), 1.9f, 0.27f, 0.51f, 0.80f),
+                ("Body", KOClip("ASBO_Body"), 1.55f, 0.14f, 0.39f, 0.75f), ("Hay", KOClip("ASBO_Over"), 1.7f, 0.36f, 0.62f, 0.85f), ("Kick", KOClip("ASBO_Kick"), 1.8f, 0.50f, 0.69f, 1.05f),
+                ("Shove", AnyClip(KevBase + "Male/Combat/Shield/HumanM@AttackShield01.fbx"), 1.5f, 0.26f, 0.60f, 0.80f),
+                ("Struck", AnyClip(KevBase + "Male/Combat/HumanM@CombatDamage01.fbx"), 1.4f, 0f, 0f, 0f), ("StruckBody", KOClip("ASBO_Buckle"), 1.5f, 0f, 0f, 0f) };
+            var vars = new List<ASBO.Slice.FightSet.Var>();
             int i = 0;
-            foreach (var (trig, c, speed) in clips)
+            foreach (var (trig, c, speed, imp, dur, contact) in old)
             {
-                if (c == null) { Debug.LogWarning("[ASBO] no clip for " + trig); continue; }
-                var st = sm.AddState("F" + trig, new Vector3(650, 60 * i++)); st.motion = c; st.iKOnFeet = true; st.speed = speed;
                 bool react = trig.StartsWith("Struck");
+                // every version of this move: the old one plus the Mixamo ones (FightSet.Takes), picked at random each time ("AVar" / "RVar")
+                var kids = new List<(Motion m, float ts)>();
+                if (c != null) { vars.Add(new ASBO.Slice.FightSet.Var { trig = trig, idx = 0, imp = imp, dur = dur, contact = contact, w = 1f, name = c.name }); kids.Add((c, speed)); }
+                for (int k = 0; k < ASBO.Slice.FightSet.Takes.Length; k++)
+                {
+                    var t = ASBO.Slice.FightSet.Takes[k]; if (t.trig != trig) continue;
+                    var mc = ASBOMixamo.ClipFrom(t.file, ASBOMixamo.FightClipName(k)); if (mc == null) continue;
+                    float tImp = Mathf.Max(0f, t.hit - t.a) / t.speed;
+                    vars.Add(new ASBO.Slice.FightSet.Var { trig = trig, idx = kids.Count, imp = tImp, dur = tImp + ASBO.Slice.FightSet.Recovery(trig), contact = t.contact, w = t.w, big = t.big, name = t.file });
+                    kids.Add((mc, t.speed));
+                }
+                if (kids.Count == 0) { Debug.LogWarning("[ASBO] no clip for " + trig); continue; }
+                var bt = new BlendTree { name = "F" + trig + " versions", blendType = BlendTreeType.Simple1D, blendParameter = react ? "RVar" : "AVar", useAutomaticThresholds = false, hideFlags = HideFlags.HideInHierarchy };
+                AssetDatabase.AddObjectToAsset(bt, ac);
+                for (int j = 0; j < kids.Count; j++) bt.AddChild(kids[j].m, j);
+                var ch = bt.children; for (int j = 0; j < ch.Length; j++) ch[j].timeScale = kids[j].ts; bt.children = ch;
+                var st = sm.AddState("F" + trig, new Vector3(650, 60 * i++)); st.motion = bt; st.iKOnFeet = true; st.speed = 1f;
                 var tin = sm.AddAnyStateTransition(st); tin.AddCondition(AnimatorConditionMode.If, 0, trig); tin.hasExitTime = false; tin.duration = react ? 0.05f : 0.07f; tin.canTransitionToSelf = react;
                 var tout = st.AddTransition(move); tout.hasExitTime = true; tout.exitTime = 0.86f; tout.duration = 0.16f;
-                Debug.Log($"[ASBO] fight {trig}: {c.name} plays {c.length / speed:F2}s");
+                Debug.Log($"[ASBO] fight {trig}: {kids.Count} versions ({string.Join(", ", kids.Select(x => x.m.name + " " + (((AnimationClip)x.m).length / x.ts).ToString("F2") + "s"))})");
             }
+            Directory.CreateDirectory(Out);
+            File.WriteAllText(Out + "FightVariants.json", JsonUtility.ToJson(new ASBO.Slice.FightSet.Table { v = vars.ToArray() }, true));
+            AssetDatabase.ImportAsset(Out + "FightVariants.json");
             // the Fists layer: stance by default, guard while "Guard" is held
             var stance = KOClip("ASBO_Stance"); var guard = KOClip("ASBO_Guard");
             var mxStance = ASBOMixamo.ClipNamed("MX_Stance"); // the ready pose held round Mixamo's body block: fists properly up
@@ -245,7 +307,7 @@ namespace ASBO.EditorTools
             Directory.CreateDirectory(Out);
             if (File.Exists(ctrlPath)) AssetDatabase.DeleteAsset(ctrlPath);
             var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
-            foreach (var n in new[] { "MoveX", "MoveZ", "Variant" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
+            foreach (var n in new[] { "MoveX", "MoveZ", "Variant", "Gait", "IdleVar" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
             foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
             foreach (var n in new[] { "Jump", "TurnL", "TurnR" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
             var sm = ac.layers[0].stateMachine;
@@ -254,7 +316,9 @@ namespace ASBO.EditorTools
             tree.blendType = BlendTreeType.FreeformDirectional2D; tree.blendParameter = "MoveX"; tree.blendParameterY = "MoveZ";
             var idle = Clip(p + "Idles/" + h + "Idle01");
             // standing about: the pack idle, looking round, scratching an arm (MoCap Central)
-            tree.AddChild(ik ? Variants(ac, "Idles", idle, AnyClip(MC + "Idle/MCU_am_Stand_Idle_03_LookAround.FBX"), AnyClip(MC + "Idle/MCU_am_Stand_Idle_06_ScratchArm.FBX")) : idle, Vector2.zero);
+            // plus the Mixamo idles; each person keeps one ("IdleVar", set once)
+            tree.AddChild(ik ? Pick(ac, "Idles", "IdleVar", new[] { idle, AnyClip(MC + "Idle/MCU_am_Stand_Idle_03_LookAround.FBX"), AnyClip(MC + "Idle/MCU_am_Stand_Idle_06_ScratchArm.FBX") }
+                .Concat(ASBOMixamo.IdleFiles.Select((f, q) => ASBOMixamo.ClipFrom(f, "MX_Idle" + q))).Select(c => ((Motion)c, 1f, 0f)).ToArray()) : idle, Vector2.zero);
             var sp = new Speeds();
             void Dirs(string gait, string[] dirs)
             {
@@ -294,19 +358,10 @@ namespace ASBO.EditorTools
                     }
                 }
                 tree.children = kids;
-                // the Mixamo walk (your X Bot downloads) replaces the forward walk when it's in the project
-                var mxWalk = ASBOMixamo.ClipNamed("MX_Walk");
-                if (mxWalk != null)
-                {
-                    kids = tree.children;
-                    for (int i = 0; i < kids.Length; i++)
-                    {
-                        if (Mathf.Abs(kids[i].position.x) > 0.1f || kids[i].position.y < 0.5f || kids[i].position.y > 2.6f) continue; // the forward walk
-                        kids[i].motion = mxWalk; kids[i].timeScale = kids[i].position.y / 1.71f; // Mixamo's walk covers 1.71 m/s
-                        Debug.Log($"[ASBO] mixamo walk replaces forward walk at {kids[i].position.y:F2} m/s (timeScale {kids[i].timeScale:F2})");
-                    }
-                    tree.children = kids;
-                }
+                // the Mixamo walks and runs (your X Bot downloads) take over going forward; each person has their own way of
+                // walking and running ("Gait", set once), lined up in step with the pack's sideways and diagonal cycles
+                GaitSlot(ac, tree, 0.5f, 2.6f, ("Walking", "MX_Walk", 1.71f), ("Walking (1)", "MX_Walk1", 1.75f));
+                GaitSlot(ac, tree, 3.4f, 6.6f, ("Running", "MX_Run", 4.62f), ("Running (1)", "MX_Run1", 0f));
             }
             sm.defaultState = move;
 

@@ -56,19 +56,38 @@ namespace ASBO.EditorTools
                 if (dirty) { mi.SaveAndReimport(); n++; }
             }
             Debug.Log($"[ASBO] mixamo: {n} files set to Humanoid");
-            foreach (var path in Directory.GetFiles(Dir, "*.fbx").Select(p => p.Replace('\\', '/')))
+            var sb = new System.Text.StringBuilder();
+            foreach (var path in Directory.GetFiles(Dir, "*.fbx").Select(p => p.Replace('\\', '/')).OrderBy(p => p))
             {
                 var c = Raw(path); if (c == null) { Debug.LogWarning("[ASBO] mixamo: no clip in " + path); continue; }
-                var (speed, dz) = RootSpeed(c);
-                Debug.Log($"[ASBO] mixamo {Path.GetFileNameWithoutExtension(path)}: {c.length:F2}s {c.frameRate:F0}fps root {speed:F2} m/s (moves {dz:F2} m)");
+                sb.AppendLine(Summary(Path.GetFileNameWithoutExtension(path).Replace("X Bot@", ""), c));
             }
-            Loops("Run To Stop", 0.45f, 0.95f);
-            Loops("Idle To Sprint", 0.45f, 0.95f);
-            Loops("Walking", 0.8f, 1.4f);
-            Stance("Body Block"); Stance("Fight Idle To Action Idle");
+            File.WriteAllText("Library/mixamo_summary.txt", sb.ToString());
+            Debug.Log("[ASBO] mixamo: summary written to Library/mixamo_summary.txt");
         }
 
-        static AnimationClip Raw(string path) => AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>().FirstOrDefault(c => !c.name.StartsWith("__preview__"));
+        /// <summary>
+        /// One line per take: length, how far the root travels (and its speed), how well the end matches the start
+        /// (a loop), and when the arms and legs are fastest (where a punch or kick lands), plus how low the hips go.
+        /// </summary>
+        public static string Summary(string name, AnimationClip c)
+        {
+            var (speed, dz) = RootSpeed(c);
+            var all = Muscles(c, "Leg", "Foot", "Arm", "Forearm", "Spine", "Chest", "Neck", "Head").Select(m => Curve(c, m)).Where(k => k != null).ToArray();
+            float loopDiff = 0; foreach (var k in all) loopDiff += Mathf.Abs(k.Evaluate(0) - k.Evaluate(c.length)); loopDiff /= Mathf.Max(1, all.Length);
+            (float t, float v) Peak(params string[] parts)
+            {
+                var ks = Muscles(c, parts).Select(m => Curve(c, m)).Where(k => k != null).ToArray(); float bt = 0, bv = 0, dt = 1f / 30f;
+                for (float t = 0; t + dt <= c.length; t += dt) { float v = 0; foreach (var k in ks) v += Mathf.Abs(k.Evaluate(t + dt) - k.Evaluate(t)); v /= dt; if (v > bv) { bv = v; bt = t; } }
+                return (bt, bv);
+            }
+            var arm = Peak("Right Arm", "Right Forearm", "Left Arm", "Left Forearm"); var leg = Peak("Right Upper Leg", "Right Lower Leg", "Left Upper Leg", "Left Lower Leg");
+            var y = Curve(c, "RootT.y"); float yMin = 9f, y0 = y != null ? y.Evaluate(0) : 0f, y1 = y != null ? y.Evaluate(c.length) : 0f;
+            if (y != null) for (float t = 0; t <= c.length; t += 0.05f) yMin = Mathf.Min(yMin, y.Evaluate(t));
+            return $"{name}|len {c.length:F2}|root {speed:F2}m/s {dz:F2}m|loop {loopDiff:F3}|arm {arm.t:F2}s {arm.v:F0}|leg {leg.t:F2}s {leg.v:F0}|hipY {y0:F2}->{y1:F2} min {yMin:F2}";
+        }
+
+        static AnimationClip Raw(string path) { var all = AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>().Where(c => !c.name.StartsWith("__preview__")).ToArray(); return all.FirstOrDefault(c => c.name == "FULL") ?? all.FirstOrDefault(c => !c.name.StartsWith("MX")) ?? all.FirstOrDefault(); }
 
         static AnimationCurve Curve(AnimationClip c, string prop)
         {
@@ -137,44 +156,222 @@ namespace ASBO.EditorTools
             Debug.Log($"[ASBO] mixamo strike {file} ({c.length:F2}s) arm speed {sb}");
         }
 
+        /// <summary>
+        /// Play every take on the X Bot skeleton and measure where the fists and feet go relative to the hips: when each
+        /// reaches furthest forward (a punch or kick landing) and how far, so the moves can be cut round the hit and the
+        /// game knows when it lands. Writes Library/mixamo_strikes.txt.
+        /// </summary>
+        [MenuItem("ASBO/Mixamo/3 Measure Strikes")]
+        public static void MeasureStrikes()
+        {
+            var sb = new System.Text.StringBuilder();
+            AnimationMode.StartAnimationMode();
+            try
+            {
+                foreach (var path in Directory.GetFiles(Dir, "*.fbx").Select(p => p.Replace('\\', '/')).OrderBy(p => p))
+                {
+                    var c = Raw(path); var model = AssetDatabase.LoadAssetAtPath<GameObject>(path); if (c == null || model == null) continue;
+                    var go = Object.Instantiate(model); go.hideFlags = HideFlags.HideAndDontSave;
+                    var a = go.GetComponent<Animator>(); if (a == null || !a.isHuman) { Object.DestroyImmediate(go); continue; }
+                    var hips = a.GetBoneTransform(HumanBodyBones.Hips); var chest = a.GetBoneTransform(HumanBodyBones.UpperChest) ?? a.GetBoneTransform(HumanBodyBones.Chest);
+                    var limbs = new[] { HumanBodyBones.RightHand, HumanBodyBones.LeftHand, HumanBodyBones.RightFoot, HumanBodyBones.LeftFoot, HumanBodyBones.Head }.Select(a.GetBoneTransform).ToArray();
+                    // how far each fist is from the chest, each foot from the hips, the head from the hips (straightened limbs = a strike)
+                    float Ext(int i) => Vector3.Distance(limbs[i].position, i < 2 ? chest.position : hips.position);
+                    AnimationMode.SampleAnimationClip(go, c, 0f);
+                    var base0 = Enumerable.Range(0, 5).Select(Ext).ToArray();
+                    var best = new float[5]; var bestT = new float[5]; var bestH = new float[5];
+                    float moveA = -1f, moveB = 0f; var prev = limbs.Select(l => l.position).ToArray();
+                    for (float t = 0f; t <= c.length; t += 1f / 30f)
+                    {
+                        AnimationMode.SampleAnimationClip(go, c, t);
+                        float sp = 0f;
+                        for (int i = 0; i < 5; i++)
+                        {
+                            float r = Ext(i) - base0[i];
+                            if (r > best[i]) { best[i] = r; bestT[i] = t; bestH[i] = limbs[i].position.y - go.transform.position.y; }
+                            sp = Mathf.Max(sp, (limbs[i].position - prev[i]).magnitude * 30f); prev[i] = limbs[i].position;
+                        }
+                        if (t > 0f && sp > 1.2f) { if (moveA < 0f) moveA = t; moveB = t; }
+                    }
+                    sb.AppendLine($"{Path.GetFileNameWithoutExtension(path).Replace("X Bot@", "")}|len {c.length:F2}|moves {moveA:F2}-{moveB:F2}|R {best[0]:F2}@{bestT[0]:F2} h{bestH[0]:F2}|L {best[1]:F2}@{bestT[1]:F2} h{bestH[1]:F2}|RF {best[2]:F2}@{bestT[2]:F2} h{bestH[2]:F2}|LF {best[3]:F2}@{bestT[3]:F2} h{bestH[3]:F2}|head {best[4]:F2}@{bestT[4]:F2}");
+                    Object.DestroyImmediate(go);
+                }
+            }
+            finally { AnimationMode.StopAnimationMode(); }
+            File.WriteAllText("Library/mixamo_strikes.txt", sb.ToString());
+            Debug.Log("[ASBO] mixamo: strikes measured -> Library/mixamo_strikes.txt");
+        }
+
+        static readonly string[] Timed = {
+            "Lead Jab", "Cross Punch", "Punching", "Hook", "Hook (1)", "Hook Punch", "Right Hook", "Uppercut", "Headbutt", "Headbutt (1)", "Illegal Elbow Punch", "Illegal Elbow Punch (1)",
+            "Illegal Knee", "Knee Jab", "Knee Jabs To Uppercut", "Kicking", "Flying Kick", "Stomp", "Standing Melee Attack Backhand", "Fist Fight A",
+            "Head Hit", "Big Hit To Head", "Receive Uppercut To The Face", "Receive Uppercut To The Face (1)", "Receive Uppercut To The Face (2)", "Hit To Body", "Rib Hit", "Big Stomach Hit",
+            "Stunned", "Dodging", "Dodging Back", "Body Block", "Running (1)", "Walking (1)", "Swagger Walk", "Idle (1)" };
+
+        static readonly string[] Traced = { "Head Hit", "Big Hit To Head", "Receive Uppercut To The Face", "Receive Uppercut To The Face (1)", "Hit To Body", "Rib Hit", "Big Stomach Hit", "Stunned", "Dodging Back" };
+
+        /// <summary>
+        /// For each fight take: every fist, foot, knee and the head tracked along the facing direction (metres in front of
+        /// where the character stands). Per limb: rest, furthest forward and when (the moment a strike lands), when it
+        /// starts and finishes moving (half way out and back). For hits taken: when the head is knocked furthest back.
+        /// Writes Library/mixamo_timing.txt.
+        /// </summary>
+        [MenuItem("ASBO/Mixamo/4 Time Fight Moves")]
+        public static void TimeMoves()
+        {
+            var sb = new System.Text.StringBuilder();
+            AnimationMode.StartAnimationMode();
+            try
+            {
+                foreach (var name in Timed)
+                {
+                    var path = F(name); var c = Raw(path); var model = AssetDatabase.LoadAssetAtPath<GameObject>(path); if (c == null || model == null) { sb.AppendLine(name + "|missing"); continue; }
+                    var go = Object.Instantiate(model); go.hideFlags = HideFlags.HideAndDontSave;
+                    var a = go.GetComponent<Animator>(); if (a == null || !a.isHuman) { Object.DestroyImmediate(go); continue; }
+                    var bones = new[] { HumanBodyBones.RightHand, HumanBodyBones.LeftHand, HumanBodyBones.RightFoot, HumanBodyBones.LeftFoot, HumanBodyBones.RightLowerLeg, HumanBodyBones.LeftLowerLeg, HumanBodyBones.Head, HumanBodyBones.Hips };
+                    string[] tag = { "RH", "LH", "RF", "LF", "RK", "LK", "Hd", "Hp" };
+                    var tr = bones.Select(a.GetBoneTransform).ToArray();
+                    int n = Mathf.FloorToInt(c.length * 30f) + 1; var z = new float[8, n]; var y = new float[8, n];
+                    for (int f = 0; f < n; f++)
+                    {
+                        AnimationMode.SampleAnimationClip(go, c, Mathf.Min(c.length, f / 30f));
+                        for (int i = 0; i < 8; i++) { var q = tr[i].position - go.transform.position; z[i, f] = q.z; y[i, f] = q.y; }
+                    }
+                    sb.Append($"{name}|len {c.length:F2}");
+                    for (int i = 0; i < 8; i++)
+                    {
+                        float rest = z[i, 0], mx = -9f, mn = 9f; int fm = 0, fn = 0;
+                        for (int f = 0; f < n; f++) { if (z[i, f] > mx) { mx = z[i, f]; fm = f; } if (z[i, f] < mn) { mn = z[i, f]; fn = f; } }
+                        float half = rest + (mx - rest) * 0.5f; int on = fm, off = fm;
+                        while (on > 0 && z[i, on] > half) on--; while (off < n - 1 && z[i, off] > half) off++;
+                        sb.Append($"|{tag[i]} {rest:F2}>{mx:F2}@{fm / 30f:F2} y{y[i, fm]:F2} [{on / 30f:F2}-{off / 30f:F2}] min {mn:F2}@{fn / 30f:F2}");
+                    }
+                    sb.AppendLine();
+                    if (Traced.Contains(name))
+                    {
+                        // head forward/height and hips forward/height every 0.1 s (when a hit lands: the head snaps)
+                        sb.Append("  trace hd z/y hp z/y:");
+                        for (int f = 0; f < n; f += 3) sb.Append($" {f / 30f:F1}:{z[6, f]:F2}/{y[6, f]:F2}/{z[7, f]:F2}/{y[7, f]:F2}");
+                        sb.AppendLine();
+                    }
+                    Object.DestroyImmediate(go);
+                }
+            }
+            finally { AnimationMode.StopAnimationMode(); }
+            File.WriteAllText("Library/mixamo_timing.txt", sb.ToString());
+            Debug.Log("[ASBO] mixamo: fight moves timed -> Library/mixamo_timing.txt");
+        }
+
         [MenuItem("ASBO/Mixamo/2 Cut Clips")]
         public static void CutAll()
         {
-            Cut("Walking", "MX_Walk", 0f, 1.0f, true);
+            Cut("Walking", "MX_Walk", -1f, -1f, true);
+            Cut("Walking (1)", "MX_Walk1", -1f, -1f, true);
+            Cut("Running", "MX_Run", -1f, -1f, true);
+            Cut("Running (1)", "MX_Run1", -1f, -1f, true);
+            for (int i = 0; i < IdleFiles.Length; i++) Cut(IdleFiles[i], "MX_Idle" + i, -1f, -1f, true);
             Cut("Body Block", "MX_Stance", 2.1f, 3.35f, true);
-            Cut("Uppercut", "MX_Uppercut", -1f, -1f, false);
-            Cut("Evading A Threat", "MX_Evade", -1f, -1f, false, false);
-            Cut("Falling Down", "MX_FallDown", -1f, -1f, false, false);
+            Cut("Evading A Threat", "MX_Evade", -1f, -1f, false);
+            Cut("Falling Down", "MX_FallDown", -1f, -1f, false);
             Cut("Zombie Stand Up", "MX_StandUp", -1f, -1f, false);
             Cut("Walk Backwards", "MX_WalkBack", -1f, -1f, true);
-            Strike("Uppercut");
-            foreach (var n in new[] { "MX_Walk", "MX_Stance", "MX_Uppercut" }) { var c = ClipNamed(n); Debug.Log($"[ASBO] mixamo cut {n}: {(c != null ? c.length.ToString("F2") + "s loop " + c.isLooping : "missing")}"); }
+            Drop("Uppercut", "MX_Uppercut"); // the whole take again under another name: Unity refuses the copy (now cut as a Hay version)
+            // every version of every fight move and hit reaction (FightSet.Takes): cut round the blow
+            for (int k = 0; k < ASBO.Slice.FightSet.Takes.Length; k++) { var t = ASBO.Slice.FightSet.Takes[k]; if (File.Exists(F(t.file))) Cut(t.file, FightClipName(k), t.a, t.b, false); }
+            cache = null;
+            foreach (var (file, n) in new[] { ("Walking", "MX_Walk"), ("Walking (1)", "MX_Walk1"), ("Running", "MX_Run"), ("Running (1)", "MX_Run1"), ("Body Block", "MX_Stance") })
+            {
+                var c = ClipFrom(file, n);
+                Debug.Log($"[ASBO] mixamo cut {n}: {(c != null ? $"{c.length:F2}s loop {c.isLooping}, travels {c.averageSpeed.magnitude:F2} m/s, drifts {Drift(c):F2} m in the pose" : "missing")}");
+            }
         }
 
-        /// <summary>Cut the takes into the named clips (ranges in seconds; loops get Unity's loop-pose match).</summary>
-        public static void Cut(string file, string clip, float a, float b, bool loop, bool bakeXZ = true)
+        /// <summary>The standing-about idles (each person gets one of these or the pack's own).</summary>
+        public static readonly string[] IdleFiles = { "Idle", "Idle (1)", "Idle (2)", "Idle (3)" };
+        public static string FightClipName(int k) => "MXF_" + ASBO.Slice.FightSet.Takes[k].trig + "_" + k;
+
+        /// <summary>How far the hips wander from where the character stands over the clip (should be ~0: played in place).</summary>
+        public static float Drift(AnimationClip c)
         {
-            var path = F(file); var mi = (ModelImporter)AssetImporter.GetAtPath(path);
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(F("Walking")); if (model == null || c == null) return -1f;
+            var go = Object.Instantiate(model); go.hideFlags = HideFlags.HideAndDontSave; float d = 0f;
+            AnimationMode.StartAnimationMode();
+            try
+            {
+                // relative to the character's own spot (sampling moves the object itself by the root motion, which the game ignores)
+                var hips = go.GetComponent<Animator>().GetBoneTransform(HumanBodyBones.Hips);
+                AnimationMode.SampleAnimationClip(go, c, 0f); var p0 = go.transform.InverseTransformPoint(hips.position);
+                for (float t = 0.1f; t <= c.length; t += 0.1f) { AnimationMode.SampleAnimationClip(go, c, t); var dd = go.transform.InverseTransformPoint(hips.position) - p0; dd.y = 0f; d = Mathf.Max(d, dd.magnitude); }
+            }
+            finally { AnimationMode.StopAnimationMode(); Object.DestroyImmediate(go); }
+            return d;
+        }
+
+        /// <summary>
+        /// Where in its cycle a walk or run has the left foot furthest forward (0..1): used to line the Mixamo cycles up
+        /// with the pack's sideways and diagonal ones so blending between them never crosses the feet.
+        /// </summary>
+        public static float Phase(AnimationClip c)
+        {
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(F("Walking")); if (model == null || c == null) return 0f;
+            var go = Object.Instantiate(model); go.hideFlags = HideFlags.HideAndDontSave; float best = -9f, bt = 0f;
+            AnimationMode.StartAnimationMode();
+            try
+            {
+                var a = go.GetComponent<Animator>(); var hips = a.GetBoneTransform(HumanBodyBones.Hips); var lf = a.GetBoneTransform(HumanBodyBones.LeftFoot);
+                for (int i = 0; i < 60; i++)
+                {
+                    float t = i / 60f; AnimationMode.SampleAnimationClip(go, c, t * c.length);
+                    float z = go.transform.InverseTransformPoint(lf.position).z - go.transform.InverseTransformPoint(hips.position).z;
+                    if (z > best) { best = z; bt = t; }
+                }
+            }
+            finally { AnimationMode.StopAnimationMode(); Object.DestroyImmediate(go); }
+            return bt;
+        }
+
+        /// <summary>
+        /// Cut the takes into the named clips (ranges in seconds; loops get Unity's loop-pose match). Played in place:
+        /// the take's travel goes to root motion, which the game ignores (it moves people itself), so the body stays
+        /// over its feet. The whole take stays in the file too (as "FULL") for the measuring tools.
+        /// </summary>
+        public static void Cut(string file, string clip, float a, float b, bool loop, bool bakeXZ = false)
+        {
+            var path = F(file); var mi = (ModelImporter)AssetImporter.GetAtPath(path); if (mi == null) { Debug.LogWarning("[ASBO] mixamo: no " + path); return; }
             var src = mi.defaultClipAnimations[0];
-            float fps = 30f; var raw = Raw(path); if (raw != null) fps = raw.frameRate;
+            float fps = 30f; var raw = Raw(path); if (raw != null && raw.frameRate > 1f) fps = raw.frameRate;
             var list = mi.clipAnimations.Where(x => x.name != clip).ToList();
+            if (!list.Any(x => x.name == "FULL")) { var full = mi.defaultClipAnimations[0]; full.name = "FULL"; list.Insert(0, full); }
             list.Add(new ModelImporterClipAnimation
             {
-                name = clip, takeName = src.takeName, firstFrame = a < 0 ? src.firstFrame : a * fps, lastFrame = b < 0 ? src.lastFrame : b * fps,
+                name = clip, takeName = src.takeName, firstFrame = a < 0 ? src.firstFrame : a * fps, lastFrame = b < 0 ? src.lastFrame : Mathf.Min(src.lastFrame, b * fps),
                 loopTime = loop, loopPose = loop, lockRootRotation = true, keepOriginalOrientation = true,
-                lockRootHeightY = true, keepOriginalPositionY = true, lockRootPositionXZ = bakeXZ, keepOriginalPositionXZ = true
+                lockRootHeightY = true, keepOriginalPositionY = true, lockRootPositionXZ = bakeXZ, keepOriginalPositionXZ = bakeXZ
             });
             mi.clipAnimations = list.ToArray(); mi.SaveAndReimport();
         }
 
+        /// <summary>Take a cut back out of a file.</summary>
+        public static void Drop(string file, string clip)
+        {
+            var mi = (ModelImporter)AssetImporter.GetAtPath(F(file)); if (mi == null || !mi.clipAnimations.Any(x => x.name == clip)) return;
+            mi.clipAnimations = mi.clipAnimations.Where(x => x.name != clip).ToArray(); mi.SaveAndReimport();
+        }
+
+        static Dictionary<string, AnimationClip> cache;
+        /// <summary>A clip cut from one take.</summary>
+        public static AnimationClip ClipFrom(string file, string name) => AssetDatabase.LoadAllAssetsAtPath(F(file)).OfType<AnimationClip>().FirstOrDefault(x => x.name == name);
+
         public static AnimationClip ClipNamed(string name)
         {
-            foreach (var path in Directory.GetFiles(Dir, "*.fbx"))
+            if (cache == null)
             {
-                var c = AssetDatabase.LoadAllAssetsAtPath(path.Replace('\\', '/')).OfType<AnimationClip>().FirstOrDefault(x => x.name == name);
-                if (c != null) return c;
+                cache = new Dictionary<string, AnimationClip>();
+                foreach (var path in Directory.GetFiles(Dir, "*.fbx"))
+                    foreach (var c in AssetDatabase.LoadAllAssetsAtPath(path.Replace('\\', '/')).OfType<AnimationClip>())
+                        if (!c.name.StartsWith("__preview__") && !cache.ContainsKey(c.name)) cache[c.name] = c;
             }
-            return null;
+            return cache.TryGetValue(name, out var r) && r != null ? r : null;
         }
     }
 }

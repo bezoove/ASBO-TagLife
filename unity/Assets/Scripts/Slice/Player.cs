@@ -69,7 +69,7 @@ namespace ASBO.Slice
             if (vcam != null) vcam.PreviousStateIsValid = false;
         }
 
-        bool wasGrounded = true; float fallSpeed; Fighter fighter; bool lockedThisFrame, clickLock, facing; float lookT;
+        bool wasGrounded = true; float fallSpeed; Fighter fighter; bool lockedThisFrame, clickLock, facing; float lookT, holdR = 1.25f;
         public bool InCar => inCar; bool touch;
         Vector2 lookAdd;
         /// <summary>Camera turn from touch drags (degrees).</summary>
@@ -173,14 +173,23 @@ namespace ASBO.Slice
             bool walk = (kb != null && kb.leftCtrlKey.isPressed) || (mag > 0.05f && mag < 0.5f);
             float pace = sprint ? sp.sprint : walk ? sp.walk : sp.run;
             if (person.hurt) pace = person.HurtSpeed;
+            if (fighter != null)
+            {
+                fighter.Steer = mag < 0.05f ? Vector3.zero : dir * mag;
+                var tg = fighter.Target;
+                // sprinting away from the one you're squared up to: you're legging it, out of the fight
+                if (tg != null && sprint && mag > 0.3f && Vector3.Dot(dir, (tg.transform.position - transform.position).WithY(0).normalized) < -0.2f) fighter.RunOff();
+                else if (tg != null && !sprint) pace = Mathf.Min(pace, sp.walk * 1.1f); // footwork, not jogging round them
+            }
             Vector3 want = mag < 0.05f ? Vector3.zero : dir * pace;
             if (fighter != null)
             {
                 want *= fighter.SpeedMul;
-                // in a scrap (and not running away), keep facing whoever's on you
-                var foe = fighter.Busy || Fighter.Session.Hot && !sprint ? fighter.NearestFoe() : null;
+                // in a scrap (and not running away), keep facing whoever you're squared up to
+                var foe = fighter.Target != null && !sprint ? fighter.Target : fighter.Busy ? fighter.NearestFoe() : null;
                 if (foe != null && turnTimer <= 0f) { Vector3 fd = (foe.transform.position - transform.position).WithY(0); if (fd.sqrMagnitude > 0.01f) { bodyYaw = Mathf.MoveTowardsAngle(bodyYaw, Mathf.Atan2(fd.x, fd.z) * Mathf.Rad2Deg, 540f * Time.deltaTime); facing = true; } }
                 else facing = false;
+                if (fighter.Target != null && !sprint && !fighter.Down) want = Circle(fighter.Target, want);
             }
             bool grounded = cc.isGrounded;
 
@@ -192,7 +201,7 @@ namespace ASBO.Slice
                 bodyYaw += step;
                 want = Vector3.zero;
             }
-            else if (want.sqrMagnitude > 0.01f && vel.magnitude < 0.4f && grounded)
+            else if (want.sqrMagnitude > 0.01f && vel.magnitude < 0.4f && grounded && !facing)
             {
                 float delta = Mathf.DeltaAngle(bodyYaw, Mathf.Atan2(want.x, want.z) * Mathf.Rad2Deg);
                 if (Mathf.Abs(delta) > 75f && FreePackTest.On)
@@ -228,6 +237,27 @@ namespace ASBO.Slice
             Vector3 hv = cc.velocity; hv.y = 0f; if (hv.magnitude > vel.magnitude + 0.3f) hv = vel;
             Vector3 local = Quaternion.Inverse(transform.rotation) * hv;
             person.SetMove(new Vector2(local.x, local.z));
+        }
+
+        /// <summary>
+        /// The fight circle: squared up to someone, a gentle pull keeps you at fighting distance (left alone you settle
+        /// back to it), sideways takes you round them rather than off at a tangent, stepping in stops short of walking
+        /// into them, and backing off is a touch heavier. Walk far enough away (or sprint off) and you're out of it.
+        /// </summary>
+        Vector3 Circle(Fighter tgt, Vector3 want)
+        {
+            Vector3 to = (tgt.transform.position - transform.position).WithY(0); float d = to.magnitude;
+            if (d < 0.01f || d > 4f || tgt.Down) return want;
+            const float ring = 1.25f, minGap = 0.62f;
+            Vector3 n = to / d, tn = new Vector3(n.z, 0f, -n.x);
+            float inR = Vector3.Dot(want, n), inT = Vector3.Dot(want, tn);
+            if (inR > 0f) inR *= Mathf.Clamp01((d - minGap) / 0.35f); else inR *= 0.8f;
+            Vector3 w = n * inR + tn * inT;
+            if (Mathf.Abs(inT) > 0.2f && Mathf.Abs(inR) < Mathf.Abs(inT) * 0.35f) w += n * Mathf.Clamp((d - holdR) * 3f, -1.5f, 1.5f); // going round: hold the radius
+            else holdR = Mathf.Clamp(d, minGap + 0.2f, 2.2f);
+            if (want.sqrMagnitude < 0.01f && fighter.mode == Fighter.Mode.Idle && d < 2.6f) w += n * Mathf.Clamp((d - ring) * 1.3f, -0.55f, 0.55f); // the pull back to fighting distance
+            if (d < minGap) w -= n * (minGap - d) * 6f; // never inside each other
+            return w;
         }
 
         void ToggleCar()
@@ -266,7 +296,7 @@ namespace ASBO.Slice
             orbit.Radius = Mathf.Lerp(orbit.Radius, inCar ? 8f : indoors ? 2.4f : spectate ? 6f : 4.2f, 4f * Time.deltaTime);
             if (!inCar && Fighter.Session.Hot && fighter != null && Time.time - lookT > 0.8f)
             {
-                var foe = fighter.NearestFoe();
+                var foe = fighter.Target != null ? fighter.Target : fighter.NearestFoe();
                 if (foe != null) { Vector3 fd = (foe.transform.position - transform.position).WithY(0); if (fd.sqrMagnitude > 0.04f) yaw = Mathf.LerpAngle(yaw, Mathf.Atan2(fd.x, fd.z) * Mathf.Rad2Deg, 1f - Mathf.Exp(-1.5f * Time.deltaTime)); }
             }
             if (Fighter.Session.Shake > 0f) camTarget.position += Random.insideUnitSphere * Fighter.Session.Shake;

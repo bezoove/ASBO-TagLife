@@ -13,6 +13,12 @@ namespace ASBO.Slice
     /// guard), hold GUARD to block what comes from the front, FISTS to keep your fists up. Everything costs stamina; tired
     /// punches are slow and weak. Big hits knock people down (they get up and carry on); out of health is a knockout.
     /// Anyone hit squares up to whoever hit them; the faint-hearted run off once they're badly hurt.
+    ///
+    /// Each move has several versions (FightSet) picked at random, so no two punches look alike, and the two bodies
+    /// close to exactly the distance that version reaches as it lands, so you see it connect. Once you're in a scrap you
+    /// are squared up to one person (Target): you face them, a gentle pull keeps you at fighting distance, sideways goes
+    /// round them, and pushing at someone else and swinging (or them hitting you) switches to them. Fists down or legging
+    /// it gets you out. People fighting hold off at arm's length, circle, step in to throw and take turns on you.
     /// </summary>
     public class Fighter : MonoBehaviour
     {
@@ -57,6 +63,17 @@ namespace ASBO.Slice
         float t, stunT, imm, stamT, comboT, think, atkCd, guardT, strafe = 1f, strafeT, over, repath, seqT, bufT, hitT;
         int seqI; Move cur; bool landed, exhausted, flee, committed, ko; Move? buf; Fighter aim;
         int fistLayer = -2; float fistW; Vector3 lastPos;
+        float curImp = 0.3f, curDur = 0.45f, curContact = 0.85f; // this swing's version: when it lands, when you can go again, how close the bodies need to be
+        public float LastSwing { get; private set; } = -99f;
+        float ring = 1.25f, backoffT; // NPC: how far off they stand while circling; how long the player's had their fists down
+        /// <summary>The player: who you're squared up to (the fight circle you're in), or null.</summary>
+        public Fighter Target;
+        /// <summary>The player's stick in the world (length 0..1): swing while pushing at someone else in the scrap and you switch to them.</summary>
+        public Vector3 Steer;
+        public bool FistsDown => lowered;
+        int thinkFrame;
+        public string Dbg => $"foe {(foe != null ? foe.name : "-")} ring {ring:F2} think {think:F2} atkCd {atkCd:F2} over {over:F2} flee {flee} en {enabled} thought {Time.frameCount - thinkFrame} frames ago stance {stanceT:F1}";
+        float fledT = -99f, tgtT;
 
         void Awake()
         {
@@ -88,8 +105,8 @@ namespace ASBO.Slice
                 case Mode.Atk:
                 {
                     var M = MV[(int)cur]; t += dt;
-                    float durNow = M.dur * (exhausted ? 1.25f : 1f), impNow = M.imp * (exhausted ? 1.25f : 1f);
-                    if (aim != null && t < impNow) Lunge(aim, M.lunge * dt / impNow, M.reach);
+                    float durNow = curDur * (exhausted ? 1.25f : 1f), impNow = curImp * (exhausted ? 1.25f : 1f);
+                    if (aim != null && !landed && !aim.Down) Close(aim, curContact, impNow - t, dt);
                     if (!landed && t >= impNow * 0.7f && t - dt < impNow * 0.7f) Whoosh(cur);
                     if (!landed && t >= impNow) { landed = true; Resolve(M); }
                     if (t >= durNow) { mode = Mode.Idle; if (buf.HasValue) { var b = buf.Value; buf = null; Attack(b); } }
@@ -107,6 +124,7 @@ namespace ASBO.Slice
             }
             if (p.isPlayer)
             {
+                KeepTarget();
                 // fists stay up while someone's actually squaring up to you (not for any scrap across the estate)
                 bool onMe = Fighting; if (!onMe) foreach (var f in All) if (f != null && f.foe == this && !f.Down) { onMe = true; break; }
                 if (onMe && !lowered) stanceT = Mathf.Max(stanceT, 3f); else stanceT = Mathf.Max(0f, stanceT - dt);
@@ -142,7 +160,7 @@ namespace ASBO.Slice
             {
                 // the button shows what you'll get: up if they're down, down if they're up
                 bool up = stanceOn || stanceT > 0f;
-                if (up) { stanceOn = false; stanceT = 0f; lowered = true; }
+                if (up) { stanceOn = false; stanceT = 0f; lowered = true; Target = null; }
                 else { stanceOn = true; lowered = false; }
             }
             if (!canAct) { punchHeld = 0f; punchFired = false; return; }
@@ -196,14 +214,98 @@ namespace ASBO.Slice
             if (p == null || p.anim == null || !p.anim.enabled || Down) return false;
             if (mode == Mode.Atk || mode == Mode.Stun) { if (p.isPlayer) { buf = m; bufT = 0.35f; } return false; }
             var M = MV[(int)m];
+            // one of this move's versions, at random: its own timing and reach
+            var v = FightSet.Pick(M.trig);
+            curImp = v != null ? v.imp : M.imp; curDur = v != null ? v.dur : M.dur; curContact = v != null && v.contact > 0.1f ? v.contact : 0.85f;
             exhausted = stam < M.stam * 0.6f;
-            mode = Mode.Atk; t = 0f; cur = m; landed = false; guard = false;
+            mode = Mode.Atk; t = 0f; cur = m; landed = false; guard = false; LastSwing = Time.time;
             stam = Mathf.Max(0f, stam - M.stam); stamT = 0.7f; stanceT = 6f;
-            aim = p.isPlayer ? Best(M, 0.5f) : foe;
+            aim = p.isPlayer ? PlayerAim(M) : foe;
             if (aim != null) { Vector3 d = (aim.transform.position - transform.position).WithY(0); if (d.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(d); }
             p.anim.speed = exhausted ? 0.8f : 1f;
+            if (v != null) SetVar("AVar", v.idx);
             p.anim.SetTrigger(M.trig);
             return true;
+        }
+
+        static readonly Dictionary<RuntimeAnimatorController, HashSet<string>> ctrlParams = new Dictionary<RuntimeAnimatorController, HashSet<string>>();
+        /// <summary>Which version to play (only on controllers that have them: the drunk and hurt ones may not).</summary>
+        void SetVar(string param, int i)
+        {
+            var an = p.anim; var rc = an != null ? an.runtimeAnimatorController : null; if (rc == null) return;
+            if (!ctrlParams.TryGetValue(rc, out var set)) { set = new HashSet<string>(); foreach (var q in an.parameters) set.Add(q.name); ctrlParams[rc] = set; }
+            if (set.Contains(param)) an.SetFloat(param, i);
+        }
+
+        /// <summary>
+        /// Step in (or back) so the two bodies are exactly as far apart as this blow reaches when it lands: the fist meets
+        /// the face, the boot the belly, never thin air in front of them or an arm through their head.
+        /// </summary>
+        void Close(Fighter tgt, float contact, float left, float dt)
+        {
+            Vector3 d = (tgt.transform.position - transform.position).WithY(0); float dist = d.magnitude;
+            if (dist < 0.01f || dist > contact + 1.3f) return;
+            float gap = dist - contact;
+            float s = gap > 0f ? Mathf.Min(gap * Mathf.Clamp01(dt / Mathf.Max(left, dt)), 4.5f * dt) : Mathf.Max(gap * 0.5f, -1.5f * dt);
+            if (Mathf.Abs(s) > 1e-4f) MoveBy(d / dist * s);
+        }
+
+        // ------------------------------------------------------------------------------------------------ the player's fight circle
+        /// <summary>Who the player's swing goes at: whoever the stick pushes at in the scrap, else the one you're squared up to, else whoever's in front.</summary>
+        Fighter PlayerAim(Mv M)
+        {
+            if (Steer.sqrMagnitude > 0.09f)
+            {
+                Fighter pick = null; float ba = 40f;
+                foreach (var f in All)
+                {
+                    if (f == this || f == Target || f.Down || f.p == null || f.foe != this) continue;
+                    Vector3 d = (f.transform.position - transform.position).WithY(0); if (d.magnitude > curContact + 1.6f) continue;
+                    float a = Vector3.Angle(Steer, d); if (a < ba) { ba = a; pick = f; }
+                }
+                if (pick != null) Engage(pick);
+            }
+            if (Target != null && !Target.Down && (Target.transform.position - transform.position).WithY(0).magnitude <= curContact + 1.4f) return Target;
+            var b = Best(M, 0.5f);
+            if (b != null) Engage(b);
+            return b;
+        }
+
+        /// <summary>Square the player up to this one: face them, circle them, swing at them.</summary>
+        public void Engage(Fighter f)
+        {
+            if (f == null || f == this || f.Down && f.ko) return;
+            if (Target != f) tgtT = Time.time;
+            Target = f; lowered = false;
+        }
+
+        /// <summary>The player legged it: out of the circle (people give up the chase once you're well away).</summary>
+        public void RunOff() { if (Target != null) Target = null; fledT = Time.time; }
+        public bool RanOff => Time.time - fledT < 6f;
+
+        /// <summary>Each frame for the player: drop someone who's out of it, pick up whoever squares up to you.</summary>
+        void KeepTarget()
+        {
+            if (lowered) { Target = null; return; }
+            if (Target != null)
+            {
+                float d = (Target.transform.position - transform.position).WithY(0).magnitude;
+                if (Target.p == null || Target.ko || Target.hp <= 0f || d > 6.5f || (!Target.Fighting && !Target.Down && Time.time - tgtT > 4f)) Target = null;
+                else if (Target.Down) { var o = Hostile(Target, 3.5f); if (o != null) Engage(o); } // they're on the floor: the next one
+            }
+            if (Target == null && Time.time - fledT > 1.5f) { var o = Hostile(null, 4.5f); if (o != null) Engage(o); }
+        }
+
+        /// <summary>The nearest person on their feet having a go at the player.</summary>
+        Fighter Hostile(Fighter except, float within)
+        {
+            Fighter best = null; float bd = within;
+            foreach (var f in All)
+            {
+                if (f == this || f == except || f.foe != this || f.Down || f.ko) continue;
+                float d = (f.transform.position - transform.position).WithY(0).magnitude; if (d < bd) { bd = d; best = f; }
+            }
+            return best;
         }
 
         void Whoosh(Move m)
@@ -213,16 +315,9 @@ namespace ASBO.Slice
             if (w != null) GameAudio.I.Play3D(w, transform.position + Vector3.up * 1.2f, m == Move.Hay ? 0.65f : 0.45f, Random.Range(0.95f, 1.08f), 20f, 2f);
         }
 
-        void Lunge(Fighter tgt, float step, float reach)
-        {
-            Vector3 d = (tgt.transform.position - transform.position).WithY(0); float dist = d.magnitude;
-            if (dist < 0.75f || dist > reach + 0.9f) return;
-            float s = Mathf.Min(step, dist - 0.7f); if (s <= 0f) return;
-            MoveBy(d / dist * s);
-        }
-
         void MoveBy(Vector3 v)
         {
+            if (ag == null && !p.isPlayer) ag = GetComponent<NavMeshAgent>();
             var cc = GetComponent<CharacterController>();
             if (cc != null && cc.enabled) cc.Move(v);
             else if (ag != null && ag.enabled && ag.isOnNavMesh) ag.Move(v);
@@ -274,6 +369,7 @@ namespace ASBO.Slice
             if (p.isPlayer && p.GetComponent<PlayerCtl>() is PlayerCtl pc && pc.InCar) return;
             if (!p.isPlayer && !Fighting && from != null) SquareUp(from, false);
             if (p.isPlayer) { stanceT = 6f; lowered = false; }
+            if (p.isPlayer && from != null && from != Target && !from.Down && (Target == null || Target.Down || Time.time - Target.LastSwing > 1.6f)) Engage(from);
             hitT = 0f;
             Vector3 fromPos = from != null ? from.transform.position : transform.position - transform.forward;
             Vector3 toMe = (transform.position - fromPos).WithY(0); if (toMe.sqrMagnitude < 1e-4f) toMe = -transform.forward; toMe.Normalize();
@@ -312,7 +408,12 @@ namespace ASBO.Slice
                 return;
             }
             Stun(blocked ? 0.12f : M.stun * (imm > 0f ? 0.4f : 1f)); imm = 1.4f;
-            if (!blocked && p.anim != null && p.anim.enabled) p.anim.SetTrigger(head || M.head > 0f ? "Struck" : "StruckBody");
+            if (!blocked && p.anim != null && p.anim.enabled)
+            {
+                string rt = head || M.head > 0f ? "Struck" : "StruckBody";
+                var rv = FightSet.Pick(rt, M.heavy || dmg > 13f); if (rv != null) SetVar("RVar", rv.idx);
+                p.anim.SetTrigger(rt);
+            }
         }
 
         void Stun(float secs) { mode = Mode.Stun; stunT = Mathf.Max(secs, 0.05f); guard = false; buf = null; if (p.anim != null) p.anim.speed = 1f; }
@@ -348,10 +449,13 @@ namespace ASBO.Slice
         {
             if (other == null || other == this || p == null || p.isPlayer || Down) return;
             if (Fighting) { if (other.p != null && other.p.isPlayer && !byMe) foe = other; return; }
-            foe = other; aggr = byMe; flee = false; committed = false; over = 0f;
+            foe = other; aggr = byMe; flee = false; committed = false; over = 0f; backoffT = 0f;
+            ring = 1.12f + build * 0.12f + Random.Range(0f, 0.12f); // arm's length and a bit: where they hold while circling
             think = Random.Range(0.15f, 0.45f); atkCd = Random.Range(0.3f, 0.8f); stanceT = 6f;
             hp = Mathf.Max(hp, maxHp * 0.35f);
             p.SetKneel(false); p.SetTalk(false); p.SetWave(false);
+            if (res == null) res = GetComponent<Resident>();
+            if (ag == null) ag = GetComponent<NavMeshAgent>();
             if (res != null) res.EnterFight();
             if (ag != null) ag.updateRotation = false;
             lastPos = transform.position;
@@ -364,7 +468,7 @@ namespace ASBO.Slice
         {
             if (foe == null && why == null) { guard = false; return; }
             foe = null; guard = false; flee = false; mode = Mode.Idle;
-            if (ag != null) ag.updateRotation = true;
+            if (ag != null) { ag.updateRotation = true; ag.acceleration = 3f; } // back to a resident's easy pace
             if (p != null && p.anim != null) p.anim.speed = 1f;
             if (res != null) res.ExitFight(why == "flee" ? Session.PlayerFighter : null);
             if (why == "flee") World.Toast(Session.NameOf(this) + " legs it.", 0);
@@ -375,6 +479,8 @@ namespace ASBO.Slice
 
         void Think(float dt)
         {
+            thinkFrame = Time.frameCount;
+            if (ag == null) ag = GetComponent<NavMeshAgent>(); // residents get their agent after we wake up
             var me = transform.position;
             if (foe == null || foe.Down || foe.hp <= 0f || (foe.p != null && foe.p.isPlayer && Session.PlayerOut))
             {
@@ -385,6 +491,21 @@ namespace ASBO.Slice
             over = 0f;
             Vector3 d = (foe.transform.position - me).WithY(0); float dist = d.magnitude; if (dist < 0.01f) d = transform.forward;
             if (dist > 25f) { Leave(null); return; }
+            bool onPlayer = foe.p != null && foe.p.isPlayer;
+            // the player legged it: chase a bit, then give up
+            if (onPlayer && foe.RanOff && dist > 8f && mode == Mode.Idle) { World.Toast(Session.NameOf(this) + " doesn't bother chasing you.", 0); Leave(null); return; }
+            // the player put their fists down: most leave it there ("Yeah, walk away"), the real nutters keep coming
+            if (onPlayer && foe.lowered && mode == Mode.Idle)
+            {
+                backoffT += dt;
+                if (backoffT > 0.8f && (!aggr || temper < 0.62f || hp < maxHp * 0.6f))
+                {
+                    World.Toast(Session.NameOf(this) + ": \"" + (aggr ? "Yeah, walk away." : "That's what I thought.") + "\"", 0);
+                    if (GameAudio.I != null) GameAudio.I.PlayVoice("hostile", transform.position + Vector3.up * 1.6f, 0.1f);
+                    Leave("won"); return;
+                }
+            }
+            else backoffT = 0f;
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(d), (mode == Mode.Atk ? 290f : 630f) * dt);
             if (mode != Mode.Idle) { Animate(Vector3.zero, dt); return; }
 
@@ -393,13 +514,13 @@ namespace ASBO.Slice
             if (flee) { Leave("flee"); return; }
 
             guardT -= dt; guard = guardT > 0f && stam > 0f; atkCd -= dt; think -= dt; strafeT -= dt;
-            const float reach = 1f;
             if (think <= 0f)
             {
                 think = Random.Range(0.2f, 0.45f) * (1.3f - Skill * 0.6f);
                 bool winding = foe.mode == Mode.Atk && foe.t < MV[(int)foe.cur].imp;
                 if (winding && dist < 1.9f && stam > 8f && Random.value < 0.1f + Skill * 0.55f) { guardT = Random.Range(0.5f, 0.9f); guard = true; }
-                else if (dist <= reach && atkCd <= 0f && !foe.Down)
+                else if (dist <= ring + 0.3f && atkCd <= 0f && !foe.Down && Crowded()) atkCd = Random.Range(0.15f, 0.45f); // someone else is swinging at them: wait your turn
+                else if (dist <= ring + 0.3f && atkCd <= 0f && !foe.Down)
                 {
                     var opts = new List<(Move, float)> { (Move.Jab, 5f), (Move.Cross, 4f), (Move.Hook, 3f), (Move.Body, 2f) };
                     if (Skill > 0.5f) opts.Add((Move.Kick, 1f));
@@ -408,24 +529,29 @@ namespace ASBO.Slice
                     if (stam < 12f) atkCd = Random.Range(0.4f, 0.9f);
                     else { Attack(Pick(opts)); atkCd = Random.Range(0.35f, 0.9f) * (1.35f - Skill * 0.55f) + (stam < 30f ? 0.5f : 0f); }
                 }
-                else if (dist < 1.3f && Random.value < 0.5f) { strafe = Random.value < 0.5f ? 1f : -1f; strafeT = Random.Range(0.5f, 1.2f); }
+                else if (dist < ring + 0.45f && Random.value < 0.6f) { strafe = Random.value < 0.5f ? 1f : -1f; strafeT = Random.Range(0.6f, 1.6f); } // move round them
             }
             if (mode != Mode.Idle) { Animate(Vector3.zero, dt); return; }
 
-            Vector3 dir = d / Mathf.Max(dist, 0.01f), v = Vector3.zero;
-            if (dist > reach - 0.03f)
+            Vector3 dir = d / Mathf.Max(dist, 0.01f), side = new Vector3(-dir.z, 0f, dir.x), v = Vector3.zero;
+            if (dist > ring + 0.25f)
             {
-                float sp = dist > 4.5f ? 3f : 1.7f + Skill * 0.3f;
-                if (ag != null && ag.enabled && ag.isOnNavMesh && dist > 2.5f)
+                float sp = dist > 4.5f ? (onPlayer && foe.RanOff ? 3.8f : 3f) : 1.7f + Skill * 0.3f;
+                if (ag != null && ag.enabled && ag.isOnNavMesh && dist > 2.2f) // path round parked cars and walls to get at them
                 {
-                    ag.isStopped = false; ag.speed = sp;
-                    if (Time.time > repath) { repath = Time.time + 0.25f; ag.SetDestination(foe.transform.position - dir * (reach - 0.2f)); }
+                    ag.isStopped = false; ag.speed = sp; ag.acceleration = 10f;
+                    if (Time.time > repath) { repath = Time.time + 0.25f; ag.SetDestination(foe.transform.position - dir * ring); }
                     Animate(ag.velocity, dt, true); return;
                 }
-                v = dir * sp;
+                v = dir * sp * Mathf.Clamp01((dist - ring) / 0.6f + 0.35f);
             }
-            else if (strafeT > 0f && !guard) v = new Vector3(-dir.z, 0f, dir.x) * strafe * 0.8f;
-            else if (dist < 0.72f) v = -dir * 0.9f;
+            else
+            {
+                // in the circle: hold at arm's length and work round them
+                v = dir * Mathf.Clamp((dist - ring) * 2.2f, -1.1f, 0.8f);
+                if (strafeT > 0f && !guard) v += side * strafe * 0.85f;
+            }
+            if (dist < 0.6f) v -= dir * (0.6f - dist) * 6f; // never inside each other
             if (ag != null && ag.enabled && ag.isOnNavMesh) { ag.isStopped = true; ag.velocity = Vector3.zero; }
             v += Separation() * 1.6f;
             if (v.sqrMagnitude > 1e-4f)
@@ -435,6 +561,9 @@ namespace ASBO.Slice
             }
             Animate(v, dt);
         }
+
+        /// <summary>Someone else is mid-swing at the one we're fighting (so they take turns, not all pile in at once).</summary>
+        bool Crowded() { foreach (var f in All) if (f != this && f.foe == foe && f.mode == Mode.Atk) return true; return false; }
 
         /// <summary>Keep a little room from everyone but the one we're fighting.</summary>
         Vector3 Separation()

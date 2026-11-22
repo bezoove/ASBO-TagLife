@@ -20,7 +20,7 @@ namespace ASBO.Slice
         public float speed = 1.3f;
         public State state = State.Walking;
         public bool dead, injured;
-        public bool drunk; int variant;
+        public bool drunk; int variant, gait, idleVar;
         /// <summary>Will pick themselves up after going down (light knock from a car, or punched out).</summary>
         bool getUp;
         /// <summary>Hurt: bent over and limping (after getting up) until hurtUntil.</summary>
@@ -63,13 +63,13 @@ namespace ASBO.Slice
             // about one bloke in five on the estate is half-cut, all day
             drunk = !isPlayer && male && !isParamedic && label != null && label.Contains("@") && (h / 7) % 5 == 0;
             variant = isPlayer ? 0 : (h / 3) % 3;
+            gait = isPlayer ? 0 : (h / 13) % 2; idleVar = isPlayer ? 0 : (h / 17) % 7; // their own walk, run and way of standing about
             UmaBody.Create(this, male, h, isPlayer, d =>
             {
                 anim = d.animator != null ? d.animator : GetComponentInChildren<Animator>();
                 if (anim == null) return;
                 anim.applyRootMotion = false;
-                // which idle and which way of talking this person has (0, 0.5, 1 pick clips in the controller's blends)
-                foreach (var prm in anim.parameters) if (prm.name == "Variant") { anim.SetFloat("Variant", variant * 0.5f); break; }
+                Style();
                 hips = anim.isHuman ? anim.GetBoneTransform(HumanBodyBones.Hips) : anim.transform;
                 smrs = GetComponentsInChildren<SkinnedMeshRenderer>(true);
                 foreach (var r in smrs) r.updateWhenOffscreen = false;
@@ -79,6 +79,18 @@ namespace ASBO.Slice
                 trigger = gameObject.AddComponent<CapsuleCollider>();
                 trigger.isTrigger = true; trigger.center = new Vector3(0, 0.9f, 0); trigger.radius = 0.33f; trigger.height = 1.8f;
                 rootRb = gameObject.AddComponent<Rigidbody>(); rootRb.isKinematic = true;
+            }
+        }
+
+        /// <summary>Which way of talking (Variant 0, 0.5, 1), walking and running (Gait 0, 1) and standing about (IdleVar 0..6) this person has, for good.</summary>
+        void Style()
+        {
+            if (anim == null) return;
+            foreach (var prm in anim.parameters)
+            {
+                if (prm.name == "Variant") anim.SetFloat("Variant", variant * 0.5f);
+                else if (prm.name == "Gait") anim.SetFloat("Gait", gait);
+                else if (prm.name == "IdleVar") anim.SetFloat("IdleVar", idleVar);
             }
         }
 
@@ -162,6 +174,10 @@ namespace ASBO.Slice
         public void SetWave(bool w) { if (anim != null && anim.enabled) anim.SetBool("Wave", w); }
         public void Jump() { if (anim != null && anim.enabled) anim.SetTrigger("Jump"); }
 
+        Fighter fighterC; bool fighterLooked;
+        /// <summary>In a fight (the Fighter moves them, not their walking route).</summary>
+        bool InScrap { get { if (!fighterLooked) { fighterLooked = true; fighterC = GetComponent<Fighter>(); } return fighterC != null && fighterC.Fighting; } }
+
         public void Step(Vector3 target, float spd)
         {
             Vector3 d = target - transform.position; d.y = 0;
@@ -175,7 +191,7 @@ namespace ASBO.Slice
         void Update()
         {
             if (state != State.Walking) return;
-            if (route.Count > 0 && !isPlayer && !agentDriven)
+            if (route.Count > 0 && !isPlayer && !agentDriven && !InScrap)
             {
                 Vector3 t = route[wp];
                 if ((t - transform.position).WithY(0).magnitude < 0.3f) wp = (wp + 1) % route.Count;
@@ -413,7 +429,7 @@ namespace ASBO.Slice
         void RestoreNormal()
         {
             hurt = false;
-            if (normalCtrl != null && anim != null) { anim.runtimeAnimatorController = normalCtrl; foreach (var prm in anim.parameters) if (prm.name == "Variant") { anim.SetFloat("Variant", variant * 0.5f); break; } }
+            if (normalCtrl != null && anim != null) { anim.runtimeAnimatorController = normalCtrl; Style(); }
             var agent = GetComponent<UnityEngine.AI.NavMeshAgent>(); if (agent != null) agent.speed = drunk ? UnityEngine.Random.Range(0.58f, 0.68f) : UnityEngine.Random.Range(1.0f, 1.35f);
         }
 

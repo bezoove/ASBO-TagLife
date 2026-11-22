@@ -115,6 +115,9 @@ namespace ASBO.Slice
         public static void FightFilm(int clip, float step, float secs) { var r = new GameObject("FightFilm").AddComponent<FightFilmRun>(); r.clip = clip; r.step = step; r.secs = secs; }
         public static void FightFilmFrom(int clip, float step, float secs, float from) { var r = new GameObject("FightFilm").AddComponent<FightFilmRun>(); r.clip = clip; r.step = step; r.secs = secs; r.from = from; }
         public static void BrawlTest() { new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); }
+        /// <summary>The scripted scrap, filmed only at the moment each blow lands (Shots/brawl/hit_##.png): do fists meet faces?</summary>
+        public static void MobTest() { new GameObject("MobTest").AddComponent<MobTestRun>(); }
+        public static void BrawlHits(float secs) { var r = new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); r.onHit = true; r.secs = secs; r.kickFinish = true; }
         public static void TalkTest() { new GameObject("TalkTest").AddComponent<TalkTestRun>(); }
         public static void SetHour(float h) { GameClock.Set(h); Debug.Log("[ASBO] clock " + GameClock.Text); }
         public static void ClockSpeed(float s) { GameClock.Speed = s; }
@@ -431,9 +434,17 @@ namespace ASBO.Slice
     /// <summary>Scripted scrap: the player squares up to a resident and throws punches; side camera films it (Shots/brawl/b_###.png every 0.1 s).</summary>
     public class BrawlTestRun : MonoBehaviour
     {
-        public float secs = 22f; public bool kickFinish = true;
+        public float secs = 22f; public bool kickFinish = true, onHit; int hitShots; string hitDir;
+        void OnHitShot(Fighter a, Fighter v, float dmg)
+        {
+            if (!onHit || hitDir == null || hitShots >= 16 || a == null || v == null) return;
+            ScreenCapture.CaptureScreenshot(hitDir + "/hit_" + (hitShots++).ToString("00") + ".png");
+            Debug.Log($"[ASBO] brawltest hit {hitShots}: {(a.Body != null && a.Body.isPlayer ? "player" : "foe")} lands, {dmg:F0} dmg, bodies {(a.transform.position - v.transform.position).WithY(0).magnitude:F2} m apart");
+        }
+        void OnDestroy() { Fighter.OnHit -= OnHitShot; }
         System.Collections.IEnumerator Start()
         {
+            Fighter.OnHit += OnHitShot;
             var pc = FindFirstObjectByType<PlayerCtl>(); var me = pc != null ? pc.GetComponent<Fighter>() : null;
             Resident foe = null; float bd = 1e9f;
             for (int tries = 0; tries < 30 && foe == null; tries++)
@@ -454,6 +465,7 @@ namespace ASBO.Slice
             var cg = new GameObject("BrawlCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 45f; cam.nearClipPlane = 0.05f;
             string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/brawl"); System.IO.Directory.CreateDirectory(dir);
             foreach (var f in System.IO.Directory.GetFiles(dir, "*.png")) { try { System.IO.File.Delete(f); } catch { } }
+            hitDir = dir;
             float t0 = Time.time, nextShot = 0f, nextPunch = 0.6f; int n = 0, throws = 0; var lastState = fp.state;
             while (Time.time - t0 < secs)
             {
@@ -475,12 +487,54 @@ namespace ASBO.Slice
                     Debug.Log($"[ASBO] brawltest t={t:F1} throw {throws} foeHP={ff.hp:F0}/{ff.maxHp:F0} foeStam={ff.stam:F0} myHP={me.hp:F0} myStam={me.stam:F0} foe={fp.state} foeMode={ff.mode} fighting={ff.Fighting}");
                 }
                 if (Fighter.TestGuard && Time.frameCount % 20 == 0) Debug.Log($"[ASBO] brawltest guard t={t:F1} myHP={me.hp:F0} myStam={me.stam:F0} guard={me.guard} foeMode={ff.mode}");
-                if (t >= nextShot) { ScreenCapture.CaptureScreenshot(dir + "/b_" + (n++).ToString("000") + ".png"); nextShot = t + 0.1f; }
+                if (!onHit && t >= nextShot) { ScreenCapture.CaptureScreenshot(dir + "/b_" + (n++).ToString("000") + ".png"); nextShot = t + 0.1f; }
                 yield return null;
             }
             Fighter.TestGuard = false;
             Debug.Log($"[ASBO] brawltest end: foe={fp.state} hurt={fp.hurt} foeHP={ff.hp:F0} myHP={me.hp:F0} rep={Rel.Rep} frames={n}");
             Destroy(cg); World.HideHud = false; Destroy(gameObject);
+        }
+    }
+
+    /// <summary>
+    /// Two residents square up to the player: logs who the player is squared up to, how far off each one stands (should
+    /// hold round arm's length and circle), who swings when (taking turns), then the player drops their fists at 7 s.
+    /// </summary>
+    public class MobTestRun : MonoBehaviour
+    {
+        static string AgentInfo(Fighter f)
+        {
+            var ag = f.GetComponent<UnityEngine.AI.NavMeshAgent>(); var p = f.Body;
+            return ag == null ? "no agent" : $"on {ag.isOnNavMesh} en {ag.enabled} stop {ag.isStopped} path {ag.hasPath} pend {ag.pathPending} rem {ag.remainingDistance:F2} v {ag.velocity.magnitude:F2} spd {ag.speed:F2} upd {ag.updatePosition} drunk {p.drunk} hurt {p.hurt} route {p.route.Count} res {f.GetComponent<Resident>()?.enabled} st {ag.pathStatus} | {f.Dbg} me {f.name}";
+        }
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>(); var me = pc != null ? pc.GetComponent<Fighter>() : null;
+            var near = FindObjectsByType<Resident>(FindObjectsSortMode.None).Select(r => r.GetComponent<Fighter>()).Where(f => f != null && f.Body != null && f.Body.Ready && !f.Down)
+                .OrderBy(f => (f.transform.position - pc.transform.position).sqrMagnitude).Take(2).ToArray();
+            if (me == null || near.Length < 2) { Debug.Log("[ASBO] mobtest: not enough people"); Destroy(gameObject); yield break; }
+            for (int i = 0; i < 2; i++)
+            {
+                Vector3 at = pc.transform.position + Quaternion.Euler(0, 70f * (i * 2 - 1), 0) * pc.transform.forward * 2.8f;
+                if (UnityEngine.AI.NavMesh.SamplePosition(at, out var hit, 3f, UnityEngine.AI.NavMesh.AllAreas)) at = hit.position;
+                near[i].GetComponent<Resident>().HoldAt(at, 0f, 1f);
+            }
+            yield return new WaitForSeconds(0.4f);
+            foreach (var f in near) f.SquareUp(me, true);
+            float t0 = Time.time, next = 0f; bool dropped = false;
+            while (Time.time - t0 < 13f)
+            {
+                float t = Time.time - t0;
+                if (!dropped && t > 7f) { dropped = true; me.PlayerInput(false, false, false, false, true, true); Debug.Log("[ASBO] mobtest: fists down"); }
+                if (t >= next)
+                {
+                    next = t + 0.5f;
+                    string Who(Fighter f) => f == null ? "-" : f == near[0] ? "A" : f == near[1] ? "B" : "?";
+                    Debug.Log($"[ASBO] mobtest t={t:F1} target={Who(me.Target)} A {(near[0].transform.position - pc.transform.position).WithY(0).magnitude:F2}m {near[0].mode}{(near[0].Fighting ? "" : " out")} B {(near[1].transform.position - pc.transform.position).WithY(0).magnitude:F2}m {near[1].mode}{(near[1].Fighting ? "" : " out")} AB {(near[0].transform.position - near[1].transform.position).WithY(0).magnitude:F2}m myHP={me.hp:F0} A: {AgentInfo(near[0])}");
+                }
+                yield return null;
+            }
+            Destroy(gameObject);
         }
     }
 

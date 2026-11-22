@@ -1,0 +1,264 @@
+{
+    "v": [
+        {
+            "trig": "Punch",
+            "idx": 0,
+            "imp": 0.28999999165534975,
+            "dur": 0.4000000059604645,
+            "contact": 0.8500000238418579,
+            "w": 1.0,
+            "big": false,
+            "name": "ASBO_Punch"
+        },
+        {
+            "trig": "Punch",
+            "idx": 1,
+            "imp": 0.2086956650018692,
+            "dur": 0.3286956548690796,
+            "contact": 0.8500000238418579,
+            "w": 1.0,
+            "big": false,
+            "name": "Lead Jab"
+        },
+        {
+            "trig": "Cross",
+            "idx": 0,
+            "imp": 0.20999999344348908,
+            "dur": 0.41999998688697817,
+            "contact": 0.8799999952316284,
+            "w": 1.0,
+            "big": false,
+            "name": "ASBO_Cross"
+        },
+        {
+            "trig": "Cross",
+            "idx": 1,
+            "imp": 0.23333339393138886,
+            "dur": 0.4333333969116211,
+            "contact": 0.8299999833106995,
+            "w": 1.0,
+            "big": false,
+            "name": "Cross Punch"
+        },
+        {
+            "trig": "Cross",
+            "idx": 2,
+            "imp": 0.27272725105285647,
+            "dur": 0.4727272391319275,
+            "contact": 0.8199999928474426,
+            "w": 1.0,
+            "big": false,
+            "name": "Punching"
+        },
+        {
+            "trig": "Hook",
+            "idx": 0,
+            "imp": 0.27000001072883608,
+            "dur": 0.5099999904632568,
+            "contact": 0.800000011920929,
+            "w": 1.0,
+            "big": false,
+            "name": "ASBO_Hook"
+        },
+        {
+            "trig": "Hook",
+            "idx": 1,
+            "imp": 0.2666667103767395,
+            "dur": 0.5066667199134827,
+            "contact": 0.8500000238418579,
+            "w": 1.0,
+            "big": false,
+            "name": "Hook (1)"
+        },
+        {
+            "trig": "Hook",
+            "idx": 2,
+            "imp": 0.2666666507720947,
+            "dur": 0.5066666603088379,
+            "contact": 0.800000011920929,
+            "w": 1.0,
+            "big": false,
+            "name": "Right Hook"
+        },
+        {
+            "trig": "Body",
+            "idx": 0,
+            "imp": 0.14000000059604646,
+            "dur": 0.38999998569488528,
+            "contact": 0.75,
+            "w": 1.0,
+            "big": false,
+            "name": "ASBO_Body"
+        },
+        {
+            "trig": "Body",
+            "idx": 1,
+            "imp": 0.37037035822868349,
+            "dur": 0.6203703880310059,
+            "contact": 0.6800000071525574,
+            "w": 0.800000011920929,
+            "big": false,
+            "name": "Illegal Knee"
+        },
+        {
+            "trig": "Hay",
+            "idx": 0,
+            "imp": 0.36000001430511477,
+            "dur": 0.6200000047683716,
+            "contact": 0.8500000238418579,
+            "w": 1.0,
+            "big": false,
+            "name": "ASBO_Over"
+        },
+        {
+            "trig": "Hay",
+            "idx": 1,
+            "imp": 0.3083333373069763,
+            "dur": 0.8083333373069763,
+            "contact": 0.8199999928474426,
+            "w": 1.0,
+            "big": false,
+            "name": "Uppercut"
+        },
+        {
+            "trig": "Hay",
+            "idx": 2,
+            "imp": 0.424000084400177,
+            "dur": 0.924000084400177,
+            "contact": 0.5699999928474426,
+            "w": 0.800000011920929,
+            "big": false,
+            "name": "Headbutt"
+        },
+        {
+            "trig": "Kick",
+            "idx": 0,
+            "imp": 0.5,
+            "dur": 0.6899999976158142,
+            "contact": 1.0499999523162842,
+            "w": 1.0,
+            "big": false,
+            "name": "ASBO_Kick"
+        },
+        {
+            "trig": "Kick",
+            "idx": 1,
+            "imp": 0.36153849959373476,
+            "dur": 0.5815384984016419,
+            "contact": 1.0499999523162842,
+            "w": 1.0,
+            "big": false,
+            "name": "Kicking"
+        },
+        {
+            "trig": "Kick",
+            "idx": 2,
+            "imp": 0.48181813955307009,
+            "dur": 0.7018181085586548,
+            "contact": 1.100000023841858,
+            "w": 0.25,
+            "big": false,
+            "name": "Flying Kick"
+        },
+        {
+            "trig": "Shove",
+            "idx": 0,
+            "imp": 0.25999999046325686,
+            "dur": 0.6000000238418579,
+            "contact": 0.800000011920929,
+            "w": 1.0,
+            "big": false,
+            "name": "HumanM@AttackShield01"
+        },
+        {
+            "trig": "Struck",
+            "idx": 0,
+            "imp": 0.0,
+            "dur": 0.0,
+            "contact": 0.0,
+            "w": 1.0,
+            "big": false,
+            "name": "HumanM@CombatDamage01"
+        },
+        {
+            "trig": "Struck",
+            "idx": 1,
+            "imp": 0.0,
+            "dur": 0.20000000298023225,
+            "contact": 0.0,
+            "w": 1.0,
+            "big": false,
+            "name": "Head Hit"
+        },
+        {
+            "trig": "Struck",
+            "idx": 2,
+            "imp": 0.0,
+            "dur": 0.20000000298023225,
+            "contact": 0.0,
+            "w": 1.0,
+            "big": true,
+            "name": "Big Hit To Head"
+        },
+        {
+            "trig": "Struck",
+            "idx": 3,
+            "imp": 0.0,
+            "dur": 0.20000000298023225,
+            "contact": 0.0,
+            "w": 1.0,
+            "big": true,
+            "name": "Receive Uppercut To The Face"
+        },
+        {
+            "trig": "Struck",
+            "idx": 4,
+            "imp": 0.0,
+            "dur": 0.20000000298023225,
+            "contact": 0.0,
+            "w": 1.0,
+            "big": false,
+            "name": "Receive Uppercut To The Face (1)"
+        },
+        {
+            "trig": "StruckBody",
+            "idx": 0,
+            "imp": 0.0,
+            "dur": 0.0,
+            "contact": 0.0,
+            "w": 1.0,
+            "big": false,
+            "name": "ASBO_Buckle"
+        },
+        {
+            "trig": "StruckBody",
+            "idx": 1,
+            "imp": 0.0,
+            "dur": 0.20000000298023225,
+            "contact": 0.0,
+            "w": 1.0,
+            "big": false,
+            "name": "Hit To Body"
+        },
+        {
+            "trig": "StruckBody",
+            "idx": 2,
+            "imp": 0.0,
+            "dur": 0.20000000298023225,
+            "contact": 0.0,
+            "w": 1.0,
+            "big": false,
+            "name": "Rib Hit"
+        },
+        {
+            "trig": "StruckBody",
+            "idx": 3,
+            "imp": 0.0,
+            "dur": 0.20000000298023225,
+            "contact": 0.0,
+            "w": 1.0,
+            "big": true,
+            "name": "Big Stomach Hit"
+        }
+    ]
+}
