@@ -27,6 +27,9 @@ namespace ASBO.Slice
 
         static readonly Dictionary<string, Material> loaded = new Dictionary<string, Material>();
 
+        /// <summary>How far apart the big soft colour blotches laid over every surface repeat (hides the tiling).</summary>
+        public const float MacroMetres = 11f;
+
         /// <summary>Pretend no surfaces are installed (builders fall back to their own procedural materials).</summary>
         public static bool Off;
 
@@ -49,6 +52,7 @@ namespace ASBO.Slice
             var m = new Material(src) { name = name };
             float s = uvMetres / (Size.TryGetValue(name, out var sz) ? sz : 2f);
             m.SetTextureScale("_BaseMap", new Vector2(s, s));
+            if (m.HasProperty("_DetailAlbedoMap") && m.GetTexture("_DetailAlbedoMap") != null) m.SetTextureScale("_DetailAlbedoMap", Vector2.one * (uvMetres / MacroMetres));
             if (tint.HasValue) m.SetColor("_BaseColor", tint.Value);
             if (!Mathf.Approximately(bump, 1f) && m.HasProperty("_BumpScale")) m.SetFloat("_BumpScale", bump);
             return m;

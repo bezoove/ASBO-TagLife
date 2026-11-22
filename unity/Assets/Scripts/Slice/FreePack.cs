@@ -131,13 +131,14 @@ namespace ASBO.Slice
             float residentAge = 0.35f;
             if (role == "Paramedic")
             {
-                // no uniform in the free wardrobe: grey sportswear tinted ambulance green, dark trousers
+                // no uniform in the free wardrobe: grey tops and trousers tinted the dark bottle green of ambulance crews
                 wear.Add(Pick(Pool(race, "Chest", "hoodie_grey", "sweater_granit"), rng));
-                wear.Add(Pick(Pool(race, "Legs", "sportpants_grey", "pants_granit", "sweatpants_black"), rng));
+                var medLegs = Pool(race, "Legs", "sportpants_grey", "pants_granit"); if (medLegs.Count == 0) medLegs = Pool(race, "Legs", "sweatpants_black", "pants");
+                wear.Add(Pick(medLegs, rng));
                 wear.Add(Pick(Pool(race, "Feet", "shoe"), rng));
                 wear.Add(Pick(Pool(race, "Hair", "short", "military", "haircut", "ponytail", "bun"), rng));
-                tints["hoodie_grey"] = tints["sweater_granit"] = new Color(0.32f, 0.62f, 0.4f);
-                tints["sportpants_grey"] = tints["pants_granit"] = new Color(0.3f, 0.42f, 0.34f);
+                tints["hoodie_grey"] = tints["sweater_granit"] = new Color(0.2f, 0.46f, 0.3f);
+                tints["sportpants_grey"] = tints["pants_granit"] = new Color(0.17f, 0.36f, 0.25f);
             }
             else if (isPlayer)
             {

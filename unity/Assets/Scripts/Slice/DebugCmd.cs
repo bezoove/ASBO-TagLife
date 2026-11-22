@@ -692,12 +692,18 @@ namespace ASBO.Slice
             string last = ""; int n = 0; float t0 = Time.time;
             while (Time.time - t0 < 95f)
             {
-                Vector3 focus = at; if (Ambulance.All.Count > 0) focus = Vector3.Lerp(at, Ambulance.All[0].transform.position, 0.45f);
-                cg.transform.position = focus + new Vector3(-3f, 4.2f, 9.5f); cg.transform.LookAt(focus + Vector3.up * 0.6f);
+                Vector3 focus = at; var off = new Vector3(-3f, 4.2f, 9.5f);
+                if (Ambulance.All.Count > 0)
+                {
+                    // from behind the ambulance and off to one side: the back doors, the crew and the casualty in one frame
+                    var am = Ambulance.All[0].transform; Vector3 rear = am.position - am.forward * Ambulance.All[0].HalfLength;
+                    focus = Vector3.Lerp(rear, at, 0.4f); off = -am.forward * 7.5f + Vector3.up * 3.4f + Vector3.forward * 6.5f;
+                }
+                cg.transform.position = focus + off; cg.transform.LookAt(focus + Vector3.up * 0.8f);
                 if (Ambulance.Status != last) { last = Ambulance.Status; Debug.Log($"[ASBO] ambtest t={Time.time - t0:F1} {last}"); }
                 ScreenCapture.CaptureScreenshot(dir + "/a_" + (n++).ToString("000") + ".png");
                 if (last.StartsWith("En route") && Ambulance.All.Count == 0) break;
-                yield return new WaitForSeconds(0.5f);
+                yield return new WaitForSeconds(1f);
             }
             Destroy(cg); World.HideHud = false; Debug.Log($"[ASBO] ambtest end frames={n}");
             Destroy(gameObject);

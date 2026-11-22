@@ -30,7 +30,7 @@ namespace ASBO.Slice
             new Mv { trig = "Cross", dur = 0.42f, imp = 0.21f, reach = 1.10f, cone = 32f, dmg = 10f, stam = 7f,  stun = 0.42f, knock = 0.22f, lunge = 0.35f, head = 0.60f },
             new Mv { trig = "Hook",  dur = 0.51f, imp = 0.27f, reach = 1.00f, cone = 42f, dmg = 12f, stam = 9f,  stun = 0.55f, knock = 0.30f, lunge = 0.30f, head = 0.85f, down = 0.12f },
             new Mv { trig = "Body",  dur = 0.39f, imp = 0.14f, reach = 1.00f, cone = 32f, dmg = 9f,  stam = 7f,  stun = 0.50f, knock = 0.25f, lunge = 0.20f, head = 0f,    down = 0.08f },
-            new Mv { trig = "Hay",   dur = 0.65f, imp = 0.42f, reach = 1.15f, cone = 44f, dmg = 22f, stam = 20f, stun = 1.00f, knock = 0.70f, lunge = 0.60f, head = 0.80f, down = 0.50f, heavy = true },
+            new Mv { trig = "Hay",   dur = 0.95f, imp = 0.42f, reach = 1.15f, cone = 44f, dmg = 22f, stam = 20f, stun = 1.00f, knock = 0.70f, lunge = 0.60f, head = 0.80f, down = 0.50f, heavy = true },
             new Mv { trig = "Kick",  dur = 0.69f, imp = 0.50f, reach = 1.35f, cone = 26f, dmg = 11f, stam = 10f, stun = 0.55f, knock = 0.60f, lunge = 0.20f, head = 0f,    down = 0.20f },
             new Mv { trig = "Shove", dur = 0.60f, imp = 0.26f, reach = 1.10f, cone = 34f, dmg = 1f,  stam = 6f,  stun = 0.75f, knock = 1.50f, lunge = 0.20f, head = 0f,    down = 0.30f, noGuard = true },
         };
@@ -42,6 +42,7 @@ namespace ASBO.Slice
         public Fighter foe; public bool aggr;     // who we're fighting, and whether we started it
         public bool guard;                       // blocking
         public bool stanceOn; public float stanceT; // fists up: toggled, or for a while after any fighting
+        bool lowered; // the player put their fists down: they stay down until they throw something or get hit
         public bool Busy => mode != Mode.Idle;
         public bool Fighting => foe != null;
         public bool InFight => foe != null;
@@ -106,10 +107,13 @@ namespace ASBO.Slice
             }
             if (p.isPlayer)
             {
-                if (Session.Hot) stanceT = Mathf.Max(stanceT, 3f); else stanceT = Mathf.Max(0f, stanceT - dt);
+                // fists stay up while someone's actually squaring up to you (not for any scrap across the estate)
+                bool onMe = Fighting; if (!onMe) foreach (var f in All) if (f != null && f.foe == this && !f.Down) { onMe = true; break; }
+                if (onMe && !lowered) stanceT = Mathf.Max(stanceT, 3f); else stanceT = Mathf.Max(0f, stanceT - dt);
                 if (mode == Mode.Idle && !Session.Hot && hp < maxHp) hp = Mathf.Min(maxHp, hp + 0.35f * dt);
             }
             else if (Fighting) Think(dt);
+            else { stanceT = Mathf.Max(0f, stanceT - dt * 1.5f); stanceOn = false; } // out of it: the fists come down after a few seconds
             bool fists = (stanceOn || stanceT > 0f || Fighting) && mode != Mode.Atk && mode != Mode.Stun;
             SetFists(fists ? 1f : 0f);
             if (p.anim != null && p.anim.enabled) p.anim.SetBool("Guard", guard);
@@ -134,7 +138,13 @@ namespace ASBO.Slice
             guardHeld |= TestGuard;
             guard = guardHeld && canAct && mode == Mode.Idle && stam > 0f;
             if (guard) stanceT = Mathf.Max(stanceT, 3f);
-            if (fistsToggle) { stanceOn = !stanceOn; if (stanceOn) stanceT = 8f; }
+            if (fistsToggle)
+            {
+                // the button shows what you'll get: up if they're down, down if they're up
+                bool up = stanceOn || stanceT > 0f;
+                if (up) { stanceOn = false; stanceT = 0f; lowered = true; }
+                else { stanceOn = true; lowered = false; }
+            }
             if (!canAct) { punchHeld = 0f; punchFired = false; return; }
             if (punchDown)
             {
@@ -154,7 +164,7 @@ namespace ASBO.Slice
 
         void Press(Move? m)
         {
-            stanceT = 6f;
+            stanceT = 6f; lowered = false;
             if (m == null)
             {
                 int idx = seqT > 0f ? (seqI + 1) % Combo.Length : 0;
@@ -263,7 +273,7 @@ namespace ASBO.Slice
             if (Down || hp <= 0f) return;
             if (p.isPlayer && p.GetComponent<PlayerCtl>() is PlayerCtl pc && pc.InCar) return;
             if (!p.isPlayer && !Fighting && from != null) SquareUp(from, false);
-            if (p.isPlayer) stanceT = 6f;
+            if (p.isPlayer) { stanceT = 6f; lowered = false; }
             hitT = 0f;
             Vector3 fromPos = from != null ? from.transform.position : transform.position - transform.forward;
             Vector3 toMe = (transform.position - fromPos).WithY(0); if (toMe.sqrMagnitude < 1e-4f) toMe = -transform.forward; toMe.Normalize();

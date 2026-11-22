@@ -101,7 +101,27 @@ namespace ASBO.EditorTools
                 m.SetFloat("_SmoothnessTextureChannel", 0f); m.DisableKeyword("_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A");
                 m.SetFloat("_Smoothness", 1f); m.SetFloat("_Metallic", 1f);
             }
+            // large soft blotches over the top (a second, much bigger tiling) so you don't see the same patch repeat
+            var macro = Macro();
+            if (macro != null && Surfaces.Size.TryGetValue(surf, out var size))
+            {
+                m.SetTexture("_DetailAlbedoMap", macro); m.SetTextureScale("_DetailAlbedoMap", Vector2.one * (scale * size / Surfaces.MacroMetres));
+                m.SetFloat("_DetailAlbedoMapScale", 1f); m.EnableKeyword("_DETAIL_MULX2");
+            }
             m.enableInstancing = true;
+        }
+
+        const string MacroPath = "Assets/Textures/surface_macro.png";
+        static Texture2D Macro()
+        {
+            if (!(AssetImporter.GetAtPath(MacroPath) is TextureImporter imp)) return null;
+            if (!imp.sRGBTexture || imp.wrapMode != TextureWrapMode.Repeat || imp.maxTextureSize != 512)
+            {
+                imp.sRGBTexture = true; imp.wrapMode = TextureWrapMode.Repeat; imp.mipmapEnabled = true; imp.maxTextureSize = 512;
+                imp.SetPlatformTextureSettings(new TextureImporterPlatformSettings { name = "Android", overridden = true, maxTextureSize = 256, format = TextureImporterFormat.ASTC_6x6 });
+                imp.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(MacroPath);
         }
 
         // ------------------------------------------------------------ baked Abbots Wend materials

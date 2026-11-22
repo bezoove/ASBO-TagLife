@@ -117,7 +117,7 @@ namespace ASBO.EditorTools
             foreach (var n in new[] { "Guard" }) if (!ac.parameters.Any(q => q.name == n)) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
             var clips = new (string trig, AnimationClip c, float speed)[] {
                 ("Punch", KOClip("ASBO_Punch"), 2.1f), ("Cross", KOClip("ASBO_Cross"), 1.6f), ("Hook", KOClip("ASBO_Hook"), 1.9f), ("Body", KOClip("ASBO_Body"), 1.55f),
-                ("Hay", KOClip("ASBO_Over"), 1.7f), ("Kick", KOClip("ASBO_Kick"), 1.8f),
+                ASBOMixamo.ClipNamed("MX_Uppercut") != null ? ("Hay", ASBOMixamo.ClipNamed("MX_Uppercut"), 1.4f) : ("Hay", KOClip("ASBO_Over"), 1.7f), ("Kick", KOClip("ASBO_Kick"), 1.8f),
                 ("Shove", AnyClip(KevBase + "Male/Combat/Shield/HumanM@AttackShield01.fbx"), 1.5f),
                 ("Struck", AnyClip(KevBase + "Male/Combat/HumanM@CombatDamage01.fbx"), 1.4f), ("StruckBody", KOClip("ASBO_Buckle"), 1.5f) };
             int i = 0;
@@ -132,6 +132,8 @@ namespace ASBO.EditorTools
             }
             // the Fists layer: stance by default, guard while "Guard" is held
             var stance = KOClip("ASBO_Stance"); var guard = KOClip("ASBO_Guard");
+            var mxStance = ASBOMixamo.ClipNamed("MX_Stance"); // the ready pose held round Mixamo's body block: fists properly up
+            if (mxStance != null) { stance = mxStance; guard = mxStance; }
             if (stance == null || guard == null) return;
             if (ac.layers.Any(l => l.name == "Fists")) return;
             var lsm = new AnimatorStateMachine { name = "Fists", hideFlags = HideFlags.HideInHierarchy };
@@ -292,6 +294,19 @@ namespace ASBO.EditorTools
                     }
                 }
                 tree.children = kids;
+                // the Mixamo walk (your X Bot downloads) replaces the forward walk when it's in the project
+                var mxWalk = ASBOMixamo.ClipNamed("MX_Walk");
+                if (mxWalk != null)
+                {
+                    kids = tree.children;
+                    for (int i = 0; i < kids.Length; i++)
+                    {
+                        if (Mathf.Abs(kids[i].position.x) > 0.1f || kids[i].position.y < 0.5f || kids[i].position.y > 2.6f) continue; // the forward walk
+                        kids[i].motion = mxWalk; kids[i].timeScale = kids[i].position.y / 1.71f; // Mixamo's walk covers 1.71 m/s
+                        Debug.Log($"[ASBO] mixamo walk replaces forward walk at {kids[i].position.y:F2} m/s (timeScale {kids[i].timeScale:F2})");
+                    }
+                    tree.children = kids;
+                }
             }
             sm.defaultState = move;
 

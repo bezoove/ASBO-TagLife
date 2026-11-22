@@ -7,7 +7,7 @@ namespace ASBO.Slice
 {
     /// <summary>
     /// A UK ambulance call-out, start to finish. Blues and twos down the road, parks up (siren off, lights on). Two
-    /// paramedics in green and hi-vis get out, go round the back, open the doors and take the kit: response bag,
+    /// paramedics in dark green get out, go round the back, open the doors and take the kit: response bag,
     /// defibrillator, oxygen. They put the bags down by the casualty, kneel and treat them (hands on, oxygen mask on).
     /// One fetches the stretcher and wheels it over; together they lift the casualty onto it, cover them with the
     /// blanket (a sheet over the face if they've gone), and push it to the back. The stretcher goes in, the doors shut,
@@ -21,7 +21,9 @@ namespace ASBO.Slice
         public static void ResetAll() { dispatched.Clear(); Status = ""; }
 
         Light blueA, blueB; Material lightOn, lightOff; Renderer[] barA, barB;
-        Transform doorL, doorR, wheelsRoot; Transform[] wheels; float wheelSpin, wheelR = 0.33f; Vector3 lastPos;
+        Transform doorL, doorR; Transform[] wheels; float wheelSpin, wheelR = 0.33f; Vector3 lastPos;
+        Quaternion doorBaseL = Quaternion.identity, doorBaseR = Quaternion.identity; float doorSignL = 1f, doorSignR = -1f; // + swings a left-hinged door out
+        float floorY = 0.42f;
         float hw, Le, roof; AudioSource siren; NavMeshObstacle obstacle;
         readonly List<(Transform kit, Person who, bool left)> carried = new List<(Transform, Person, bool)>();
         public float HalfLength => Le; public float HalfWidth => hw;
@@ -46,6 +48,93 @@ namespace ASBO.Slice
         /// front, a blue light bar with corner beacons and flashing blues in the grille, side scene lamps, roof pod.
         /// </summary>
         void BuildVehicle()
+        {
+            if (!BuildModel()) BuildPanelVan();
+            // solid: one box for the whole van, so the player, cars and the player's car hit it; people path round it
+            var col = gameObject.AddComponent<BoxCollider>(); col.center = new Vector3(0, roof * 0.5f + 0.1f, 0); col.size = new Vector3(hw * 2f, roof - 0.15f, Le * 2f);
+            var rb = gameObject.AddComponent<Rigidbody>(); rb.isKinematic = true; rb.interpolation = RigidbodyInterpolation.Interpolate;
+            obstacle = gameObject.AddComponent<NavMeshObstacle>(); obstacle.shape = NavMeshObstacleShape.Box; obstacle.center = col.center; obstacle.size = col.size + new Vector3(0.3f, 0, 0.3f);
+            obstacle.carving = true; obstacle.carveOnlyStationary = true;
+            siren = gameObject.AddComponent<AudioSource>();
+            siren.clip = SirenClip(); siren.loop = true; siren.spatialBlend = 1f; siren.minDistance = 10f; siren.maxDistance = 160f; siren.rolloffMode = AudioRolloffMode.Linear; siren.volume = 0.5f;
+            siren.Play();
+            lastPos = transform.position;
+        }
+
+        /// <summary>
+        /// The modelled box ambulance (Resources/Cars/ambulance from tools/art/cars/ambforge.py), as in the photos: a
+        /// yellow box body over a van cab, two-row green Battenburg from behind the front arch, EMERGENCY AMBULANCE on
+        /// the sides, AMBULANCE mirror-written on the front, light bar and beacons, red and yellow chevrons on two rear
+        /// doors that open onto a white treatment room (cabinets, bench, seat, bags). False if it isn't in the build.
+        /// </summary>
+        bool BuildModel()
+        {
+            var pf = Resources.Load<GameObject>("Cars/ambulance"); if (pf == null) return false;
+            var root = Instantiate(pf, transform, false).transform;
+            root.name = "Body"; root.localPosition = Vector3.zero; root.localRotation = Quaternion.identity;
+            hw = 1.05f; Le = 3.45f; roof = 2.96f; wheelR = 0.36f; floorY = 0.56f;
+            // its own number plates
+            Material plates = null; var rng = new System.Random(777 + Random.Range(0, 9999));
+            foreach (var r in root.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var ms = r.sharedMaterials; bool changed = false;
+                for (int i = 0; i < ms.Length; i++)
+                {
+                    if (ms[i] == null || !ms[i].name.StartsWith("KitPlate")) continue;
+                    if (plates == null) { plates = new Material(ms[i]) { name = "Plates" }; var tex = CarBody.PlateAtlas(rng); plates.SetTexture("_BaseMap", tex); plates.mainTexture = tex; }
+                    ms[i] = plates; changed = true;
+                }
+                if (changed) r.sharedMaterials = ms;
+            }
+            // wheels: wrapped like the other modelled vehicles, so Update spins them with Euler(spin, 0, 90)
+            string[] names = { "wheel_FL", "wheel_FR", "wheel_RL", "wheel_RR" }; var ws = new List<Transform>();
+            foreach (var n in names)
+            {
+                var w = root.Find(n); if (w == null) continue;
+                var wrap = new GameObject(n + "_spin").transform; wrap.SetParent(root, false); wrap.localPosition = w.localPosition;
+                w.SetParent(wrap, true); w.localRotation = Quaternion.Euler(0f, 0f, -90f) * w.localRotation; w.localPosition = Vector3.zero;
+                wrap.localRotation = Quaternion.Euler(0f, 0f, 90f);
+                ws.Add(wrap);
+            }
+            wheels = ws.ToArray();
+            // rear doors, hinged at the outside edges: work out which way each swings out (away from the back)
+            doorL = root.Find("door_L"); doorR = root.Find("door_R");
+            if (doorL == null || doorR == null) { Destroy(root.gameObject); return false; }
+            doorBaseL = doorL.localRotation; doorBaseR = doorR.localRotation;
+            doorSignL = OutSign(root, doorL); doorSignR = OutSign(root, doorR);
+            // flashing lamps: the left half of the bar with the left beacon and grille blue, then the right
+            lightOn = Gfx.Emissive(new Color(0.1f, 0.3f, 1f), 4f);
+            Renderer[] Parts(params string[] ns) { var l = new List<Renderer>(); foreach (var n in ns) { var t = root.Find(n); if (t != null && t.TryGetComponent<Renderer>(out var r)) l.Add(r); } return l.ToArray(); }
+            barA = Parts("bar_L", "beacon_L", "grille_L"); barB = Parts("bar_R", "beacon_R", "grille_R");
+            lightOff = barA.Length > 0 ? barA[0].sharedMaterial : Gfx.Mat(new Color(0.05f, 0.1f, 0.3f));
+            float barZ = barA.Length > 0 ? root.InverseTransformPoint(barA[0].bounds.center).z : Le - 1.6f;
+            blueA = MakeLight(new Vector3(-0.5f, roof + 0.4f, barZ)); blueB = MakeLight(new Vector3(0.5f, roof + 0.4f, barZ));
+            // a soft dark patch under it, like the cars
+            var shadowM = Resources.Load<Material>("CarMats/Shadow");
+            if (shadowM != null)
+            {
+                var blob = new GameObject("ContactShadow"); blob.transform.SetParent(transform, false); blob.transform.localPosition = new Vector3(0, 0.025f, 0);
+                float a = hw + 0.18f, b = Le + 0.22f;
+                var shm = new Mesh { name = "AmbShadow" };
+                shm.vertices = new[] { new Vector3(-a, 0, -b), new Vector3(a, 0, -b), new Vector3(a, 0, b), new Vector3(-a, 0, b) };
+                shm.uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
+                shm.normals = new[] { Vector3.up, Vector3.up, Vector3.up, Vector3.up }; shm.triangles = new[] { 0, 2, 1, 0, 3, 2 };
+                blob.AddComponent<MeshFilter>().sharedMesh = shm;
+                var shr = blob.AddComponent<MeshRenderer>(); shr.sharedMaterial = shadowM; shr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; shr.receiveShadows = false;
+            }
+            return true;
+        }
+
+        /// <summary>+1 or -1: the turn about the vertical that swings this door's free edge out behind the van.</summary>
+        static float OutSign(Transform root, Transform door)
+        {
+            var r = door.GetComponentInChildren<Renderer>(); if (r == null) return 1f;
+            Vector3 c = root.InverseTransformPoint(r.bounds.center) - door.localPosition;
+            // turning +a about Y takes (x, z) to (x cos a + z sin a, -x sin a + z cos a): the edge goes back (-z) when a has x's sign
+            return c.x >= 0f ? 1f : -1f;
+        }
+
+        void BuildPanelVan()
         {
             const float S = 1.14f;
             var spec = CarBody.Get("van_a");
@@ -92,15 +181,6 @@ namespace ASBO.Slice
             Gfx.Box(transform, new Vector3(0, roof + 0.07f, -Le * 0.35f), new Vector3(0.75f, 0.14f, 0.95f), white, 0, "RoofPod", false);
             foreach (int sd in new[] { -1, 1 }) Gfx.Box(transform, new Vector3(sd * (hw + 0.01f), roof - 0.12f, -Le * 0.55f), new Vector3(0.03f, 0.1f, 0.3f), Gfx.Emissive(new Color(1f, 1f, 0.95f), 0.6f), 0, "SceneLamp", false);
             blueA = MakeLight(new Vector3(-0.5f, roof + 0.4f, barZ)); blueB = MakeLight(new Vector3(0.5f, roof + 0.4f, barZ));
-            // solid: one box for the whole van, so the player, cars and the player's car hit it; people path round it
-            var col = gameObject.AddComponent<BoxCollider>(); col.center = new Vector3(0, roof * 0.5f + 0.1f, 0); col.size = new Vector3(hw * 2f, roof - 0.15f, Le * 2f);
-            var rb = gameObject.AddComponent<Rigidbody>(); rb.isKinematic = true; rb.interpolation = RigidbodyInterpolation.Interpolate;
-            obstacle = gameObject.AddComponent<NavMeshObstacle>(); obstacle.shape = NavMeshObstacleShape.Box; obstacle.center = col.center; obstacle.size = col.size + new Vector3(0.3f, 0, 0.3f);
-            obstacle.carving = true; obstacle.carveOnlyStationary = true;
-            siren = gameObject.AddComponent<AudioSource>();
-            siren.clip = SirenClip(); siren.loop = true; siren.spatialBlend = 1f; siren.minDistance = 10f; siren.maxDistance = 160f; siren.rolloffMode = AudioRolloffMode.Linear; siren.volume = 0.5f;
-            siren.Play();
-            lastPos = transform.position;
         }
 
         Transform Door(int side, float h, float y, Material chev)
@@ -193,7 +273,7 @@ namespace ASBO.Slice
             var crew = new List<Person>();
             for (int i = 0; i < 2; i++)
             {
-                var p = World.MakePerson(CabDoor(i == 0 ? -1 : 1), new Color(0.06f, 0.3f, 0.16f), new Color(0.06f, 0.24f, 0.14f), "Paramedic");
+                var p = World.MakePerson(CabDoor(i == 0 ? -1 : 1), new Color(0.05f, 0.2f, 0.12f), new Color(0.04f, 0.15f, 0.1f), "Paramedic");
                 p.isParamedic = true; crew.Add(p);
             }
             float t0 = Time.time; while (Time.time - t0 < 4f && (crew[0].anim == null || crew[1].anim == null)) yield return null;
@@ -204,9 +284,9 @@ namespace ASBO.Slice
             yield return new WaitForSeconds(0.6f);
             yield return Doors(true);
             // take the kit: bag and defib for one, oxygen for the other
-            var bag = MedicKit.Bag(); var defib = MedicKit.Defib(); var o2 = MedicKit.Oxygen();
-            foreach (var k in new[] { bag, defib, o2 }) k.SetParent(World.Root, true);
-            carried.Add((bag, crew[0], false)); carried.Add((defib, crew[0], true)); carried.Add((o2, crew[1], false));
+            var bag = MedicKit.Bag(true); var defib = MedicKit.Defib(); var o2 = MedicKit.Oxygen(); var bag2 = MedicKit.Bag(false);
+            foreach (var k in new[] { bag, defib, o2, bag2 }) k.SetParent(World.Root, true);
+            carried.Add((bag, crew[0], false)); carried.Add((defib, crew[0], true)); carried.Add((o2, crew[1], false)); carried.Add((bag2, crew[1], true));
             yield return new WaitForSeconds(0.5f);
             // to the casualty
             Vector3 toV = (vp - Rear()).WithY(0).normalized; Vector3 sideV = Vector3.Cross(Vector3.up, toV);
@@ -216,7 +296,7 @@ namespace ASBO.Slice
             Status = victim.dead ? "Paramedics confirm death" : "Paramedics treating casualty";
             // bags down, kneel, hands on
             carried.Clear();
-            PutDown(bag, kneelA + toV * 0.55f + sideV * 0.25f); PutDown(defib, kneelA - toV * 0.5f + sideV * 0.25f); PutDown(o2, kneelB + toV * 0.5f - sideV * 0.25f);
+            PutDown(bag, kneelA + toV * 0.55f + sideV * 0.25f); PutDown(defib, kneelA - toV * 0.5f + sideV * 0.25f); PutDown(o2, kneelB + toV * 0.5f - sideV * 0.25f); PutDown(bag2, kneelB - toV * 0.45f - sideV * 0.3f);
             foreach (var c in crew) { if (Busy(c)) continue; c.transform.rotation = Quaternion.LookRotation((vp - c.transform.position).WithY(0)); c.SetKneel(true); }
             var chest = victim.anim != null ? victim.anim.GetBoneTransform(HumanBodyBones.Chest) ?? victim.anim.GetBoneTransform(HumanBodyBones.Spine) : null;
             var head = victim.anim != null ? victim.anim.GetBoneTransform(HumanBodyBones.Head) : null;
@@ -233,11 +313,11 @@ namespace ASBO.Slice
             yield return new WaitForSeconds(0.7f);
             yield return WalkPath(crew[1], new[] { Rear(1.6f) }, 2f);
             var st = MedicKit.Stretcher(out float bedTop, out var castors); st.SetParent(World.Root, true);
-            st.position = transform.position - transform.forward * (Le - 0.6f) + Vector3.up * 0.25f; st.rotation = transform.rotation; // head end into the van (-z of the stretcher points forward... flip below)
+            st.position = transform.position - transform.forward * (Le - 0.6f) + Vector3.up * floorY; st.rotation = transform.rotation; // head end into the van (-z of the stretcher points forward... flip below)
             st.rotation = Quaternion.LookRotation(-transform.forward);
             // pull it out of the back
             Vector3 outPos = Rear(1.2f);
-            for (float t = 0; t < 1f; t += Time.deltaTime / 1.3f) { st.position = Vector3.Lerp(transform.position - transform.forward * (Le - 0.6f) + Vector3.up * 0.25f, outPos, Mathf.SmoothStep(0, 1, t)); crew[1].Step(st.position + st.forward * 1.25f, 1f); yield return null; }
+            for (float t = 0; t < 1f; t += Time.deltaTime / 1.3f) { st.position = Vector3.Lerp(transform.position - transform.forward * (Le - 0.6f) + Vector3.up * floorY, outPos, Mathf.SmoothStep(0, 1, t)); crew[1].Step(st.position + st.forward * 1.25f, 1f); yield return null; }
             st.position = outPos;
             // wheel it to the casualty: it only rolls while the medic is at the handle
             Vector3 bedSpot = vp - sideV * 1.1f;
@@ -260,15 +340,15 @@ namespace ASBO.Slice
             var blanket = MedicKit.Blanket(victim.dead); blanket.SetParent(st, false); blanket.localPosition = new Vector3(0, bedTop + 0.22f, victim.dead ? 0f : 0.3f);
             if (victim.dead && mask != null) Destroy(mask.gameObject);
             // kit on the end of the stretcher
-            foreach (var k in new[] { bag, defib, o2 }) { k.SetParent(st, true); }
-            bag.localPosition = new Vector3(0.12f, bedTop + 0.3f, 0.85f); defib.localPosition = new Vector3(-0.14f, bedTop + 0.24f, 0.8f); o2.localPosition = new Vector3(0f, bedTop + 0.45f, 0.6f); o2.localRotation = Quaternion.Euler(90f, 0, 0);
+            foreach (var k in new[] { bag, defib, o2, bag2 }) { k.SetParent(st, true); }
+            bag.localPosition = new Vector3(0.12f, bedTop + 0.3f, 0.85f); defib.localPosition = new Vector3(-0.14f, bedTop + 0.24f, 0.8f); o2.localPosition = new Vector3(0f, bedTop + 0.45f, 0.6f); o2.localRotation = Quaternion.Euler(90f, 0, 0); bag2.localPosition = new Vector3(0f, bedTop + 0.3f, -0.85f);
             if (GameAudio.I != null) GameAudio.I.PlayVoice("medic", vp, 0.3f, 1f, 2);
             Status = "Casualty on the stretcher";
             yield return new WaitForSeconds(0.6f);
             // both push it back to the van, head end first
             yield return Wheel(st, castors, crew, Rear(1.3f), Quaternion.LookRotation(transform.forward));
             // in it goes, then the doors shut
-            Vector3 inPos = transform.position - transform.forward * (Le - 1.1f) + Vector3.up * 0.4f, from = st.position;
+            Vector3 inPos = transform.position - transform.forward * (Le - 1.1f) + Vector3.up * floorY, from = st.position;
             for (float t = 0; t < 1f; t += Time.deltaTime / 1.6f) { st.position = Vector3.Lerp(from, inPos, Mathf.SmoothStep(0, 1, t)); foreach (var c in crew) if (!Busy(c)) c.Step(st.position - st.forward * 1.2f + (c == crew[0] ? -transform.right : transform.right) * 0.35f, 0.8f); yield return null; }
             st.gameObject.SetActive(false); victim.gameObject.SetActive(false);
             yield return WalkAll(crew, new[] { Rear(1.4f) + transform.right * -0.6f, Rear(1.4f) + transform.right * 0.6f }, 1.4f);
@@ -316,11 +396,18 @@ namespace ASBO.Slice
         {
             for (float t = 0; t <= 1f; t += Time.deltaTime / 0.9f)
             {
-                float k = Mathf.SmoothStep(0, 1, open ? t : 1f - t);
-                doorL.localRotation = Quaternion.Euler(0, -105f * k, 0); doorR.localRotation = Quaternion.Euler(0, 105f * k, 0);
+                SetDoors(Mathf.SmoothStep(0, 1, open ? t : 1f - t));
                 yield return null;
             }
-            doorL.localRotation = Quaternion.Euler(0, open ? -105f : 0f, 0); doorR.localRotation = Quaternion.Euler(0, open ? 105f : 0f, 0);
+            SetDoors(open ? 1f : 0f);
+        }
+
+        /// <summary>Both back doors swung out by k (0 shut, 1 open right round against the sides).</summary>
+        void SetDoors(float k)
+        {
+            const float Open = 160f; // barn doors fold back along the body
+            doorL.localRotation = Quaternion.AngleAxis(doorSignL * Open * k, Vector3.up) * doorBaseL;
+            doorR.localRotation = Quaternion.AngleAxis(doorSignR * Open * k, Vector3.up) * doorBaseR;
         }
 
         /// <summary>

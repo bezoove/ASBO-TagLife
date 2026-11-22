@@ -33,7 +33,7 @@ namespace ASBO.Slice
         {
             if (!rough) return Wear.Clean;
             double t = r.NextDouble();
-            return t < 0.28 ? Wear.Clean : t < 0.6 ? Wear.Tired : t < 0.8 ? Wear.Dirty : t < 0.96 ? Wear.Rusty : Wear.Wreck;
+            return t < 0.42 ? Wear.Clean : t < 0.76 ? Wear.Tired : t < 0.87 ? Wear.Dirty : t < 0.97 ? Wear.Rusty : Wear.Wreck;
         }
 
         public static Transform[] Build(Transform parent, CarBody.Spec s, Color paint, bool castShadow, int seed, bool rough)
@@ -59,7 +59,8 @@ namespace ASBO.Slice
             int mismatch = wear >= Wear.Rusty && rng.NextDouble() < 0.6 ? 4 + rng.Next(8) : wear == Wear.Tired && rng.NextDouble() < 0.12 ? 4 + rng.Next(8) : -1;
             Color panelCol = CarBody.RandomPaint(rng);
             float fade = wear == Wear.Tired ? 0.15f + (float)rng.NextDouble() * 0.2f : wear >= Wear.Dirty ? 0.25f : (float)rng.NextDouble() * 0.06f;
-            if (mats.Length > 0) mats[0] = Paint(id, paint, wear, mismatch, panelCol, fade);
+            bool metallic = wear <= Wear.Tired && rng.NextDouble() < 0.5;
+            if (mats.Length > 0) mats[0] = Paint(id, paint, wear, mismatch, panelCol, fade, metallic);
             if (mats.Length > 3 && (wear == Wear.Wreck || wear == Wear.Burnt)) mats[3] = wear == Wear.Burnt ? Gone() : Smashed();
             if (mats.Length > 4 && wear == Wear.Burnt) mats[4] = DarkLamps(mats[1]);
             if (mats.Length > 5)
@@ -107,7 +108,7 @@ namespace ASBO.Slice
 
             var lg = root.GetComponent<LODGroup>(); if (lg == null) lg = root.gameObject.AddComponent<LODGroup>();
             var l0 = new List<Renderer>(wheelRs) { r0 }; var l1 = new List<Renderer>(wheelRs); if (r1 != null) l1.Add(r1);
-            lg.SetLODs(new[] { new LOD(0.1f, l0.ToArray()), new LOD(0.012f, l1.ToArray()) });
+            lg.SetLODs(new[] { new LOD(0.035f, l0.ToArray()), new LOD(0.006f, l1.ToArray()) }); // the detailed car right out to the distance; the low one only far off
             lg.RecalculateBounds();
             return wheels;
         }
@@ -121,23 +122,24 @@ namespace ASBO.Slice
             wearPx[id] = px; return px;
         }
 
-        static Material Paint(string id, Color paint, Wear wear, int mismatch, Color panelCol, float fade)
+        static Material Paint(string id, Color paint, Wear wear, int mismatch, Color panelCol, float fade, bool metallic)
         {
             // cars that look alike share a material (keeps memory and draw setup down)
             Color32 pc = paint; Color32 mc = panelCol;
-            string key = $"{id}|{pc.r},{pc.g},{pc.b}|{wear}|{mismatch}|{(mismatch >= 0 ? $"{mc.r},{mc.g},{mc.b}" : "")}|{Mathf.RoundToInt(fade * 10)}";
+            string key = $"{id}|{pc.r},{pc.g},{pc.b}|{wear}|{mismatch}|{(mismatch >= 0 ? $"{mc.r},{mc.g},{mc.b}" : "")}|{Mathf.RoundToInt(fade * 10)}|{metallic}";
             if (paintCache.TryGetValue(key, out var have) && have != null) return have;
             var tpl = Resources.Load<Material>("CarMats/KitPaint");
             var m = tpl != null ? new Material(tpl) : new Material(Gfx.Lit);
             m.name = "Paint " + id;
+            m.SetFloat("_Metallic", metallic ? 0.45f : 0.1f); // half the cars in metallic paint, like the real thing
             var src = WearMap(id);
             if (src != null)
             {
                 int n = src.Length, size = Mathf.RoundToInt(Mathf.Sqrt(n));
                 var px = new Color32[n];
-                float dirtAmt = wear switch { Wear.Clean => 0.04f, Wear.Tired => 0.2f, Wear.Dirty => 0.95f, Wear.Rusty => 0.45f, Wear.Wreck => 0.8f, _ => 0.5f };
+                float dirtAmt = wear switch { Wear.Clean => 0.02f, Wear.Tired => 0.12f, Wear.Dirty => 0.75f, Wear.Rusty => 0.4f, Wear.Wreck => 0.8f, _ => 0.5f };
                 float rustAmt = wear switch { Wear.Clean => 0f, Wear.Tired => 0.18f, Wear.Dirty => 0.25f, Wear.Rusty => 0.85f, Wear.Wreck => 1f, _ => 1f };
-                float gloss = wear switch { Wear.Clean => 0.8f, Wear.Tired => 0.55f, _ => 0.4f };
+                float gloss = wear switch { Wear.Clean => 0.88f, Wear.Tired => 0.72f, Wear.Dirty => 0.5f, _ => 0.4f };
                 Color faded = Color.Lerp(paint, Color.Lerp(paint, new Color(0.8f, 0.79f, 0.76f), 0.7f), fade);
                 Color fadedPanel = Color.Lerp(panelCol, new Color(0.8f, 0.79f, 0.76f), fade * 0.5f);
                 Color dirtC = new Color(0.27f, 0.23f, 0.18f), rustD = new Color(0.22f, 0.1f, 0.05f), rustL = new Color(0.58f, 0.3f, 0.12f);

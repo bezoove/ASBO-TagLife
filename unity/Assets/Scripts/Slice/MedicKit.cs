@@ -3,13 +3,13 @@ using UnityEngine;
 namespace ASBO.Slice
 {
     /// <summary>
-    /// What paramedics carry and use: the green response bag, a defibrillator, an oxygen cylinder with its mask, the
-    /// wheeled stretcher with mattress and blanket, and the hi-vis jacket (fluorescent yellow with silver bands and
-    /// PARAMEDIC across the back) over green uniform. Built from simple shapes, sized like the real things.
+    /// What paramedics carry and use: blue and green response bags, a black defibrillator, an oxygen cylinder with its
+    /// mask, the wheeled stretcher with mattress and blanket, and the PARAMEDIC lettering on the back of the dark green
+    /// uniform. Built from simple shapes, sized like the real things.
     /// </summary>
     public static class MedicKit
     {
-        static Material green, greenDark, red, black, grey, chrome, yellow, hivis, silver, white, blue, orange, mattress;
+        static Material green, greenDark, blueDark, red, black, grey, chrome, yellow, hivis, silver, white, blue, orange, mattress;
         static void Mats()
         {
             if (green != null) return;
@@ -23,7 +23,8 @@ namespace ASBO.Slice
             hivis = Gfx.Emissive(new Color(0.82f, 1f, 0.12f), 0.35f);
             silver = Gfx.Mat(new Color(0.85f, 0.86f, 0.88f), null, 0.9f, 0.6f);
             white = Gfx.Mat(new Color(0.94f, 0.94f, 0.93f), null, 0.3f);
-            blue = Gfx.Mat(new Color(0.12f, 0.3f, 0.62f), null, 0.15f);
+            blue = Gfx.Mat(new Color(0.09f, 0.26f, 0.6f), null, 0.15f);
+            blueDark = Gfx.Mat(new Color(0.05f, 0.14f, 0.34f), null, 0.15f);
             orange = Gfx.Mat(new Color(0.72f, 0.14f, 0.09f), null, 0.15f);
             mattress = Gfx.Mat(new Color(0.08f, 0.09f, 0.1f), null, 0.45f);
         }
@@ -34,12 +35,12 @@ namespace ASBO.Slice
             var g = Gfx.Prim(PrimitiveType.Cylinder, p, c, s, m, n, false); g.transform.localRotation = Quaternion.Euler(euler); return g;
         }
 
-        /// <summary>The green response bag (handle on top, reflective strip, white cross panel). Origin at the handle.</summary>
-        public static Transform Bag()
+        /// <summary>A response bag, blue or green (handle on top, reflective strips, white cross panel). Origin at the handle.</summary>
+        public static Transform Bag(bool blueBag = true)
         {
             Mats(); var t = new GameObject("ResponseBag").transform;
-            B(t, new Vector3(0, -0.2f, 0), new Vector3(0.5f, 0.3f, 0.26f), green, "Body");
-            B(t, new Vector3(0, -0.05f, 0), new Vector3(0.52f, 0.025f, 0.27f), greenDark, "Zip");
+            B(t, new Vector3(0, -0.2f, 0), new Vector3(0.5f, 0.3f, 0.26f), blueBag ? blue : green, "Body");
+            B(t, new Vector3(0, -0.05f, 0), new Vector3(0.52f, 0.025f, 0.27f), blueBag ? blueDark : greenDark, "Zip");
             B(t, new Vector3(0, -0.22f, 0.132f), new Vector3(0.5f, 0.035f, 0.004f), silver, "Strip");
             B(t, new Vector3(0, -0.22f, -0.132f), new Vector3(0.5f, 0.035f, 0.004f), silver, "Strip2");
             B(t, new Vector3(0, -0.17f, 0.134f), new Vector3(0.1f, 0.03f, 0.003f), white, "CrossH");
@@ -48,11 +49,12 @@ namespace ASBO.Slice
             return t;
         }
 
-        /// <summary>The defibrillator: a yellow and grey case with a handle. Origin at the handle.</summary>
+        /// <summary>The defibrillator: a black case with a screen and a yellow-green edge, handle on top. Origin at the handle.</summary>
         public static Transform Defib()
         {
             Mats(); var t = new GameObject("Defib").transform;
-            B(t, new Vector3(0, -0.15f, 0), new Vector3(0.34f, 0.24f, 0.14f), yellow, "Case");
+            B(t, new Vector3(0, -0.15f, 0), new Vector3(0.34f, 0.24f, 0.14f), black, "Case");
+            B(t, new Vector3(0, -0.035f, 0), new Vector3(0.345f, 0.02f, 0.145f), green, "Trim");
             B(t, new Vector3(0, -0.15f, 0.071f), new Vector3(0.24f, 0.15f, 0.004f), grey, "Screen");
             B(t, new Vector3(0, -0.01f, 0), new Vector3(0.16f, 0.025f, 0.03f), black, "Handle");
             return t;
@@ -114,44 +116,43 @@ namespace ASBO.Slice
         }
 
         /// <summary>
-        /// Hi-vis over a paramedic's green uniform: a fluorescent jacket body round the torso with two silver bands, a
-        /// shoulder yoke, and PARAMEDIC across the back. Follows the spine and chest so it bends with them.
+        /// A paramedic's dark green uniform is the clothing itself (tinted by the character builder); this adds the
+        /// reflective PARAMEDIC across the back, laid on the body's actual surface (found from the skinned mesh) so it
+        /// neither floats off a slim back nor sinks into a broad one. Follows the chest bone so it bends with them.
         /// </summary>
         public static void DressParamedic(Animator a)
         {
             if (a == null || !a.isHuman) return; Mats();
-            var spine = a.GetBoneTransform(HumanBodyBones.Spine); var chest = a.GetBoneTransform(HumanBodyBones.Chest) ?? a.GetBoneTransform(HumanBodyBones.Spine);
+            var chest = a.GetBoneTransform(HumanBodyBones.Chest) ?? a.GetBoneTransform(HumanBodyBones.Spine);
             var hips = a.GetBoneTransform(HumanBodyBones.Hips); var neck = a.GetBoneTransform(HumanBodyBones.Neck);
-            if (spine == null || chest == null || hips == null || neck == null) return;
-            Vector3 fwd = a.transform.forward, up = a.transform.up;
+            if (chest == null || hips == null || neck == null) return;
+            Vector3 fwd = a.transform.forward, up = a.transform.up, right = a.transform.right;
             float torso = Vector3.Distance(hips.position, neck.position);
-            // lower jacket on the spine, upper on the chest: each an elliptical band of panels round the body
-            Shell(spine, hips.position + up * torso * 0.22f, fwd, up, torso * 0.42f, 0.185f, 0.13f, true);
-            Shell(chest, hips.position + up * torso * 0.62f, fwd, up, torso * 0.42f, 0.2f, 0.135f, false);
-            // PARAMEDIC across the back, green on the yellow
-            var back = Lettering.Decal(chest, "PARAMEDIC", new Color(0.04f, 0.28f, 0.14f), chest.InverseTransformPoint(hips.position + up * torso * 0.68f - fwd * 0.143f),
-                chest.InverseTransformDirection(-fwd), chest.InverseTransformDirection(up), 0.055f);
+            Vector3 at = hips.position + up * torso * 0.7f;
+            float depth = BackDepth(a, at, fwd, up, right);
+            var back = Lettering.Decal(chest, "PARAMEDIC", new Color(0.9f, 0.92f, 0.9f), chest.InverseTransformPoint(at - fwd * (depth + 0.006f)),
+                chest.InverseTransformDirection(-fwd), chest.InverseTransformDirection(up), 0.05f);
             back.transform.localScale = new Vector3(back.transform.localScale.x * 0.95f, back.transform.localScale.y, 1f);
         }
 
-        /// <summary>A ring of thin panels round a bone: an elliptical tube of hi-vis with a silver band (twice on the lower part).</summary>
-        static void Shell(Transform bone, Vector3 centreW, Vector3 fwdW, Vector3 upW, float height, float rx, float rz, bool lower)
+        /// <summary>How far behind a point on the spine line the clothed back is, from a snapshot of the skinned mesh.</summary>
+        static float BackDepth(Animator a, Vector3 at, Vector3 fwd, Vector3 up, Vector3 right)
         {
-            var root = new GameObject(lower ? "HiVisLower" : "HiVisUpper").transform; root.SetParent(bone, false);
-            root.position = centreW; root.rotation = Quaternion.LookRotation(fwdW, upW);
-            const int N = 14;
-            for (int i = 0; i < N; i++)
+            float best = -1f;
+            foreach (var smr in a.GetComponentsInChildren<SkinnedMeshRenderer>())
             {
-                float a0 = i / (float)N * Mathf.PI * 2f, a1 = (i + 1) / (float)N * Mathf.PI * 2f, am = (a0 + a1) * 0.5f;
-                Vector3 p0 = new Vector3(Mathf.Sin(a0) * rx, 0, Mathf.Cos(a0) * rz), p1 = new Vector3(Mathf.Sin(a1) * rx, 0, Mathf.Cos(a1) * rz);
-                Vector3 mid = (p0 + p1) * 0.5f; float w = Vector3.Distance(p0, p1) + 0.004f;
-                Quaternion r = Quaternion.LookRotation(new Vector3(Mathf.Sin(am) / rx, 0, Mathf.Cos(am) / rz).normalized, Vector3.up);
-                var pnl = Gfx.Box(root, mid, new Vector3(w, height, 0.012f), hivis, 0, "Panel", false); pnl.transform.localRotation = r;
-                foreach (float bandY in lower ? new[] { -height * 0.2f, height * 0.22f } : new[] { height * 0.05f })
+                if (smr.sharedMesh == null || !smr.enabled) continue;
+                var m = new Mesh(); try { smr.BakeMesh(m, true); } catch { Object.Destroy(m); continue; }
+                var v = m.vertices; var tr = smr.transform;
+                for (int i = 0; i < v.Length; i++)
                 {
-                    var band = Gfx.Box(root, mid * 1.012f + Vector3.up * bandY, new Vector3(w, 0.05f, 0.012f), silver, 0, "Band", false); band.transform.localRotation = r;
+                    Vector3 d = tr.TransformPoint(v[i]) - at;
+                    if (Mathf.Abs(Vector3.Dot(d, up)) > 0.05f || Mathf.Abs(Vector3.Dot(d, right)) > 0.07f) continue;
+                    float back = -Vector3.Dot(d, fwd); if (back > best) best = back;
                 }
+                Object.Destroy(m);
             }
+            return best > 0.04f && best < 0.3f ? best : 0.13f;
         }
     }
 

@@ -457,9 +457,45 @@ namespace ASBO.Slice
         /// <summary>Bake the severed limb (from the most detailed LOD) onto the flying part; collapse it to a stump on every LOD.</summary>
         void SeverVisual(Transform cut, Transform stump)
         {
+            smrs = GetComponentsInChildren<SkinnedMeshRenderer>(true); // the body may have been rebuilt since spawn
             SkinnedMeshRenderer src = null;
-            foreach (var r in smrs) if (r != null && (src == null || r.sharedMesh.vertexCount > src.sharedMesh.vertexCount)) src = r;
-            if (src == null || !src.sharedMesh.isReadable) return;
+            foreach (var r in smrs) if (r != null && r.sharedMesh != null && (src == null || r.sharedMesh.vertexCount > src.sharedMesh.vertexCount)) src = r;
+            if (src == null) return;
+            if (!src.sharedMesh.isReadable) LimbCopy(src, cut); // phones: UMA frees the mesh data, so the flying limb is a second copy of the skin with the body shrunk away
+            else BakeLimb(src, cut);
+            Collapse(cut, stump);
+        }
+
+        /// <summary>The flying limb as a copy of the skinned body where everything but the limb shrinks to nothing inside its root.</summary>
+        void LimbCopy(SkinnedMeshRenderer src, Transform cut)
+        {
+            var hide = new GameObject("LimbHide").transform; hide.SetParent(cut, false); hide.localScale = Vector3.zero;
+            var g = new GameObject("SeveredLimb"); g.transform.SetParent(cut, false);
+            var copy = g.AddComponent<SkinnedMeshRenderer>();
+            copy.sharedMesh = src.sharedMesh; copy.sharedMaterials = src.sharedMaterials;
+            var arr = src.bones;
+            for (int i = 0; i < arr.Length; i++) if (arr[i] == null || !arr[i].IsChildOf(cut)) arr[i] = hide;
+            copy.bones = arr; copy.rootBone = cut; copy.updateWhenOffscreen = false;
+            copy.localBounds = new Bounds(Vector3.zero, Vector3.one * 1.5f);
+            copy.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        /// <summary>Collapse the limb's skin to a stump: every severed bone on every LOD now points at a zero-scale proxy at the joint.</summary>
+        void Collapse(Transform cut, Transform stump)
+        {
+            var proxy = new GameObject("StumpProxy").transform; proxy.SetParent(stump, false); proxy.position = cut.position; proxy.localScale = Vector3.zero;
+            foreach (var r in smrs)
+            {
+                if (r == null || r.name == "SeveredLimb") continue;
+                var arr = r.bones; bool ch = false;
+                for (int i = 0; i < arr.Length; i++) if (arr[i] != null && arr[i].IsChildOf(cut)) { arr[i] = proxy; ch = true; }
+                if (ch) r.bones = arr;
+            }
+        }
+
+        /// <summary>Bake the severed limb (from the most detailed LOD) into its own mesh on the flying part.</summary>
+        void BakeLimb(SkinnedMeshRenderer src, Transform cut)
+        {
             var bonesArr = src.bones; var sev = new HashSet<int>();
             for (int i = 0; i < bonesArr.Length; i++) if (bonesArr[i] != null && bonesArr[i].IsChildOf(cut)) sev.Add(i);
             if (sev.Count == 0) return;
@@ -497,15 +533,6 @@ namespace ASBO.Slice
                 lm.RecalculateBounds();
                 var g = new GameObject("SeveredLimb"); g.transform.SetParent(cut, false);
                 g.AddComponent<MeshFilter>().sharedMesh = lm; g.AddComponent<MeshRenderer>().sharedMaterials = mats.ToArray();
-            }
-            // collapse the limb's skin to a stump: every severed bone on every LOD now points at a zero-scale proxy at the joint
-            var proxy = new GameObject("StumpProxy").transform; proxy.SetParent(stump, false); proxy.position = cut.position; proxy.localScale = Vector3.zero;
-            foreach (var r in smrs)
-            {
-                if (r == null) continue;
-                var arr = r.bones; bool ch = false;
-                for (int i = 0; i < arr.Length; i++) if (arr[i] != null && arr[i].IsChildOf(cut)) { arr[i] = proxy; ch = true; }
-                if (ch) r.bones = arr;
             }
         }
 

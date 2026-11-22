@@ -83,6 +83,55 @@ namespace ASBO.EditorTools
             }
             AssetDatabase.SaveAssets();
             Debug.Log($"[ASBO] cars: {made} car prefabs in {Res}");
+            BuildAmbulance(dark, chrome, glass, lamps, plate, wheel);
+        }
+
+        const string AmbSrc = "Assets/Art/Ambulance";
+
+        /// <summary>
+        /// The box ambulance (Assets/Art/Ambulance/ambulance.fbx from tools/art/cars/ambforge.py): baked livery
+        /// (yellow, green Battenburg, EMERGENCY AMBULANCE), chevron rear doors, white treatment room with kit inside.
+        /// Parts the call-out drives (doors, flashing lamps, wheels) stay separate objects in the prefab.
+        /// </summary>
+        static void BuildAmbulance(Material dark, Material chrome, Material glass, Material lamps, Material plate, Material wheel)
+        {
+            string fbxPath = $"{AmbSrc}/ambulance.fbx";
+            if (AssetImporter.GetAtPath(fbxPath) == null) return;
+            foreach (var n in new[] { "amb_livery", "amb_door" })
+            {
+                var imp = (TextureImporter)AssetImporter.GetAtPath($"{AmbSrc}/{n}.png"); if (imp == null) continue;
+                imp.textureType = TextureImporterType.Default; imp.sRGBTexture = true; imp.mipmapEnabled = true; imp.filterMode = FilterMode.Trilinear;
+                imp.anisoLevel = 4; imp.wrapMode = TextureWrapMode.Clamp;
+                imp.SetPlatformTextureSettings(new TextureImporterPlatformSettings { name = "Android", overridden = true, maxTextureSize = 1024, format = TextureImporterFormat.ASTC_6x6 });
+                imp.SaveAndReimport();
+            }
+            var liveryTex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{AmbSrc}/amb_livery.png");
+            var doorTex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{AmbSrc}/amb_door.png");
+            var livery = Mat("AmbLivery", m => { m.SetTexture("_BaseMap", liveryTex); m.SetColor("_BaseColor", Color.white); m.SetFloat("_Smoothness", 0.62f); m.SetFloat("_Metallic", 0.05f); });
+            var door = Mat("AmbDoor", m => { m.SetTexture("_BaseMap", doorTex); m.SetColor("_BaseColor", Color.white); m.SetFloat("_Smoothness", 0.6f); m.SetFloat("_Metallic", 0.05f); });
+            var doorIn = Mat("AmbDoorIn", m => { m.SetColor("_BaseColor", new Color(0.78f, 0.79f, 0.8f)); m.SetFloat("_Smoothness", 0.35f); m.SetFloat("_Metallic", 0f); });
+            var white = Mat("AmbWhite", m => { m.SetColor("_BaseColor", new Color(0.9f, 0.91f, 0.92f)); m.SetFloat("_Smoothness", 0.45f); m.SetFloat("_Metallic", 0f); });
+            var floor = Mat("AmbFloor", m => { m.SetColor("_BaseColor", new Color(0.4f, 0.42f, 0.45f)); m.SetFloat("_Smoothness", 0.6f); m.SetFloat("_Metallic", 0f); });
+            var bag = Mat("AmbBag", m => { m.SetColor("_BaseColor", new Color(0.09f, 0.27f, 0.62f)); m.SetFloat("_Smoothness", 0.2f); m.SetFloat("_Metallic", 0f); });
+            var bag2 = Mat("AmbBag2", m => { m.SetColor("_BaseColor", new Color(0.06f, 0.4f, 0.2f)); m.SetFloat("_Smoothness", 0.2f); m.SetFloat("_Metallic", 0f); });
+            var blue = Mat("AmbBlue", m => { m.SetColor("_BaseColor", new Color(0.06f, 0.12f, 0.36f)); m.SetFloat("_Smoothness", 0.85f); m.SetFloat("_Metallic", 0f); });
+            var mi = (ModelImporter)AssetImporter.GetAtPath(fbxPath);
+            mi.importCameras = false; mi.importLights = false; mi.importAnimation = false; mi.animationType = ModelImporterAnimationType.None;
+            mi.importBlendShapes = false; mi.importNormals = ModelImporterNormals.Import; mi.importTangents = ModelImporterTangents.None;
+            mi.meshCompression = ModelImporterMeshCompression.Off; mi.isReadable = false;
+            mi.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
+            void Map(string n, Material m) { if (m != null) mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), n), m); }
+            Map("X_livery", livery); Map("X_door", door); Map("X_doorin", doorIn); Map("X_white", white); Map("X_floor", floor);
+            Map("X_bag", bag); Map("X_bag2", bag2); Map("X_blue", blue);
+            Map("X_dark", dark); Map("X_chrome", chrome); Map("X_glass", glass); Map("X_lamps", lamps); Map("X_plate", plate); Map("X_wheel", wheel);
+            mi.SaveAndReimport();
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
+            var go = Object.Instantiate(model); go.name = "ambulance";
+            foreach (var r in go.GetComponentsInChildren<MeshRenderer>(true)) { r.receiveGI = ReceiveGI.LightProbes; r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.BlendProbes; }
+            PrefabUtility.SaveAsPrefabAsset(go, $"{Res}/ambulance.prefab");
+            Object.DestroyImmediate(go);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[ASBO] cars: ambulance prefab built");
         }
 
         /// <summary>Log where each part of a car prefab sits (for checking the import).</summary>

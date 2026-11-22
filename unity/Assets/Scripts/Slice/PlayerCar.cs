@@ -55,6 +55,7 @@ namespace ASBO.Slice
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
             rb.linearDamping = 0f; rb.angularDamping = 0f;
+            rb.centerOfMass = new Vector3(0f, 0.45f, spec.m.wxR); // turning pivot on the back axle
             yTarget = transform.position.y;
             var ec = SfxBank.Pick("engine"); realEngine = ec != null;
             eng = gameObject.AddComponent<AudioSource>(); eng.clip = realEngine ? ec : AudioSynth.Engine(); eng.loop = true; eng.spatialBlend = 1f; eng.minDistance = 5f; eng.maxDistance = 70f; eng.volume = 0.12f; eng.Play();
@@ -176,6 +177,11 @@ namespace ASBO.Slice
             Vector3 p = rb.position;
             if (Physics.Raycast(p + Vector3.up * 1.2f, Vector3.down, out var gh, 3f, ~((1 << 2) | (1 << 31) | (1 << Person.VehicleLayer) | (1 << Person.RagdollLayer)), QueryTriggerInteraction.Ignore)) yTarget = gh.point.y;
             float vy = (yTarget - p.y) / Mathf.Max(dt, 1e-4f) * 0.35f;
+            // the car turns about its back axle like a real one (the front wheels steer, the back follows); on the
+            // handbrake the back lets go, so the pivot slides forward and the tail comes round
+            float pivotZ = handOn && v > 4f ? spec.m.wxF * 0.35f : spec.m.wxR;
+            var com = rb.centerOfMass; com.z = Mathf.Lerp(com.z, pivotZ, 1f - Mathf.Exp(-5f * dt)); com.y = 0.45f; com.x = 0f;
+            rb.centerOfMass = com;
             rb.linearVelocity = moveDir * Mathf.Abs(sp) + Vector3.up * Mathf.Clamp(vy, -6f, 4f);
             rb.angularVelocity = new Vector3(0f, yawRate, 0f);
             // body lean and nose dip, wheels, engine

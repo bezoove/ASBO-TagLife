@@ -407,15 +407,16 @@ def details(car, M):
     uws0 = P['ws'][0]
     for s in (-1, 1):
         u = uws0 + 0.14; x = L / 2 - u; hw = car.half(u); z = car.zbelt(u) + 0.07
-        k.box((x, s * (hw + 0.09), z), (0.09, 0.15, 0.1), M['trim'])
-        k.box((x - 0.01, s * (hw + 0.03), z - 0.03), (0.04, 0.06, 0.03), M['trim'])
+        if not P.get('no_mirrors'):
+            k.box((x, s * (hw + 0.09), z), (0.09, 0.15, 0.1), M['trim'])
+            k.box((x - 0.01, s * (hw + 0.03), z - 0.03), (0.04, 0.06, 0.03), M['trim'])
         # door handles
         for uh in P.get('handles', []):
             xh = L / 2 - uh; hwh = car.half(uh)
             k.box((xh, s * (hwh + 0.006), car.zbelt(uh) - 0.07), (0.11, 0.02, 0.025), M['trim'] if P.get('bumper') != 'chrome' else M['chrome'])
     # rubber strip along the bottom of the windows
     for s in (-1, 1):
-        u0, u1 = uws0 + 0.05, P['rw'][1] - 0.05
+        u0, u1 = uws0 + 0.05, min(P.get('rubber_end', P['rw'][1]), L) - 0.05
         n = 12
         for i in range(n):
             ua, ub = lerp(u0, u1, i / n), lerp(u0, u1, (i + 1) / n)
