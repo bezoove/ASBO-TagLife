@@ -144,6 +144,8 @@ namespace ASBO.Slice
         public static void AmbTest() { new GameObject("AmbTest").AddComponent<AmbTestRun>(); }
         /// <summary>Photograph the council estate from a few set viewpoints: Shots/estate_N.png.</summary>
         public static void EstateShots() { new GameObject("EstateShots").AddComponent<EstateShotsRun>(); }
+        /// <summary>Photograph one set of places: 0 the estate, 1 the building site, 2 the castle (Shots/place_N.png).</summary>
+        public static void PlaceShots(int set) { var r = new GameObject("PlaceShots").AddComponent<EstateShotsRun>(); r.set = set; }
         public static void TouchDrive() { new GameObject("TouchDriveTest").AddComponent<TouchDriveTest>().Run(); }
         public static void EditSwitch() { if (TouchControls.I != null) TouchControls.I.SwitchEditSet(); }
         public static void EditPreset() { if (TouchControls.I != null) TouchControls.I.NextPreset(); }
@@ -714,6 +716,7 @@ namespace ASBO.Slice
 
     public class EstateShotsRun : MonoBehaviour
     {
+        public int set = -1;
         System.Collections.IEnumerator Start()
         {
             var cg = new GameObject("EstateCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 60f; cam.farClipPlane = 600f; World.HideHud = true;
@@ -729,11 +732,23 @@ namespace ASBO.Slice
                 (new Vector3(124f, 42f, -28f), new Vector3(124f, 0f, -72f)),
                 (new Vector3(106f, 1.7f, -48f), new Vector3(130f, 5f, -74f)),
             };
+            string prefix = "estate_";
+            if (set == 2)
+            {
+                prefix = "place_";
+                views = new (Vector3 from, Vector3 at)[]
+                {
+                    (new Vector3(-146f, 1.7f, -33f), new Vector3(-172f, 20f, -112f)),
+                    (new Vector3(-152f, 20.5f, -95f), new Vector3(-163f, 21f, -106f)),
+                    (new Vector3(-140f, 62f, -80f), new Vector3(-175f, 16f, -118f)),
+                    (new Vector3(-167f, 19.8f, -112f), new Vector3(-178f, 24f, -124f)),
+                };
+            }
             for (int i = 0; i < views.Length; i++)
             {
                 cg.transform.position = views[i].from; cg.transform.LookAt(views[i].at);
                 yield return new WaitForSeconds(0.6f);
-                ScreenCapture.CaptureScreenshot(dir + "/estate_" + i + ".png");
+                ScreenCapture.CaptureScreenshot(dir + "/" + prefix + i + ".png");
                 yield return new WaitForSeconds(0.3f);
             }
             Destroy(cg); World.HideHud = false; Debug.Log("[ASBO] estate shots done");

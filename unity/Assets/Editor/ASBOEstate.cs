@@ -34,14 +34,18 @@ namespace ASBO.EditorTools
             if (world == null) { Debug.LogError("[ASBO] estate: no baked World in " + TestScene); return; }
             var old = world.transform.Find(CouncilEstate.RootName); if (old != null) Object.DestroyImmediate(old.gameObject);
             var oldSite = world.transform.Find(ConstructionSite.RootName); if (oldSite != null) Object.DestroyImmediate(oldSite.gameObject);
+            var oldCastle = world.transform.Find(Castle.RootName); if (oldCastle != null) Object.DestroyImmediate(oldCastle.gameObject);
             var terrain = Object.FindFirstObjectByType<Terrain>();
             if (terrain != null) Ground(terrain);
             var root = CouncilEstate.Build(world.transform);
             if (root == null) return;
             var site = ConstructionSite.Build(world.transform);
+            var castle = Castle.Build(world.transform, terrain);
             SaveMeshes(root, MeshDir);
             if (site != null) SaveMeshes(site, SiteMeshes);
-            foreach (var t in site != null ? new[] { root, site } : new[] { root })
+            if (castle != null) SaveMeshes(castle, "Assets/Art/Generated/Castle");
+            var built = new List<Transform> { root }; if (site != null) built.Add(site); if (castle != null) built.Add(castle);
+            foreach (var t in built)
                 foreach (var r in t.GetComponentsInChildren<MeshRenderer>(true))
                 {
                     bool moves = r.GetComponentInParent<Transform>() != null && r.transform.parent != null && r.transform.parent.name == "CraneTop";
@@ -122,6 +126,7 @@ namespace ASBO.EditorTools
                 m.SetFloat("_AlphaClip", 1f); m.SetFloat("_Cutoff", 0.5f); m.EnableKeyword("_ALPHATEST_ON"); m.SetFloat("_Cull", 0f); m.renderQueue = 2450; m.SetOverrideTag("RenderType", "TransparentCutout");
             });
             SiteMaterials();
+            CastleMaterials();
             Mat("EstateWindows", null, m =>
             {
                 var t = T("estate_windows"); m.SetTexture("_BaseMap", t); m.mainTexture = t; m.SetColor("_BaseColor", Color.white);
@@ -178,6 +183,16 @@ namespace ASBO.EditorTools
             Plain("SitePuddle", new Color(0.16f, 0.13f, 0.1f), 0.88f);
         }
 
+        static void CastleMaterials()
+        {
+            const string dir = "Assets/Resources/Castle"; Directory.CreateDirectory(dir);
+            Mat("CastleStone", Surfaces.Source("old_stone_wall"), m => m.SetColor("_BaseColor", new Color(0.7f, 0.72f, 0.68f)), dir);
+            Mat("CastleStone2", Surfaces.Source("rustic_stone_wall_02"), m => m.SetColor("_BaseColor", new Color(0.64f, 0.66f, 0.62f)), dir);
+            Mat("CastleGravel", Surfaces.Source("dry_riverbed_rock"), m => m.SetColor("_BaseColor", new Color(0.8f, 0.78f, 0.74f)), dir);
+            Mat("CastleDark", null, m => { m.SetColor("_BaseColor", new Color(0.008f, 0.008f, 0.01f)); m.SetFloat("_Smoothness", 0f); m.SetFloat("_Metallic", 0f); }, dir);
+            Mat("CastleIron", null, m => { m.SetColor("_BaseColor", new Color(0.12f, 0.11f, 0.1f)); m.SetFloat("_Smoothness", 0.4f); m.SetFloat("_Metallic", 0.6f); }, dir);
+        }
+
         static Material Mat(string name, Material from, System.Action<Material> set) => Mat(name, from, set, MatDir);
         static Material Mat(string name, Material from, System.Action<Material> set, string dir)
         {
@@ -209,6 +224,23 @@ namespace ASBO.EditorTools
         {
             var td = t.terrainData; Vector3 tp = t.transform.position, size = td.size;
             int res = td.heightmapResolution; var h = td.GetHeights(0, 0, res, res);
+            // the castle hill first (so the estate's levelling still wins where they meet)
+            for (int y = 0; y < res; y++)
+                for (int x = 0; x < res; x++)
+                {
+                    float wx = tp.x + x / (float)(res - 1) * size.x, wz = tp.z + y / (float)(res - 1) * size.z;
+                    float hh = Castle.HillHeight(wx, wz); if (hh <= 0f) continue;
+                    float target = (hh - tp.y) / size.y;
+                    h[y, x] = Vector2.Distance(new Vector2(wx, wz), new Vector2(Castle.Centre.x, Castle.Centre.z)) <= Castle.Plateau ? target : Mathf.Max(h[y, x], target);
+                }
+            // the main road runs the whole length of the map: keep a level corridor along it (the fields were burying it out past the village)
+            for (int y = 0; y < res; y++)
+                for (int x = 0; x < res; x++)
+                {
+                    float wz = tp.z + y / (float)(res - 1) * size.z;
+                    float d = Mathf.Max(0f, Mathf.Abs(wz - World.RoadZ) - 9f); if (d >= 22f) continue;
+                    h[y, x] = Mathf.Lerp(-tp.y / size.y, h[y, x], Mathf.SmoothStep(0f, 1f, d / 22f));
+                }
             var area = CouncilEstate.Area; const float fall = 28f;
             float Dist(Rect r, float wx, float wz) { float dx = Mathf.Max(0f, Mathf.Max(r.xMin - wx, wx - r.xMax)), dz = Mathf.Max(0f, Mathf.Max(r.yMin - wz, wz - r.yMax)); return Mathf.Sqrt(dx * dx + dz * dz); }
             for (int y = 0; y < res; y++)
@@ -227,6 +259,8 @@ namespace ASBO.EditorTools
                 float wx = tp.x + ti.position.x * size.x, wz = tp.z + ti.position.z * size.z;
                 if (wx > area.xMin - 3f && wx < area.xMax + 3f && wz > area.yMin - 3f && wz < area.yMax + 3f) continue;
                 if (wx > SiteGround.xMin - 3f && wx < SiteGround.xMax + 3f && wz > SiteGround.yMin - 3f && wz < SiteGround.yMax + 3f) continue;
+                if (Vector2.Distance(new Vector2(wx, wz), new Vector2(Castle.Centre.x, Castle.Centre.z)) < Castle.Plateau + 4f || NearLane(wx, wz, 4f)) continue;
+                if (Mathf.Abs(wz - World.RoadZ) < 10f) continue; // nothing growing in the road
                 keep.Add(ti);
             }
             td.treeInstances = keep.ToArray();
@@ -267,6 +301,17 @@ namespace ASBO.EditorTools
             {
                 var l = Quaternion.Inverse(Quaternion.Euler(0, b.yaw, 0)) * (p - b.origin);
                 if (l.x > -0.6f && l.x < b.n * CouncilEstate.W + 0.6f && l.z < CouncilEstate.Forecourt + 0.4f && l.z > -CouncilEstate.D - 2.9f) return true;
+            }
+            return false;
+        }
+
+        static bool NearLane(float x, float z, float d)
+        {
+            var p = new Vector2(x, z); var L = Castle.Lane;
+            for (int i = 0; i < L.Length - 1; i++)
+            {
+                Vector2 a = L[i], ab = L[i + 1] - L[i]; float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude);
+                if (Vector2.Distance(a + ab * t, p) < d) return true;
             }
             return false;
         }

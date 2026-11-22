@@ -33,6 +33,7 @@ namespace ASBO.Slice
             Debug.Log($"[ASBO] dressing: {root.childCount} pieces placed");
             CouncilEstate.Dress(parent);
             CraneSlew.Attach();
+            Crows.Attach();
         }
 
         static float R(float a, float b) => a + (float)rng.NextDouble() * (b - a);
