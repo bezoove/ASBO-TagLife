@@ -32,8 +32,9 @@ namespace ASBO.Slice
         public float SignedSpeed => sp;
         public static PlayerCar I;
 
-        public static PlayerCar Create(Vector3 pos, float yaw, Color paint, string model = "hatch_a")
+        public static PlayerCar Create(Vector3 pos, float yaw, Color paint, string model = null)
         {
+            model ??= CarKit.Has("hatch90") ? "hatch90" : "hatch_a"; // your motor: the modelled 90s hatch when it's in the build
             var g = new GameObject("PlayerCar"); g.layer = Person.VehicleLayer; // ragdolls pass through cars; our own ground probe skips it
             g.transform.SetPositionAndRotation(pos, Quaternion.Euler(0f, yaw, 0f));
             var c = g.AddComponent<PlayerCar>(); c.Build(model, paint); I = c;

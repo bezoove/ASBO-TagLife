@@ -23,3 +23,16 @@ LOD distances by kind, colliders, and rigid bodies + `Knockable` for things you 
 
 Not converted yet: `island_tree_01` (half a million triangles even at its lowest level: needs a billboard
 version for phones) and `moss_01` (tiny geometry strands; better as a texture on rocks).
+
+## Cars (modelled from the reference photos)
+`tools/art/cars/`: `models.py` holds each car's measurements (length, width, wheelbase, overhang, wheel size, the
+roof/bonnet line, windscreen and rear window positions, pillars, door lines, lamps, bumpers, extras). `carforge.py`
+builds the car in Blender: lofted body with tumblehome and rounded corners, recessed glass with rubber surrounds,
+cut wheel arches with dark liners, bumpers (body colour, black or chrome with over-riders), lamps and grille,
+mirrors, handles, rubbing strips, panel gaps, wipers, roof rails, rally wing and flares, spare wheel, a cabin with
+seats and a right-hand-drive dash, and proper wheels (hubcaps, steels, five-spoke, multi-spoke).
+`render.py -- <model> <out.png> [qsr]` renders quick previews; `carexport.py -- <out> [model,...]` exports each car:
+one merged mesh per level of detail with six materials, a dented version, four wheels, and a baked wear map
+(R dirt, G rust, B shading, A panel id). Copy `Art/Cars/*` and `Resources/Cars/*_wear.png` into the project and run
+**ASBO/Art/Build Cars**. `CarKit.cs` paints each car at runtime: clean, tired, filthy, rusty with a mismatched
+panel, smashed-up wreck, or burnt-out shell.

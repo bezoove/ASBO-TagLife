@@ -75,6 +75,18 @@ namespace ASBO.Slice
             pc.Teleport(from, yaw, 18f);
         }
         /// <summary>Park one of each traffic body on the road and photograph them from a few angles (Shots/carshow_*).</summary>
+        /// <summary>Build one car on the road and log where its wheels and body sit against the ground.</summary>
+        public static void CarProbe(string id)
+        {
+            var g = new GameObject("Probe_" + id).transform;
+            Vector3 p = new Vector3(-30f, 5f, World.RoadZ + 1.9f);
+            if (Physics.Raycast(p, Vector3.down, out var hit, 20f, ~(1 << 2), QueryTriggerInteraction.Ignore)) p.y = hit.point.y; else p.y = 0f;
+            g.position = p;
+            var w = CarBody.Build(g, CarBody.Get(id), Color.red, true, 5);
+            var sb = new System.Text.StringBuilder();
+            foreach (var r in g.GetComponentsInChildren<Renderer>()) sb.Append($"{r.name}:{r.bounds.min.y - p.y:0.00} ");
+            Debug.Log($"[ASBO] probe {id} ground {p.y:0.00} hit {(hit.collider != null ? hit.collider.name : "-")} root {g.GetChild(0).localPosition} wheel0 {(w.Length > 0 ? w[0].position.y - p.y : -1):0.00} | {sb}");
+        }
         public static void CarShow() { new GameObject("CarShow").AddComponent<CarShowRun>(); }
         /// <summary>Photograph a named object from an angle (degrees round it, 0 = in front), distance and height: Shots/of_NAME_ANGLE.png</summary>
         public static void ShotOf(string name, float angle, float dist, float height)

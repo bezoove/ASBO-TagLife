@@ -1,1 +1,3429 @@
-{"models":[{"id":"hatch_a","L":4.11,"W":1.71,"wb":2.61,"fo":0.84,"rad":0.3,"tw":0.185,"arch":0.065,"sill":0.25,"endY":0.33,"rcF":0.42,"rcR":0.3,"floor":0.36,"top":[-2.055,0.95,-1.9,0.965,-1.5,0.965,0.86,0.925,1.3,0.84,1.8,0.75,2.055,0.7],"crown":[-2.055,0.015,-1.8,0.03,0.8,0.03,1.5,0.06,2.055,0.05],"rakeF":[0.52,0.42],"rakeR":[0.6,0.18],"crease":0.1,"gh":{"rb":-1.86,"rrx":-1.38,"fr":0.02,"fb":0.86,"roof":1.395,"crown":0.035,"rR":0.2,"rF":0.17,"curR":0.03,"curF":0.03,"beltIn":0.07,"tumble":0.34,"pA":0.075,"pTop":0.05,"pC":0.07,"pBelt":0.014,"xB":[-0.33,-0.3],"bw":0.075,"xQ":[-1.12,-1.2],"qw":0.035,"van":false},"doors":4,"van":false,"boot":false,"seatF":-0.3,"seatR":-1.1,"seamFdF":[0.83,0,0.78,1],"seamFdR":[-0.33,0,-0.31,1],"seamRdR":[-0.98,0,-0.98,0.55,-1.1,0.85,-1.18,1],"handles":[-0.18,-0.95],"handleBody":true,"bumpF":{"stripe":"","intake":[0.22,0.34,0.62],"plateY":0.42,"step":false,"y0":0.21,"y1":0.53,"out":0.05,"col":"body"},"bumpR":{"stripe":"","intake":[],"plateY":0,"step":false,"y0":0.22,"y1":0.55,"out":0.045,"col":"body"},"plateRy":0.71,"plateROnBumper":false,"head":{"oval":0,"wrap":1,"twin":0,"z0":0.27,"z1":0.75,"yt":[0.705,0.7],"yb":[0.6,0.625]},"grille":{"bars":3,"chrome":1,"oval":0,"badge":"","z":0.25,"y0":0.555,"y1":0.66},"indBumper":false,"tail":{"band":0,"tall":0,"z0":0.42,"z1":0.8,"yt":[0.93,0.9],"yb":[0.62,0.64]},"clad":{"y0":0.25,"y1":0.36,"hex":"#8f9396","on":true},"moulding":{"y":0.54,"h":0.045,"hex":"body","stripe":"","on":true},"mirrorBody":true,"aerial":"roofR","wheel":"cap","fuel":-1},{"id":"hatch_b","L":4.43,"W":1.7,"wb":2.6,"fo":0.93,"rad":0.29,"tw":0.175,"arch":0.06,"sill":0.25,"endY":0.33,"rcF":0.3,"rcR":0.26,"floor":0.35,"top":[-2.215,0.9,-2,0.925,-1.6,0.93,0.98,0.89,1.5,0.79,2,0.71,2.215,0.675],"crown":[-2.215,0.02,-1.7,0.03,0.6,0.025,1.5,0.05,2.215,0.035],"rakeF":[0.5,0.3],"rakeR":[0.58,0.1],"crease":0.08,"gh":{"rb":-1.88,"rrx":-1,"fr":0.15,"fb":0.98,"roof":1.37,"crown":0.03,"rR":0.25,"rF":0.15,"curR":0.035,"curF":0.025,"beltIn":0.065,"tumble":0.33,"pA":0.065,"pTop":0.045,"pC":0.07,"pBelt":0.012,"xB":[-0.25,-0.22],"bw":0.07,"xQ":[-1.25,-1.15],"qw":0.06,"van":false},"doors":4,"van":false,"boot":false,"seatF":-0.25,"seatR":-1.2,"seamFdF":[0.92,0,0.88,1],"seamFdR":[-0.25,0,-0.23,1],"seamRdR":[-0.95,0,-0.95,0.6,-1.15,1],"handles":[-0.1,-0.85],"handleBody":false,"bumpF":{"stripe":"#a8282a","intake":[0.2,0.3,0.5],"plateY":0.36,"step":false,"y0":0.2,"y1":0.48,"out":0.06,"col":"#5d6064"},"bumpR":{"stripe":"#a8282a","intake":[],"plateY":0,"step":false,"y0":0.21,"y1":0.5,"out":0.055,"col":"#5d6064"},"plateRy":0.61,"plateROnBumper":false,"head":{"oval":0,"wrap":0,"twin":0,"z0":0.17,"z1":0.79,"yt":[0.645,0.625],"yb":[0.53,0.53]},"grille":{"bars":2,"chrome":0,"oval":0,"badge":"","z":0.16,"y0":0.55,"y1":0.63,"badgeY":0.67},"indBumper":true,"tail":{"band":1,"tall":0,"z0":0.3,"z1":0.79,"yt":[0.84,0.84],"yb":[0.62,0.64]},"clad":{"y0":0,"y1":0,"hex":"","on":false},"moulding":{"y":0.5,"h":0.06,"hex":"#26282b","stripe":"#a8282a","on":true},"mirrorBody":false,"aerial":"wing","wheel":"cap","fuel":-1},{"id":"saloon_b","L":4.5,"W":1.7,"wb":2.6,"fo":0.95,"rad":0.29,"tw":0.175,"arch":0.06,"sill":0.25,"endY":0.33,"rcF":0.3,"rcR":0.24,"floor":0.35,"top":[-2.25,0.88,-2.05,0.915,-1.5,0.925,0.98,0.89,1.5,0.79,2,0.71,2.25,0.675],"crown":[-2.25,0.02,-1.6,0.035,0.6,0.025,1.5,0.05,2.25,0.035],"rakeF":[0.5,0.3],"rakeR":[0.55,0.05],"crease":0.08,"gh":{"rb":-1.5,"rrx":-0.88,"fr":0.15,"fb":0.98,"roof":1.37,"crown":0.03,"rR":0.22,"rF":0.15,"curR":0.03,"curF":0.025,"beltIn":0.065,"tumble":0.33,"pA":0.065,"pTop":0.045,"pC":0.12,"pBelt":0.012,"xB":[-0.25,-0.22],"bw":0.07,"xQ":[],"qw":0.06,"van":false},"doors":4,"van":false,"boot":true,"seatF":-0.25,"seatR":-1.15,"seamFdF":[0.93,0,0.89,1],"seamFdR":[-0.25,0,-0.23,1],"seamRdR":[-0.97,0,-0.97,0.6,-1.17,1],"handles":[-0.1,-0.85],"handleBody":false,"bumpF":{"stripe":"#a8282a","intake":[0.2,0.3,0.5],"plateY":0.36,"step":false,"y0":0.2,"y1":0.48,"out":0.06,"col":"#5d6064"},"bumpR":{"stripe":"#a8282a","intake":[],"plateY":0,"step":false,"y0":0.21,"y1":0.5,"out":0.055,"col":"#5d6064"},"plateRy":0.61,"plateROnBumper":false,"head":{"oval":0,"wrap":0,"twin":0,"z0":0.17,"z1":0.79,"yt":[0.645,0.625],"yb":[0.53,0.53]},"grille":{"bars":2,"chrome":0,"oval":0,"badge":"","z":0.16,"y0":0.55,"y1":0.63,"badgeY":0.67},"indBumper":true,"tail":{"band":1,"tall":0,"z0":0.28,"z1":0.79,"yt":[0.84,0.84],"yb":[0.64,0.66]},"clad":{"y0":0,"y1":0,"hex":"","on":false},"moulding":{"y":0.5,"h":0.06,"hex":"#26282b","stripe":"#a8282a","on":true},"mirrorBody":false,"aerial":"wing","wheel":"cap","fuel":-1},{"id":"supermini_a","L":3.73,"W":1.62,"wb":2.44,"fo":0.7,"rad":0.28,"tw":0.165,"arch":0.06,"sill":0.25,"endY":0.33,"rcF":0.5,"rcR":0.38,"floor":0.36,"top":[-1.865,0.97,-1.72,0.985,-1.2,0.985,0.84,0.925,1.2,0.83,1.6,0.73,1.865,0.66],"crown":[-1.865,0.02,-1.6,0.03,0.6,0.03,1.3,0.06,1.865,0.05],"rakeF":[0.5,0.55],"rakeR":[0.55,0.12],"crease":0.06,"gh":{"rb":-1.72,"rrx":-1.3,"fr":0.12,"fb":0.84,"roof":1.39,"crown":0.04,"rR":0.24,"rF":0.22,"curR":0.03,"curF":0.035,"beltIn":0.065,"tumble":0.36,"pA":0.07,"pTop":0.05,"pC":0.11,"pBelt":0.014,"xB":[-0.42,-0.48],"bw":0.06,"xQ":[],"qw":0,"van":false},"doors":2,"van":false,"boot":false,"seatF":-0.2,"seatR":-1.05,"seamFdF":[0.8,0,0.76,1],"seamFdR":[-0.42,0,-0.46,1],"seamRdR":[],"handles":[-0.2],"handleBody":false,"bumpF":{"stripe":"","intake":[0.2,0.3,0.45],"plateY":0.38,"step":false,"y0":0.21,"y1":0.5,"out":0.055,"col":"#3a3d40"},"bumpR":{"stripe":"","intake":[],"plateY":0,"step":false,"y0":0.22,"y1":0.52,"out":0.05,"col":"#3a3d40"},"plateRy":0.6,"plateROnBumper":false,"head":{"oval":1,"wrap":1,"twin":0,"z0":0.27,"z1":0.72,"yt":[0.67,0.64],"yb":[0.56,0.575]},"grille":{"bars":2,"chrome":0,"oval":1,"badge":"","z":0.22,"y0":0.56,"y1":0.63},"indBumper":false,"tail":{"band":0,"tall":0,"z0":0.48,"z1":0.79,"yt":[0.93,0.9],"yb":[0.6,0.62]},"clad":{"y0":0,"y1":0,"hex":"","on":false},"moulding":{"y":0.5,"h":0.05,"hex":"#2a2c2f","stripe":"","on":true},"mirrorBody":false,"aerial":"roofF","wheel":"steel","fuel":1},{"id":"supermini_b","L":3.83,"W":1.63,"wb":2.45,"fo":0.75,"rad":0.28,"tw":0.165,"arch":0.06,"sill":0.25,"endY":0.33,"rcF":0.48,"rcR":0.36,"floor":0.36,"top":[-1.915,0.97,-1.76,0.975,-1.2,0.97,0.82,0.92,1.2,0.83,1.65,0.72,1.915,0.655],"crown":[-1.915,0.02,-1.6,0.03,0.6,0.03,1.3,0.06,1.915,0.05],"rakeF":[0.5,0.5],"rakeR":[0.55,0.15],"crease":0.05,"gh":{"rb":-1.78,"rrx":-1.32,"fr":0.08,"fb":0.82,"roof":1.36,"crown":0.035,"rR":0.22,"rF":0.18,"curR":0.03,"curF":0.035,"beltIn":0.065,"tumble":0.35,"pA":0.07,"pTop":0.05,"pC":0.1,"pBelt":0.014,"xB":[-0.28,-0.26],"bw":0.065,"xQ":[-1.02,-1.1],"qw":0.03,"van":false},"doors":4,"van":false,"boot":false,"seatF":-0.25,"seatR":-1.1,"seamFdF":[0.8,0,0.75,1],"seamFdR":[-0.28,0,-0.27,1],"seamRdR":[-0.92,0,-0.92,0.55,-1,1],"handles":[-0.15,-0.85],"handleBody":false,"bumpF":{"stripe":"","intake":[0.22,0.32,0.45],"plateY":0.4,"step":false,"y0":0.2,"y1":0.52,"out":0.055,"col":"body"},"bumpR":{"stripe":"","intake":[],"plateY":0,"step":false,"y0":0.22,"y1":0.54,"out":0.05,"col":"body"},"plateRy":0.66,"plateROnBumper":false,"head":{"oval":1,"wrap":1,"twin":0,"z0":0.3,"z1":0.75,"yt":[0.69,0.66],"yb":[0.56,0.59]},"grille":{"bars":0,"chrome":1,"oval":1,"badge":"","z":0.24,"y0":0.555,"y1":0.665},"indBumper":false,"tail":{"band":0,"tall":0,"z0":0.5,"z1":0.79,"yt":[0.95,0.93],"yb":[0.6,0.62]},"clad":{"y0":0,"y1":0,"hex":"","on":false},"moulding":{"y":0.48,"h":0.05,"hex":"#2a2c2f","stripe":"","on":true},"mirrorBody":false,"aerial":"roofF","wheel":"cap","fuel":-1},{"id":"micro_a","L":3.7,"W":1.585,"wb":2.36,"fo":0.73,"rad":0.275,"tw":0.155,"arch":0.06,"sill":0.25,"endY":0.33,"rcF":0.48,"rcR":0.42,"floor":0.37,"top":[-1.85,0.98,-1.7,0.99,-1.2,0.98,0.8,0.935,1.15,0.86,1.55,0.75,1.85,0.67],"crown":[-1.85,0.02,-1.6,0.03,0.6,0.03,1.2,0.06,1.85,0.05],"rakeF":[0.52,0.55],"rakeR":[0.55,0.12],"crease":0.05,"gh":{"rb":-1.74,"rrx":-1.36,"fr":0.12,"fb":0.8,"roof":1.42,"crown":0.045,"rR":0.25,"rF":0.25,"curR":0.03,"curF":0.035,"beltIn":0.065,"tumble":0.33,"pA":0.07,"pTop":0.05,"pC":0.12,"pBelt":0.014,"xB":[-0.28,-0.26],"bw":0.065,"xQ":[],"qw":0,"van":false},"doors":4,"van":false,"boot":false,"seatF":-0.2,"seatR":-1.05,"seamFdF":[0.76,0,0.72,1],"seamFdR":[-0.28,0,-0.27,1],"seamRdR":[-0.88,0,-0.88,0.5,-0.98,0.8,-1.1,1],"handles":[-0.15,-0.82],"handleBody":false,"bumpF":{"stripe":"","intake":[0.2,0.3,0.42],"plateY":0.4,"step":false,"y0":0.21,"y1":0.52,"out":0.055,"col":"body"},"bumpR":{"stripe":"","intake":[],"plateY":0,"step":false,"y0":0.22,"y1":0.54,"out":0.05,"col":"body"},"plateRy":0.66,"plateROnBumper":false,"head":{"oval":1,"wrap":1,"twin":0,"z0":0.32,"z1":0.7,"yt":[0.69,0.67],"yb":[0.585,0.6]},"grille":{"bars":3,"chrome":1,"oval":0,"badge":"","z":0.26,"y0":0.575,"y1":0.66},"indBumper":false,"tail":{"band":0,"tall":0,"z0":0.5,"z1":0.77,"yt":[0.96,0.94],"yb":[0.62,0.64]},"clad":{"y0":0,"y1":0,"hex":"","on":false},"moulding":{"y":0,"h":0,"hex":"","stripe":"","on":false},"mirrorBody":false,"aerial":"roofF","wheel":"steel","fuel":1},{"id":"hatch_c","L":4.15,"W":1.7,"wb":2.615,"fo":0.86,"rad":0.3,"tw":0.195,"arch":0.065,"sill":0.26,"endY":0.33,"rcF":0.42,"rcR":0.3,"floor":0.38,"top":[-2.075,1,-1.95,1.01,-1.5,1,0.9,0.955,1.3,0.86,1.8,0.75,2.075,0.68],"crown":[-2.075,0.02,-1.8,0.03,0.5,0.03,1.3,0.06,2.075,0.05],"rakeF":[0.52,0.45],"rakeR":[0.55,0.06],"crease":0.09,"gh":{"rb":-1.98,"rrx":-1.55,"fr":0.05,"fb":0.9,"roof":1.45,"crown":0.05,"rR":0.25,"rF":0.25,"curR":0.02,"curF":0.035,"beltIn":0.07,"tumble":0.33,"pA":0.075,"pTop":0.05,"pC":0.06,"pBelt":0.014,"xB":[-0.3,-0.27],"bw":0.075,"xQ":[-1.06,-1.3],"qw":0.06,"van":false},"doors":4,"van":false,"boot":false,"seatF":-0.35,"seatR":-1.2,"seamFdF":[0.84,0,0.8,1],"seamFdR":[-0.3,0,-0.29,1],"seamRdR":[-1,0,-1,0.55,-1.1,0.8,-1.18,1],"handles":[-0.16,-0.95],"handleBody":true,"bumpF":{"stripe":"","intake":[0.2,0.32,0.6],"plateY":0.42,"step":false,"y0":0.21,"y1":0.54,"out":0.055,"col":"body"},"bumpR":{"stripe":"","intake":[],"plateY":0,"step":false,"y0":0.22,"y1":0.56,"out":0.05,"col":"body"},"plateRy":0.66,"plateROnBumper":false,"head":{"oval":0,"wrap":1,"twin":0,"z0":0.3,"z1":0.82,"yt":[0.69,0.74],"yb":[0.59,0.6]},"grille":{"bars":1,"chrome":1,"oval":0,"badge":"","z":0.28,"y0":0.6,"y1":0.67},"indBumper":false,"tail":{"band":0,"tall":1,"z0":0.5,"z1":0.8,"yt":[0.97,0.97],"yb":[0.62,0.64]},"clad":{"y0":0,"y1":0,"hex":"","on":false},"moulding":{"y":0.52,"h":0.04,"hex":"#2d3033","stripe":"","on":true},"mirrorBody":false,"aerial":"roofR","wheel":"alloy","fuel":-1},{"id":"hatch_d","L":4.15,"W":1.735,"wb":2.51,"fo":0.88,"rad":0.3,"tw":0.195,"arch":0.065,"sill":0.25,"endY":0.33,"rcF":0.36,"rcR":0.32,"floor":0.36,"top":[-2.075,0.94,-1.95,0.96,-1.5,0.975,0.86,0.935,1.3,0.86,1.8,0.77,2.075,0.7],"crown":[-2.075,0.02,-1.8,0.03,0.5,0.03,1.3,0.05,2.075,0.045],"rakeF":[0.52,0.35],"rakeR":[0.55,0.1],"crease":0.07,"gh":{"rb":-1.92,"rrx":-1.38,"fr":0.05,"fb":0.86,"roof":1.41,"crown":0.03,"rR":0.2,"rF":0.17,"curR":0.02,"curF":0.03,"beltIn":0.07,"tumble":0.32,"pA":0.075,"pTop":0.05,"pC":0.3,"pBelt":0.014,"xB":[-0.42,-0.42],"bw":0.06,"xQ":[],"qw":0,"van":false},"doors":2,"van":false,"boot":false,"seatF":-0.35,"seatR":-1.2,"seamFdF":[0.83,0,0.79,1],"seamFdR":[-0.42,0,-0.42,1],"seamRdR":[],"handles":[-0.3],"handleBody":true,"bumpF":{"stripe":"","intake":[0.2,0.3,0.6],"plateY":0.4,"step":false,"y0":0.21,"y1":0.52,"out":0.05,"col":"body"},"bumpR":{"stripe":"","intake":[],"plateY":0,"step":false,"y0":0.22,"y1":0.55,"out":0.05,"col":"body"},"plateRy":0.64,"plateROnBumper":false,"head":{"oval":0,"wrap":0,"twin":1,"z0":0.27,"z1":0.76,"yt":[0.69,0.69],"yb":[0.59,0.6]},"grille":{"bars":2,"chrome":1,"oval":0,"badge":"","z":0.26,"y0":0.6,"y1":0.67},"indBumper":false,"tail":{"band":0,"tall":0,"z0":0.42,"z1":0.86,"yt":[0.9,0.9],"yb":[0.7,0.7]},"clad":{"y0":0,"y1":0,"hex":"","on":false},"moulding":{"y":0.5,"h":0.05,"hex":"#26282b","stripe":"","on":true},"mirrorBody":true,"aerial":"roofR","wheel":"alloy","fuel":1},{"id":"van_a","L":4.7,"W":1.9,"wb":2.84,"fo":0.82,"rad":0.33,"tw":0.2,"arch":0.07,"sill":0.33,"endY":0.4,"rcF":0.42,"rcR":0.1,"floor":0.5,"top":[-2.35,1.15,0.9,1.15,1.3,1.08,1.9,0.98,2.35,0.9],"crown":[-2.35,0,0.9,0,1.3,0.04,2.35,0.04],"rakeF":[0.62,0.35],"rakeR":[3,0],"crease":0.08,"gh":{"rb":-2.347,"rrx":-2.34,"fr":0.38,"fb":1,"roof":2,"crown":0.04,"rR":0.08,"rF":0.2,"curR":0,"curF":0.03,"beltIn":0,"tumble":0.03,"pA":0.08,"pTop":0.06,"pC":0.06,"pBelt":0.014,"xB":[0.06,0.1],"bw":0.06,"xQ":[],"qw":0,"van":true},"doors":2,"van":true,"boot":false,"seatF":0.02,"seatR":-99,"seamFdF":[0.95,0,0.92,1],"seamFdR":[0.06,0,0.06,1],"seamRdR":[],"handles":[0.18],"handleBody":false,"bumpF":{"stripe":"","intake":[0.32,0.45,0.5],"plateY":0.44,"step":false,"y0":0.3,"y1":0.58,"out":0.07,"col":"#2a2c2f"},"bumpR":{"stripe":"","intake":[],"plateY":0,"step":true,"y0":0.32,"y1":0.55,"out":0.06,"col":"#2a2c2f"},"plateRy":0.42,"plateROnBumper":true,"head":{"oval":0,"wrap":0,"twin":0,"z0":0.42,"z1":0.88,"yt":[0.9,0.86],"yb":[0.72,0.72]},"grille":{"bars":4,"chrome":1,"oval":0,"badge":"","z":0.4,"y0":0.62,"y1":0.85},"indBumper":false,"tail":{"band":0,"tall":1,"z0":0.8,"z1":0.93,"yt":[1.15,1.15],"yb":[0.6,0.6]},"clad":{"y0":0,"y1":0,"hex":"","on":false},"moulding":{"y":0.7,"h":0.08,"hex":"#2a2c2f","stripe":"","on":true},"mirrorBody":false,"aerial":"","wheel":"steel","fuel":-1}]}
+{
+ "models": [
+  {
+   "id": "hatch_a",
+   "L": 4.11,
+   "W": 1.71,
+   "wb": 2.61,
+   "fo": 0.84,
+   "rad": 0.3,
+   "tw": 0.185,
+   "arch": 0.065,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.42,
+   "rcR": 0.3,
+   "floor": 0.36,
+   "top": [
+    -2.055,
+    0.95,
+    -1.9,
+    0.965,
+    -1.5,
+    0.965,
+    0.86,
+    0.925,
+    1.3,
+    0.84,
+    1.8,
+    0.75,
+    2.055,
+    0.7
+   ],
+   "crown": [
+    -2.055,
+    0.015,
+    -1.8,
+    0.03,
+    0.8,
+    0.03,
+    1.5,
+    0.06,
+    2.055,
+    0.05
+   ],
+   "rakeF": [
+    0.52,
+    0.42
+   ],
+   "rakeR": [
+    0.6,
+    0.18
+   ],
+   "crease": 0.1,
+   "gh": {
+    "rb": -1.86,
+    "rrx": -1.38,
+    "fr": 0.02,
+    "fb": 0.86,
+    "roof": 1.395,
+    "crown": 0.035,
+    "rR": 0.2,
+    "rF": 0.17,
+    "curR": 0.03,
+    "curF": 0.03,
+    "beltIn": 0.07,
+    "tumble": 0.34,
+    "pA": 0.075,
+    "pTop": 0.05,
+    "pC": 0.07,
+    "pBelt": 0.014,
+    "xB": [
+     -0.33,
+     -0.3
+    ],
+    "bw": 0.075,
+    "xQ": [
+     -1.12,
+     -1.2
+    ],
+    "qw": 0.035,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": false,
+   "seatF": -0.3,
+   "seatR": -1.1,
+   "seamFdF": [
+    0.83,
+    0,
+    0.78,
+    1
+   ],
+   "seamFdR": [
+    -0.33,
+    0,
+    -0.31,
+    1
+   ],
+   "seamRdR": [
+    -0.98,
+    0,
+    -0.98,
+    0.55,
+    -1.1,
+    0.85,
+    -1.18,
+    1
+   ],
+   "handles": [
+    -0.18,
+    -0.95
+   ],
+   "handleBody": true,
+   "bumpF": {
+    "stripe": "",
+    "intake": [
+     0.22,
+     0.34,
+     0.62
+    ],
+    "plateY": 0.42,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.53,
+    "out": 0.05,
+    "col": "body"
+   },
+   "bumpR": {
+    "stripe": "",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.22,
+    "y1": 0.55,
+    "out": 0.045,
+    "col": "body"
+   },
+   "plateRy": 0.71,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 1,
+    "twin": 0,
+    "z0": 0.27,
+    "z1": 0.75,
+    "yt": [
+     0.705,
+     0.7
+    ],
+    "yb": [
+     0.6,
+     0.625
+    ]
+   },
+   "grille": {
+    "bars": 3,
+    "chrome": 1,
+    "oval": 0,
+    "badge": "",
+    "z": 0.25,
+    "y0": 0.555,
+    "y1": 0.66
+   },
+   "indBumper": false,
+   "tail": {
+    "band": 0,
+    "tall": 0,
+    "z0": 0.42,
+    "z1": 0.8,
+    "yt": [
+     0.93,
+     0.9
+    ],
+    "yb": [
+     0.62,
+     0.64
+    ]
+   },
+   "clad": {
+    "y0": 0.25,
+    "y1": 0.36,
+    "hex": "#8f9396",
+    "on": true
+   },
+   "moulding": {
+    "y": 0.54,
+    "h": 0.045,
+    "hex": "body",
+    "stripe": "",
+    "on": true
+   },
+   "mirrorBody": true,
+   "aerial": "roofR",
+   "wheel": "cap",
+   "fuel": -1
+  },
+  {
+   "id": "hatch_b",
+   "L": 4.43,
+   "W": 1.7,
+   "wb": 2.6,
+   "fo": 0.93,
+   "rad": 0.29,
+   "tw": 0.175,
+   "arch": 0.06,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.3,
+   "rcR": 0.26,
+   "floor": 0.35,
+   "top": [
+    -2.215,
+    0.9,
+    -2,
+    0.925,
+    -1.6,
+    0.93,
+    0.98,
+    0.89,
+    1.5,
+    0.79,
+    2,
+    0.71,
+    2.215,
+    0.675
+   ],
+   "crown": [
+    -2.215,
+    0.02,
+    -1.7,
+    0.03,
+    0.6,
+    0.025,
+    1.5,
+    0.05,
+    2.215,
+    0.035
+   ],
+   "rakeF": [
+    0.5,
+    0.3
+   ],
+   "rakeR": [
+    0.58,
+    0.1
+   ],
+   "crease": 0.08,
+   "gh": {
+    "rb": -1.88,
+    "rrx": -1,
+    "fr": 0.15,
+    "fb": 0.98,
+    "roof": 1.37,
+    "crown": 0.03,
+    "rR": 0.25,
+    "rF": 0.15,
+    "curR": 0.035,
+    "curF": 0.025,
+    "beltIn": 0.065,
+    "tumble": 0.33,
+    "pA": 0.065,
+    "pTop": 0.045,
+    "pC": 0.07,
+    "pBelt": 0.012,
+    "xB": [
+     -0.25,
+     -0.22
+    ],
+    "bw": 0.07,
+    "xQ": [
+     -1.25,
+     -1.15
+    ],
+    "qw": 0.06,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": false,
+   "seatF": -0.25,
+   "seatR": -1.2,
+   "seamFdF": [
+    0.92,
+    0,
+    0.88,
+    1
+   ],
+   "seamFdR": [
+    -0.25,
+    0,
+    -0.23,
+    1
+   ],
+   "seamRdR": [
+    -0.95,
+    0,
+    -0.95,
+    0.6,
+    -1.15,
+    1
+   ],
+   "handles": [
+    -0.1,
+    -0.85
+   ],
+   "handleBody": false,
+   "bumpF": {
+    "stripe": "#a8282a",
+    "intake": [
+     0.2,
+     0.3,
+     0.5
+    ],
+    "plateY": 0.36,
+    "step": false,
+    "y0": 0.2,
+    "y1": 0.48,
+    "out": 0.06,
+    "col": "#5d6064"
+   },
+   "bumpR": {
+    "stripe": "#a8282a",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.5,
+    "out": 0.055,
+    "col": "#5d6064"
+   },
+   "plateRy": 0.61,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 0,
+    "twin": 0,
+    "z0": 0.17,
+    "z1": 0.79,
+    "yt": [
+     0.645,
+     0.625
+    ],
+    "yb": [
+     0.53,
+     0.53
+    ]
+   },
+   "grille": {
+    "bars": 2,
+    "chrome": 0,
+    "oval": 0,
+    "badge": "",
+    "z": 0.16,
+    "y0": 0.55,
+    "y1": 0.63,
+    "badgeY": 0.67
+   },
+   "indBumper": true,
+   "tail": {
+    "band": 1,
+    "tall": 0,
+    "z0": 0.3,
+    "z1": 0.79,
+    "yt": [
+     0.84,
+     0.84
+    ],
+    "yb": [
+     0.62,
+     0.64
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.5,
+    "h": 0.06,
+    "hex": "#26282b",
+    "stripe": "#a8282a",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "wing",
+   "wheel": "cap",
+   "fuel": -1
+  },
+  {
+   "id": "saloon_b",
+   "L": 4.5,
+   "W": 1.7,
+   "wb": 2.6,
+   "fo": 0.95,
+   "rad": 0.29,
+   "tw": 0.175,
+   "arch": 0.06,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.3,
+   "rcR": 0.24,
+   "floor": 0.35,
+   "top": [
+    -2.25,
+    0.88,
+    -2.05,
+    0.915,
+    -1.5,
+    0.925,
+    0.98,
+    0.89,
+    1.5,
+    0.79,
+    2,
+    0.71,
+    2.25,
+    0.675
+   ],
+   "crown": [
+    -2.25,
+    0.02,
+    -1.6,
+    0.035,
+    0.6,
+    0.025,
+    1.5,
+    0.05,
+    2.25,
+    0.035
+   ],
+   "rakeF": [
+    0.5,
+    0.3
+   ],
+   "rakeR": [
+    0.55,
+    0.05
+   ],
+   "crease": 0.08,
+   "gh": {
+    "rb": -1.5,
+    "rrx": -0.88,
+    "fr": 0.15,
+    "fb": 0.98,
+    "roof": 1.37,
+    "crown": 0.03,
+    "rR": 0.22,
+    "rF": 0.15,
+    "curR": 0.03,
+    "curF": 0.025,
+    "beltIn": 0.065,
+    "tumble": 0.33,
+    "pA": 0.065,
+    "pTop": 0.045,
+    "pC": 0.12,
+    "pBelt": 0.012,
+    "xB": [
+     -0.25,
+     -0.22
+    ],
+    "bw": 0.07,
+    "xQ": [],
+    "qw": 0.06,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": true,
+   "seatF": -0.25,
+   "seatR": -1.15,
+   "seamFdF": [
+    0.93,
+    0,
+    0.89,
+    1
+   ],
+   "seamFdR": [
+    -0.25,
+    0,
+    -0.23,
+    1
+   ],
+   "seamRdR": [
+    -0.97,
+    0,
+    -0.97,
+    0.6,
+    -1.17,
+    1
+   ],
+   "handles": [
+    -0.1,
+    -0.85
+   ],
+   "handleBody": false,
+   "bumpF": {
+    "stripe": "#a8282a",
+    "intake": [
+     0.2,
+     0.3,
+     0.5
+    ],
+    "plateY": 0.36,
+    "step": false,
+    "y0": 0.2,
+    "y1": 0.48,
+    "out": 0.06,
+    "col": "#5d6064"
+   },
+   "bumpR": {
+    "stripe": "#a8282a",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.5,
+    "out": 0.055,
+    "col": "#5d6064"
+   },
+   "plateRy": 0.61,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 0,
+    "twin": 0,
+    "z0": 0.17,
+    "z1": 0.79,
+    "yt": [
+     0.645,
+     0.625
+    ],
+    "yb": [
+     0.53,
+     0.53
+    ]
+   },
+   "grille": {
+    "bars": 2,
+    "chrome": 0,
+    "oval": 0,
+    "badge": "",
+    "z": 0.16,
+    "y0": 0.55,
+    "y1": 0.63,
+    "badgeY": 0.67
+   },
+   "indBumper": true,
+   "tail": {
+    "band": 1,
+    "tall": 0,
+    "z0": 0.28,
+    "z1": 0.79,
+    "yt": [
+     0.84,
+     0.84
+    ],
+    "yb": [
+     0.64,
+     0.66
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.5,
+    "h": 0.06,
+    "hex": "#26282b",
+    "stripe": "#a8282a",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "wing",
+   "wheel": "cap",
+   "fuel": -1
+  },
+  {
+   "id": "supermini_a",
+   "L": 3.73,
+   "W": 1.62,
+   "wb": 2.44,
+   "fo": 0.7,
+   "rad": 0.28,
+   "tw": 0.165,
+   "arch": 0.06,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.5,
+   "rcR": 0.38,
+   "floor": 0.36,
+   "top": [
+    -1.865,
+    0.97,
+    -1.72,
+    0.985,
+    -1.2,
+    0.985,
+    0.84,
+    0.925,
+    1.2,
+    0.83,
+    1.6,
+    0.73,
+    1.865,
+    0.66
+   ],
+   "crown": [
+    -1.865,
+    0.02,
+    -1.6,
+    0.03,
+    0.6,
+    0.03,
+    1.3,
+    0.06,
+    1.865,
+    0.05
+   ],
+   "rakeF": [
+    0.5,
+    0.55
+   ],
+   "rakeR": [
+    0.55,
+    0.12
+   ],
+   "crease": 0.06,
+   "gh": {
+    "rb": -1.72,
+    "rrx": -1.3,
+    "fr": 0.12,
+    "fb": 0.84,
+    "roof": 1.39,
+    "crown": 0.04,
+    "rR": 0.24,
+    "rF": 0.22,
+    "curR": 0.03,
+    "curF": 0.035,
+    "beltIn": 0.065,
+    "tumble": 0.36,
+    "pA": 0.07,
+    "pTop": 0.05,
+    "pC": 0.11,
+    "pBelt": 0.014,
+    "xB": [
+     -0.42,
+     -0.48
+    ],
+    "bw": 0.06,
+    "xQ": [],
+    "qw": 0,
+    "van": false
+   },
+   "doors": 2,
+   "van": false,
+   "boot": false,
+   "seatF": -0.2,
+   "seatR": -1.05,
+   "seamFdF": [
+    0.8,
+    0,
+    0.76,
+    1
+   ],
+   "seamFdR": [
+    -0.42,
+    0,
+    -0.46,
+    1
+   ],
+   "seamRdR": [],
+   "handles": [
+    -0.2
+   ],
+   "handleBody": false,
+   "bumpF": {
+    "stripe": "",
+    "intake": [
+     0.2,
+     0.3,
+     0.45
+    ],
+    "plateY": 0.38,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.5,
+    "out": 0.055,
+    "col": "#3a3d40"
+   },
+   "bumpR": {
+    "stripe": "",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.22,
+    "y1": 0.52,
+    "out": 0.05,
+    "col": "#3a3d40"
+   },
+   "plateRy": 0.6,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 1,
+    "wrap": 1,
+    "twin": 0,
+    "z0": 0.27,
+    "z1": 0.72,
+    "yt": [
+     0.67,
+     0.64
+    ],
+    "yb": [
+     0.56,
+     0.575
+    ]
+   },
+   "grille": {
+    "bars": 2,
+    "chrome": 0,
+    "oval": 1,
+    "badge": "",
+    "z": 0.22,
+    "y0": 0.56,
+    "y1": 0.63
+   },
+   "indBumper": false,
+   "tail": {
+    "band": 0,
+    "tall": 0,
+    "z0": 0.48,
+    "z1": 0.79,
+    "yt": [
+     0.93,
+     0.9
+    ],
+    "yb": [
+     0.6,
+     0.62
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.5,
+    "h": 0.05,
+    "hex": "#2a2c2f",
+    "stripe": "",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "roofF",
+   "wheel": "steel",
+   "fuel": 1
+  },
+  {
+   "id": "supermini_b",
+   "L": 3.83,
+   "W": 1.63,
+   "wb": 2.45,
+   "fo": 0.75,
+   "rad": 0.28,
+   "tw": 0.165,
+   "arch": 0.06,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.48,
+   "rcR": 0.36,
+   "floor": 0.36,
+   "top": [
+    -1.915,
+    0.97,
+    -1.76,
+    0.975,
+    -1.2,
+    0.97,
+    0.82,
+    0.92,
+    1.2,
+    0.83,
+    1.65,
+    0.72,
+    1.915,
+    0.655
+   ],
+   "crown": [
+    -1.915,
+    0.02,
+    -1.6,
+    0.03,
+    0.6,
+    0.03,
+    1.3,
+    0.06,
+    1.915,
+    0.05
+   ],
+   "rakeF": [
+    0.5,
+    0.5
+   ],
+   "rakeR": [
+    0.55,
+    0.15
+   ],
+   "crease": 0.05,
+   "gh": {
+    "rb": -1.78,
+    "rrx": -1.32,
+    "fr": 0.08,
+    "fb": 0.82,
+    "roof": 1.36,
+    "crown": 0.035,
+    "rR": 0.22,
+    "rF": 0.18,
+    "curR": 0.03,
+    "curF": 0.035,
+    "beltIn": 0.065,
+    "tumble": 0.35,
+    "pA": 0.07,
+    "pTop": 0.05,
+    "pC": 0.1,
+    "pBelt": 0.014,
+    "xB": [
+     -0.28,
+     -0.26
+    ],
+    "bw": 0.065,
+    "xQ": [
+     -1.02,
+     -1.1
+    ],
+    "qw": 0.03,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": false,
+   "seatF": -0.25,
+   "seatR": -1.1,
+   "seamFdF": [
+    0.8,
+    0,
+    0.75,
+    1
+   ],
+   "seamFdR": [
+    -0.28,
+    0,
+    -0.27,
+    1
+   ],
+   "seamRdR": [
+    -0.92,
+    0,
+    -0.92,
+    0.55,
+    -1,
+    1
+   ],
+   "handles": [
+    -0.15,
+    -0.85
+   ],
+   "handleBody": false,
+   "bumpF": {
+    "stripe": "",
+    "intake": [
+     0.22,
+     0.32,
+     0.45
+    ],
+    "plateY": 0.4,
+    "step": false,
+    "y0": 0.2,
+    "y1": 0.52,
+    "out": 0.055,
+    "col": "body"
+   },
+   "bumpR": {
+    "stripe": "",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.22,
+    "y1": 0.54,
+    "out": 0.05,
+    "col": "body"
+   },
+   "plateRy": 0.66,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 1,
+    "wrap": 1,
+    "twin": 0,
+    "z0": 0.3,
+    "z1": 0.75,
+    "yt": [
+     0.69,
+     0.66
+    ],
+    "yb": [
+     0.56,
+     0.59
+    ]
+   },
+   "grille": {
+    "bars": 0,
+    "chrome": 1,
+    "oval": 1,
+    "badge": "",
+    "z": 0.24,
+    "y0": 0.555,
+    "y1": 0.665
+   },
+   "indBumper": false,
+   "tail": {
+    "band": 0,
+    "tall": 0,
+    "z0": 0.5,
+    "z1": 0.79,
+    "yt": [
+     0.95,
+     0.93
+    ],
+    "yb": [
+     0.6,
+     0.62
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.48,
+    "h": 0.05,
+    "hex": "#2a2c2f",
+    "stripe": "",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "roofF",
+   "wheel": "cap",
+   "fuel": -1
+  },
+  {
+   "id": "micro_a",
+   "L": 3.7,
+   "W": 1.585,
+   "wb": 2.36,
+   "fo": 0.73,
+   "rad": 0.275,
+   "tw": 0.155,
+   "arch": 0.06,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.48,
+   "rcR": 0.42,
+   "floor": 0.37,
+   "top": [
+    -1.85,
+    0.98,
+    -1.7,
+    0.99,
+    -1.2,
+    0.98,
+    0.8,
+    0.935,
+    1.15,
+    0.86,
+    1.55,
+    0.75,
+    1.85,
+    0.67
+   ],
+   "crown": [
+    -1.85,
+    0.02,
+    -1.6,
+    0.03,
+    0.6,
+    0.03,
+    1.2,
+    0.06,
+    1.85,
+    0.05
+   ],
+   "rakeF": [
+    0.52,
+    0.55
+   ],
+   "rakeR": [
+    0.55,
+    0.12
+   ],
+   "crease": 0.05,
+   "gh": {
+    "rb": -1.74,
+    "rrx": -1.36,
+    "fr": 0.12,
+    "fb": 0.8,
+    "roof": 1.42,
+    "crown": 0.045,
+    "rR": 0.25,
+    "rF": 0.25,
+    "curR": 0.03,
+    "curF": 0.035,
+    "beltIn": 0.065,
+    "tumble": 0.33,
+    "pA": 0.07,
+    "pTop": 0.05,
+    "pC": 0.12,
+    "pBelt": 0.014,
+    "xB": [
+     -0.28,
+     -0.26
+    ],
+    "bw": 0.065,
+    "xQ": [],
+    "qw": 0,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": false,
+   "seatF": -0.2,
+   "seatR": -1.05,
+   "seamFdF": [
+    0.76,
+    0,
+    0.72,
+    1
+   ],
+   "seamFdR": [
+    -0.28,
+    0,
+    -0.27,
+    1
+   ],
+   "seamRdR": [
+    -0.88,
+    0,
+    -0.88,
+    0.5,
+    -0.98,
+    0.8,
+    -1.1,
+    1
+   ],
+   "handles": [
+    -0.15,
+    -0.82
+   ],
+   "handleBody": false,
+   "bumpF": {
+    "stripe": "",
+    "intake": [
+     0.2,
+     0.3,
+     0.42
+    ],
+    "plateY": 0.4,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.52,
+    "out": 0.055,
+    "col": "body"
+   },
+   "bumpR": {
+    "stripe": "",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.22,
+    "y1": 0.54,
+    "out": 0.05,
+    "col": "body"
+   },
+   "plateRy": 0.66,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 1,
+    "wrap": 1,
+    "twin": 0,
+    "z0": 0.32,
+    "z1": 0.7,
+    "yt": [
+     0.69,
+     0.67
+    ],
+    "yb": [
+     0.585,
+     0.6
+    ]
+   },
+   "grille": {
+    "bars": 3,
+    "chrome": 1,
+    "oval": 0,
+    "badge": "",
+    "z": 0.26,
+    "y0": 0.575,
+    "y1": 0.66
+   },
+   "indBumper": false,
+   "tail": {
+    "band": 0,
+    "tall": 0,
+    "z0": 0.5,
+    "z1": 0.77,
+    "yt": [
+     0.96,
+     0.94
+    ],
+    "yb": [
+     0.62,
+     0.64
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0,
+    "h": 0,
+    "hex": "",
+    "stripe": "",
+    "on": false
+   },
+   "mirrorBody": false,
+   "aerial": "roofF",
+   "wheel": "steel",
+   "fuel": 1
+  },
+  {
+   "id": "hatch_c",
+   "L": 4.15,
+   "W": 1.7,
+   "wb": 2.615,
+   "fo": 0.86,
+   "rad": 0.3,
+   "tw": 0.195,
+   "arch": 0.065,
+   "sill": 0.26,
+   "endY": 0.33,
+   "rcF": 0.42,
+   "rcR": 0.3,
+   "floor": 0.38,
+   "top": [
+    -2.075,
+    1,
+    -1.95,
+    1.01,
+    -1.5,
+    1,
+    0.9,
+    0.955,
+    1.3,
+    0.86,
+    1.8,
+    0.75,
+    2.075,
+    0.68
+   ],
+   "crown": [
+    -2.075,
+    0.02,
+    -1.8,
+    0.03,
+    0.5,
+    0.03,
+    1.3,
+    0.06,
+    2.075,
+    0.05
+   ],
+   "rakeF": [
+    0.52,
+    0.45
+   ],
+   "rakeR": [
+    0.55,
+    0.06
+   ],
+   "crease": 0.09,
+   "gh": {
+    "rb": -1.98,
+    "rrx": -1.55,
+    "fr": 0.05,
+    "fb": 0.9,
+    "roof": 1.45,
+    "crown": 0.05,
+    "rR": 0.25,
+    "rF": 0.25,
+    "curR": 0.02,
+    "curF": 0.035,
+    "beltIn": 0.07,
+    "tumble": 0.33,
+    "pA": 0.075,
+    "pTop": 0.05,
+    "pC": 0.06,
+    "pBelt": 0.014,
+    "xB": [
+     -0.3,
+     -0.27
+    ],
+    "bw": 0.075,
+    "xQ": [
+     -1.06,
+     -1.3
+    ],
+    "qw": 0.06,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": false,
+   "seatF": -0.35,
+   "seatR": -1.2,
+   "seamFdF": [
+    0.84,
+    0,
+    0.8,
+    1
+   ],
+   "seamFdR": [
+    -0.3,
+    0,
+    -0.29,
+    1
+   ],
+   "seamRdR": [
+    -1,
+    0,
+    -1,
+    0.55,
+    -1.1,
+    0.8,
+    -1.18,
+    1
+   ],
+   "handles": [
+    -0.16,
+    -0.95
+   ],
+   "handleBody": true,
+   "bumpF": {
+    "stripe": "",
+    "intake": [
+     0.2,
+     0.32,
+     0.6
+    ],
+    "plateY": 0.42,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.54,
+    "out": 0.055,
+    "col": "body"
+   },
+   "bumpR": {
+    "stripe": "",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.22,
+    "y1": 0.56,
+    "out": 0.05,
+    "col": "body"
+   },
+   "plateRy": 0.66,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 1,
+    "twin": 0,
+    "z0": 0.3,
+    "z1": 0.82,
+    "yt": [
+     0.69,
+     0.74
+    ],
+    "yb": [
+     0.59,
+     0.6
+    ]
+   },
+   "grille": {
+    "bars": 1,
+    "chrome": 1,
+    "oval": 0,
+    "badge": "",
+    "z": 0.28,
+    "y0": 0.6,
+    "y1": 0.67
+   },
+   "indBumper": false,
+   "tail": {
+    "band": 0,
+    "tall": 1,
+    "z0": 0.5,
+    "z1": 0.8,
+    "yt": [
+     0.97,
+     0.97
+    ],
+    "yb": [
+     0.62,
+     0.64
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.52,
+    "h": 0.04,
+    "hex": "#2d3033",
+    "stripe": "",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "roofR",
+   "wheel": "alloy",
+   "fuel": -1
+  },
+  {
+   "id": "hatch_d",
+   "L": 4.15,
+   "W": 1.735,
+   "wb": 2.51,
+   "fo": 0.88,
+   "rad": 0.3,
+   "tw": 0.195,
+   "arch": 0.065,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.36,
+   "rcR": 0.32,
+   "floor": 0.36,
+   "top": [
+    -2.075,
+    0.94,
+    -1.95,
+    0.96,
+    -1.5,
+    0.975,
+    0.86,
+    0.935,
+    1.3,
+    0.86,
+    1.8,
+    0.77,
+    2.075,
+    0.7
+   ],
+   "crown": [
+    -2.075,
+    0.02,
+    -1.8,
+    0.03,
+    0.5,
+    0.03,
+    1.3,
+    0.05,
+    2.075,
+    0.045
+   ],
+   "rakeF": [
+    0.52,
+    0.35
+   ],
+   "rakeR": [
+    0.55,
+    0.1
+   ],
+   "crease": 0.07,
+   "gh": {
+    "rb": -1.92,
+    "rrx": -1.38,
+    "fr": 0.05,
+    "fb": 0.86,
+    "roof": 1.41,
+    "crown": 0.03,
+    "rR": 0.2,
+    "rF": 0.17,
+    "curR": 0.02,
+    "curF": 0.03,
+    "beltIn": 0.07,
+    "tumble": 0.32,
+    "pA": 0.075,
+    "pTop": 0.05,
+    "pC": 0.3,
+    "pBelt": 0.014,
+    "xB": [
+     -0.42,
+     -0.42
+    ],
+    "bw": 0.06,
+    "xQ": [],
+    "qw": 0,
+    "van": false
+   },
+   "doors": 2,
+   "van": false,
+   "boot": false,
+   "seatF": -0.35,
+   "seatR": -1.2,
+   "seamFdF": [
+    0.83,
+    0,
+    0.79,
+    1
+   ],
+   "seamFdR": [
+    -0.42,
+    0,
+    -0.42,
+    1
+   ],
+   "seamRdR": [],
+   "handles": [
+    -0.3
+   ],
+   "handleBody": true,
+   "bumpF": {
+    "stripe": "",
+    "intake": [
+     0.2,
+     0.3,
+     0.6
+    ],
+    "plateY": 0.4,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.52,
+    "out": 0.05,
+    "col": "body"
+   },
+   "bumpR": {
+    "stripe": "",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.22,
+    "y1": 0.55,
+    "out": 0.05,
+    "col": "body"
+   },
+   "plateRy": 0.64,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 0,
+    "twin": 1,
+    "z0": 0.27,
+    "z1": 0.76,
+    "yt": [
+     0.69,
+     0.69
+    ],
+    "yb": [
+     0.59,
+     0.6
+    ]
+   },
+   "grille": {
+    "bars": 2,
+    "chrome": 1,
+    "oval": 0,
+    "badge": "",
+    "z": 0.26,
+    "y0": 0.6,
+    "y1": 0.67
+   },
+   "indBumper": false,
+   "tail": {
+    "band": 0,
+    "tall": 0,
+    "z0": 0.42,
+    "z1": 0.86,
+    "yt": [
+     0.9,
+     0.9
+    ],
+    "yb": [
+     0.7,
+     0.7
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.5,
+    "h": 0.05,
+    "hex": "#26282b",
+    "stripe": "",
+    "on": true
+   },
+   "mirrorBody": true,
+   "aerial": "roofR",
+   "wheel": "alloy",
+   "fuel": 1
+  },
+  {
+   "id": "van_a",
+   "L": 4.7,
+   "W": 1.9,
+   "wb": 2.84,
+   "fo": 0.82,
+   "rad": 0.33,
+   "tw": 0.2,
+   "arch": 0.07,
+   "sill": 0.33,
+   "endY": 0.4,
+   "rcF": 0.42,
+   "rcR": 0.1,
+   "floor": 0.5,
+   "top": [
+    -2.35,
+    1.15,
+    0.9,
+    1.15,
+    1.3,
+    1.08,
+    1.9,
+    0.98,
+    2.35,
+    0.9
+   ],
+   "crown": [
+    -2.35,
+    0,
+    0.9,
+    0,
+    1.3,
+    0.04,
+    2.35,
+    0.04
+   ],
+   "rakeF": [
+    0.62,
+    0.35
+   ],
+   "rakeR": [
+    3,
+    0
+   ],
+   "crease": 0.08,
+   "gh": {
+    "rb": -2.347,
+    "rrx": -2.34,
+    "fr": 0.38,
+    "fb": 1,
+    "roof": 2,
+    "crown": 0.04,
+    "rR": 0.08,
+    "rF": 0.2,
+    "curR": 0,
+    "curF": 0.03,
+    "beltIn": 0,
+    "tumble": 0.03,
+    "pA": 0.08,
+    "pTop": 0.06,
+    "pC": 0.06,
+    "pBelt": 0.014,
+    "xB": [
+     0.06,
+     0.1
+    ],
+    "bw": 0.06,
+    "xQ": [],
+    "qw": 0,
+    "van": true
+   },
+   "doors": 2,
+   "van": true,
+   "boot": false,
+   "seatF": 0.02,
+   "seatR": -99,
+   "seamFdF": [
+    0.95,
+    0,
+    0.92,
+    1
+   ],
+   "seamFdR": [
+    0.06,
+    0,
+    0.06,
+    1
+   ],
+   "seamRdR": [],
+   "handles": [
+    0.18
+   ],
+   "handleBody": false,
+   "bumpF": {
+    "stripe": "",
+    "intake": [
+     0.32,
+     0.45,
+     0.5
+    ],
+    "plateY": 0.44,
+    "step": false,
+    "y0": 0.3,
+    "y1": 0.58,
+    "out": 0.07,
+    "col": "#2a2c2f"
+   },
+   "bumpR": {
+    "stripe": "",
+    "intake": [],
+    "plateY": 0,
+    "step": true,
+    "y0": 0.32,
+    "y1": 0.55,
+    "out": 0.06,
+    "col": "#2a2c2f"
+   },
+   "plateRy": 0.42,
+   "plateROnBumper": true,
+   "head": {
+    "oval": 0,
+    "wrap": 0,
+    "twin": 0,
+    "z0": 0.42,
+    "z1": 0.88,
+    "yt": [
+     0.9,
+     0.86
+    ],
+    "yb": [
+     0.72,
+     0.72
+    ]
+   },
+   "grille": {
+    "bars": 4,
+    "chrome": 1,
+    "oval": 0,
+    "badge": "",
+    "z": 0.4,
+    "y0": 0.62,
+    "y1": 0.85
+   },
+   "indBumper": false,
+   "tail": {
+    "band": 0,
+    "tall": 1,
+    "z0": 0.8,
+    "z1": 0.93,
+    "yt": [
+     1.15,
+     1.15
+    ],
+    "yb": [
+     0.6,
+     0.6
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.7,
+    "h": 0.08,
+    "hex": "#2a2c2f",
+    "stripe": "",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "",
+   "wheel": "steel",
+   "fuel": -1
+  },
+  {
+   "id": "hatch90",
+   "L": 4.03,
+   "W": 1.675,
+   "wb": 2.45,
+   "fo": 0.83,
+   "rad": 0.29,
+   "tw": 0.185,
+   "arch": 0.065,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.42,
+   "rcR": 0.3,
+   "floor": 0.36,
+   "top": [
+    -2.055,
+    0.95,
+    -1.9,
+    0.965,
+    -1.5,
+    0.965,
+    0.86,
+    0.925,
+    1.3,
+    0.84,
+    1.8,
+    0.75,
+    2.055,
+    0.7
+   ],
+   "crown": [
+    -2.055,
+    0.015,
+    -1.8,
+    0.03,
+    0.8,
+    0.03,
+    1.5,
+    0.06,
+    2.055,
+    0.05
+   ],
+   "rakeF": [
+    0.52,
+    0.42
+   ],
+   "rakeR": [
+    0.6,
+    0.18
+   ],
+   "crease": 0.1,
+   "gh": {
+    "rb": -1.86,
+    "rrx": -1.38,
+    "fr": 0.02,
+    "fb": 0.86,
+    "roof": 1.395,
+    "crown": 0.035,
+    "rR": 0.2,
+    "rF": 0.17,
+    "curR": 0.03,
+    "curF": 0.03,
+    "beltIn": 0.07,
+    "tumble": 0.34,
+    "pA": 0.075,
+    "pTop": 0.05,
+    "pC": 0.07,
+    "pBelt": 0.014,
+    "xB": [
+     -0.33,
+     -0.3
+    ],
+    "bw": 0.075,
+    "xQ": [
+     -1.12,
+     -1.2
+    ],
+    "qw": 0.035,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": false,
+   "seatF": -0.3,
+   "seatR": -1.1,
+   "seamFdF": [
+    0.83,
+    0,
+    0.78,
+    1
+   ],
+   "seamFdR": [
+    -0.33,
+    0,
+    -0.31,
+    1
+   ],
+   "seamRdR": [
+    -0.98,
+    0,
+    -0.98,
+    0.55,
+    -1.1,
+    0.85,
+    -1.18,
+    1
+   ],
+   "handles": [
+    -0.18,
+    -0.95
+   ],
+   "handleBody": true,
+   "bumpF": {
+    "stripe": "",
+    "intake": [
+     0.22,
+     0.34,
+     0.62
+    ],
+    "plateY": 0.42,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.53,
+    "out": 0.05,
+    "col": "body"
+   },
+   "bumpR": {
+    "stripe": "",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.22,
+    "y1": 0.55,
+    "out": 0.045,
+    "col": "body"
+   },
+   "plateRy": 0.71,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 1,
+    "twin": 0,
+    "z0": 0.27,
+    "z1": 0.75,
+    "yt": [
+     0.705,
+     0.7
+    ],
+    "yb": [
+     0.6,
+     0.625
+    ]
+   },
+   "grille": {
+    "bars": 3,
+    "chrome": 1,
+    "oval": 0,
+    "badge": "",
+    "z": 0.25,
+    "y0": 0.555,
+    "y1": 0.66
+   },
+   "indBumper": false,
+   "tail": {
+    "band": 0,
+    "tall": 0,
+    "z0": 0.42,
+    "z1": 0.8,
+    "yt": [
+     0.93,
+     0.9
+    ],
+    "yb": [
+     0.62,
+     0.64
+    ]
+   },
+   "clad": {
+    "y0": 0.25,
+    "y1": 0.36,
+    "hex": "#8f9396",
+    "on": true
+   },
+   "moulding": {
+    "y": 0.54,
+    "h": 0.045,
+    "hex": "body",
+    "stripe": "",
+    "on": true
+   },
+   "mirrorBody": true,
+   "aerial": "roofR",
+   "wheel": "cap",
+   "fuel": -1
+  },
+  {
+   "id": "saloon90",
+   "L": 4.45,
+   "W": 1.69,
+   "wb": 2.58,
+   "fo": 0.9,
+   "rad": 0.3,
+   "tw": 0.195,
+   "arch": 0.06,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.3,
+   "rcR": 0.24,
+   "floor": 0.35,
+   "top": [
+    -2.25,
+    0.88,
+    -2.05,
+    0.915,
+    -1.5,
+    0.925,
+    0.98,
+    0.89,
+    1.5,
+    0.79,
+    2,
+    0.71,
+    2.25,
+    0.675
+   ],
+   "crown": [
+    -2.25,
+    0.02,
+    -1.6,
+    0.035,
+    0.6,
+    0.025,
+    1.5,
+    0.05,
+    2.25,
+    0.035
+   ],
+   "rakeF": [
+    0.5,
+    0.3
+   ],
+   "rakeR": [
+    0.55,
+    0.05
+   ],
+   "crease": 0.08,
+   "gh": {
+    "rb": -1.5,
+    "rrx": -0.88,
+    "fr": 0.15,
+    "fb": 0.98,
+    "roof": 1.37,
+    "crown": 0.03,
+    "rR": 0.22,
+    "rF": 0.15,
+    "curR": 0.03,
+    "curF": 0.025,
+    "beltIn": 0.065,
+    "tumble": 0.33,
+    "pA": 0.065,
+    "pTop": 0.045,
+    "pC": 0.12,
+    "pBelt": 0.012,
+    "xB": [
+     -0.25,
+     -0.22
+    ],
+    "bw": 0.07,
+    "xQ": [],
+    "qw": 0.06,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": true,
+   "seatF": -0.25,
+   "seatR": -1.15,
+   "seamFdF": [
+    0.93,
+    0,
+    0.89,
+    1
+   ],
+   "seamFdR": [
+    -0.25,
+    0,
+    -0.23,
+    1
+   ],
+   "seamRdR": [
+    -0.97,
+    0,
+    -0.97,
+    0.6,
+    -1.17,
+    1
+   ],
+   "handles": [
+    -0.1,
+    -0.85
+   ],
+   "handleBody": false,
+   "bumpF": {
+    "stripe": "#a8282a",
+    "intake": [
+     0.2,
+     0.3,
+     0.5
+    ],
+    "plateY": 0.36,
+    "step": false,
+    "y0": 0.2,
+    "y1": 0.48,
+    "out": 0.06,
+    "col": "#5d6064"
+   },
+   "bumpR": {
+    "stripe": "#a8282a",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.5,
+    "out": 0.055,
+    "col": "#5d6064"
+   },
+   "plateRy": 0.61,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 0,
+    "twin": 0,
+    "z0": 0.17,
+    "z1": 0.79,
+    "yt": [
+     0.645,
+     0.625
+    ],
+    "yb": [
+     0.53,
+     0.53
+    ]
+   },
+   "grille": {
+    "bars": 2,
+    "chrome": 0,
+    "oval": 0,
+    "badge": "",
+    "z": 0.16,
+    "y0": 0.55,
+    "y1": 0.63,
+    "badgeY": 0.67
+   },
+   "indBumper": true,
+   "tail": {
+    "band": 1,
+    "tall": 0,
+    "z0": 0.28,
+    "z1": 0.79,
+    "yt": [
+     0.84,
+     0.84
+    ],
+    "yb": [
+     0.64,
+     0.66
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.5,
+    "h": 0.06,
+    "hex": "#26282b",
+    "stripe": "#a8282a",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "wing",
+   "wheel": "cap",
+   "fuel": -1
+  },
+  {
+   "id": "jeep",
+   "L": 3.62,
+   "W": 1.64,
+   "wb": 2.2,
+   "fo": 0.65,
+   "rad": 0.34,
+   "tw": 0.205,
+   "arch": 0.065,
+   "sill": 0.26,
+   "endY": 0.33,
+   "rcF": 0.42,
+   "rcR": 0.3,
+   "floor": 0.38,
+   "top": [
+    -2.075,
+    1,
+    -1.95,
+    1.01,
+    -1.5,
+    1,
+    0.9,
+    0.955,
+    1.3,
+    0.86,
+    1.8,
+    0.75,
+    2.075,
+    0.68
+   ],
+   "crown": [
+    -2.075,
+    0.02,
+    -1.8,
+    0.03,
+    0.5,
+    0.03,
+    1.3,
+    0.06,
+    2.075,
+    0.05
+   ],
+   "rakeF": [
+    0.52,
+    0.45
+   ],
+   "rakeR": [
+    0.55,
+    0.06
+   ],
+   "crease": 0.09,
+   "gh": {
+    "rb": -1.98,
+    "rrx": -1.55,
+    "fr": 0.05,
+    "fb": 0.9,
+    "roof": 1.45,
+    "crown": 0.05,
+    "rR": 0.25,
+    "rF": 0.25,
+    "curR": 0.02,
+    "curF": 0.035,
+    "beltIn": 0.07,
+    "tumble": 0.33,
+    "pA": 0.075,
+    "pTop": 0.05,
+    "pC": 0.06,
+    "pBelt": 0.014,
+    "xB": [
+     -0.3,
+     -0.27
+    ],
+    "bw": 0.075,
+    "xQ": [
+     -1.06,
+     -1.3
+    ],
+    "qw": 0.06,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": false,
+   "seatF": -0.35,
+   "seatR": -1.2,
+   "seamFdF": [
+    0.84,
+    0,
+    0.8,
+    1
+   ],
+   "seamFdR": [
+    -0.3,
+    0,
+    -0.29,
+    1
+   ],
+   "seamRdR": [
+    -1,
+    0,
+    -1,
+    0.55,
+    -1.1,
+    0.8,
+    -1.18,
+    1
+   ],
+   "handles": [
+    -0.16,
+    -0.95
+   ],
+   "handleBody": true,
+   "bumpF": {
+    "stripe": "",
+    "intake": [
+     0.2,
+     0.32,
+     0.6
+    ],
+    "plateY": 0.42,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.54,
+    "out": 0.055,
+    "col": "body"
+   },
+   "bumpR": {
+    "stripe": "",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.22,
+    "y1": 0.56,
+    "out": 0.05,
+    "col": "body"
+   },
+   "plateRy": 0.66,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 1,
+    "twin": 0,
+    "z0": 0.3,
+    "z1": 0.82,
+    "yt": [
+     0.69,
+     0.74
+    ],
+    "yb": [
+     0.59,
+     0.6
+    ]
+   },
+   "grille": {
+    "bars": 1,
+    "chrome": 1,
+    "oval": 0,
+    "badge": "",
+    "z": 0.28,
+    "y0": 0.6,
+    "y1": 0.67
+   },
+   "indBumper": false,
+   "tail": {
+    "band": 0,
+    "tall": 1,
+    "z0": 0.5,
+    "z1": 0.8,
+    "yt": [
+     0.97,
+     0.97
+    ],
+    "yb": [
+     0.62,
+     0.64
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.52,
+    "h": 0.04,
+    "hex": "#2d3033",
+    "stripe": "",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "roofR",
+   "wheel": "alloy",
+   "fuel": -1
+  },
+  {
+   "id": "boxy80",
+   "L": 4.26,
+   "W": 1.68,
+   "wb": 2.49,
+   "fo": 0.85,
+   "rad": 0.29,
+   "tw": 0.175,
+   "arch": 0.06,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.3,
+   "rcR": 0.24,
+   "floor": 0.35,
+   "top": [
+    -2.25,
+    0.88,
+    -2.05,
+    0.915,
+    -1.5,
+    0.925,
+    0.98,
+    0.89,
+    1.5,
+    0.79,
+    2,
+    0.71,
+    2.25,
+    0.675
+   ],
+   "crown": [
+    -2.25,
+    0.02,
+    -1.6,
+    0.035,
+    0.6,
+    0.025,
+    1.5,
+    0.05,
+    2.25,
+    0.035
+   ],
+   "rakeF": [
+    0.5,
+    0.3
+   ],
+   "rakeR": [
+    0.55,
+    0.05
+   ],
+   "crease": 0.08,
+   "gh": {
+    "rb": -1.5,
+    "rrx": -0.88,
+    "fr": 0.15,
+    "fb": 0.98,
+    "roof": 1.37,
+    "crown": 0.03,
+    "rR": 0.22,
+    "rF": 0.15,
+    "curR": 0.03,
+    "curF": 0.025,
+    "beltIn": 0.065,
+    "tumble": 0.33,
+    "pA": 0.065,
+    "pTop": 0.045,
+    "pC": 0.12,
+    "pBelt": 0.012,
+    "xB": [
+     -0.25,
+     -0.22
+    ],
+    "bw": 0.07,
+    "xQ": [],
+    "qw": 0.06,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": true,
+   "seatF": -0.25,
+   "seatR": -1.15,
+   "seamFdF": [
+    0.93,
+    0,
+    0.89,
+    1
+   ],
+   "seamFdR": [
+    -0.25,
+    0,
+    -0.23,
+    1
+   ],
+   "seamRdR": [
+    -0.97,
+    0,
+    -0.97,
+    0.6,
+    -1.17,
+    1
+   ],
+   "handles": [
+    -0.1,
+    -0.85
+   ],
+   "handleBody": false,
+   "bumpF": {
+    "stripe": "#a8282a",
+    "intake": [
+     0.2,
+     0.3,
+     0.5
+    ],
+    "plateY": 0.36,
+    "step": false,
+    "y0": 0.2,
+    "y1": 0.48,
+    "out": 0.06,
+    "col": "#5d6064"
+   },
+   "bumpR": {
+    "stripe": "#a8282a",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.5,
+    "out": 0.055,
+    "col": "#5d6064"
+   },
+   "plateRy": 0.61,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 0,
+    "twin": 0,
+    "z0": 0.17,
+    "z1": 0.79,
+    "yt": [
+     0.645,
+     0.625
+    ],
+    "yb": [
+     0.53,
+     0.53
+    ]
+   },
+   "grille": {
+    "bars": 2,
+    "chrome": 0,
+    "oval": 0,
+    "badge": "",
+    "z": 0.16,
+    "y0": 0.55,
+    "y1": 0.63,
+    "badgeY": 0.67
+   },
+   "indBumper": true,
+   "tail": {
+    "band": 1,
+    "tall": 0,
+    "z0": 0.28,
+    "z1": 0.79,
+    "yt": [
+     0.84,
+     0.84
+    ],
+    "yb": [
+     0.64,
+     0.66
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.5,
+    "h": 0.06,
+    "hex": "#26282b",
+    "stripe": "#a8282a",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "wing",
+   "wheel": "cap",
+   "fuel": -1
+  },
+  {
+   "id": "supermini",
+   "L": 3.5,
+   "W": 1.5,
+   "wb": 2.34,
+   "fo": 0.65,
+   "rad": 0.27,
+   "tw": 0.155,
+   "arch": 0.06,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.5,
+   "rcR": 0.38,
+   "floor": 0.36,
+   "top": [
+    -1.865,
+    0.97,
+    -1.72,
+    0.985,
+    -1.2,
+    0.985,
+    0.84,
+    0.925,
+    1.2,
+    0.83,
+    1.6,
+    0.73,
+    1.865,
+    0.66
+   ],
+   "crown": [
+    -1.865,
+    0.02,
+    -1.6,
+    0.03,
+    0.6,
+    0.03,
+    1.3,
+    0.06,
+    1.865,
+    0.05
+   ],
+   "rakeF": [
+    0.5,
+    0.55
+   ],
+   "rakeR": [
+    0.55,
+    0.12
+   ],
+   "crease": 0.06,
+   "gh": {
+    "rb": -1.72,
+    "rrx": -1.3,
+    "fr": 0.12,
+    "fb": 0.84,
+    "roof": 1.39,
+    "crown": 0.04,
+    "rR": 0.24,
+    "rF": 0.22,
+    "curR": 0.03,
+    "curF": 0.035,
+    "beltIn": 0.065,
+    "tumble": 0.36,
+    "pA": 0.07,
+    "pTop": 0.05,
+    "pC": 0.11,
+    "pBelt": 0.014,
+    "xB": [
+     -0.42,
+     -0.48
+    ],
+    "bw": 0.06,
+    "xQ": [],
+    "qw": 0,
+    "van": false
+   },
+   "doors": 2,
+   "van": false,
+   "boot": false,
+   "seatF": -0.2,
+   "seatR": -1.05,
+   "seamFdF": [
+    0.8,
+    0,
+    0.76,
+    1
+   ],
+   "seamFdR": [
+    -0.42,
+    0,
+    -0.46,
+    1
+   ],
+   "seamRdR": [],
+   "handles": [
+    -0.2
+   ],
+   "handleBody": false,
+   "bumpF": {
+    "stripe": "",
+    "intake": [
+     0.2,
+     0.3,
+     0.45
+    ],
+    "plateY": 0.38,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.5,
+    "out": 0.055,
+    "col": "#3a3d40"
+   },
+   "bumpR": {
+    "stripe": "",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.22,
+    "y1": 0.52,
+    "out": 0.05,
+    "col": "#3a3d40"
+   },
+   "plateRy": 0.6,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 1,
+    "wrap": 1,
+    "twin": 0,
+    "z0": 0.27,
+    "z1": 0.72,
+    "yt": [
+     0.67,
+     0.64
+    ],
+    "yb": [
+     0.56,
+     0.575
+    ]
+   },
+   "grille": {
+    "bars": 2,
+    "chrome": 0,
+    "oval": 1,
+    "badge": "",
+    "z": 0.22,
+    "y0": 0.56,
+    "y1": 0.63
+   },
+   "indBumper": false,
+   "tail": {
+    "band": 0,
+    "tall": 0,
+    "z0": 0.48,
+    "z1": 0.79,
+    "yt": [
+     0.93,
+     0.9
+    ],
+    "yb": [
+     0.6,
+     0.62
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.5,
+    "h": 0.05,
+    "hex": "#2a2c2f",
+    "stripe": "",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "roofF",
+   "wheel": "steel",
+   "fuel": 1
+  },
+  {
+   "id": "hatch70",
+   "L": 4.1,
+   "W": 1.75,
+   "wb": 2.39,
+   "fo": 0.8,
+   "rad": 0.3,
+   "tw": 0.165,
+   "arch": 0.065,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.42,
+   "rcR": 0.3,
+   "floor": 0.36,
+   "top": [
+    -2.055,
+    0.95,
+    -1.9,
+    0.965,
+    -1.5,
+    0.965,
+    0.86,
+    0.925,
+    1.3,
+    0.84,
+    1.8,
+    0.75,
+    2.055,
+    0.7
+   ],
+   "crown": [
+    -2.055,
+    0.015,
+    -1.8,
+    0.03,
+    0.8,
+    0.03,
+    1.5,
+    0.06,
+    2.055,
+    0.05
+   ],
+   "rakeF": [
+    0.52,
+    0.42
+   ],
+   "rakeR": [
+    0.6,
+    0.18
+   ],
+   "crease": 0.1,
+   "gh": {
+    "rb": -1.86,
+    "rrx": -1.38,
+    "fr": 0.02,
+    "fb": 0.86,
+    "roof": 1.395,
+    "crown": 0.035,
+    "rR": 0.2,
+    "rF": 0.17,
+    "curR": 0.03,
+    "curF": 0.03,
+    "beltIn": 0.07,
+    "tumble": 0.34,
+    "pA": 0.075,
+    "pTop": 0.05,
+    "pC": 0.07,
+    "pBelt": 0.014,
+    "xB": [
+     -0.33,
+     -0.3
+    ],
+    "bw": 0.075,
+    "xQ": [
+     -1.12,
+     -1.2
+    ],
+    "qw": 0.035,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": false,
+   "seatF": -0.3,
+   "seatR": -1.1,
+   "seamFdF": [
+    0.83,
+    0,
+    0.78,
+    1
+   ],
+   "seamFdR": [
+    -0.33,
+    0,
+    -0.31,
+    1
+   ],
+   "seamRdR": [
+    -0.98,
+    0,
+    -0.98,
+    0.55,
+    -1.1,
+    0.85,
+    -1.18,
+    1
+   ],
+   "handles": [
+    -0.18,
+    -0.95
+   ],
+   "handleBody": true,
+   "bumpF": {
+    "stripe": "",
+    "intake": [
+     0.22,
+     0.34,
+     0.62
+    ],
+    "plateY": 0.42,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.53,
+    "out": 0.05,
+    "col": "body"
+   },
+   "bumpR": {
+    "stripe": "",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.22,
+    "y1": 0.55,
+    "out": 0.045,
+    "col": "body"
+   },
+   "plateRy": 0.71,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 1,
+    "twin": 0,
+    "z0": 0.27,
+    "z1": 0.75,
+    "yt": [
+     0.705,
+     0.7
+    ],
+    "yb": [
+     0.6,
+     0.625
+    ]
+   },
+   "grille": {
+    "bars": 3,
+    "chrome": 1,
+    "oval": 0,
+    "badge": "",
+    "z": 0.25,
+    "y0": 0.555,
+    "y1": 0.66
+   },
+   "indBumper": false,
+   "tail": {
+    "band": 0,
+    "tall": 0,
+    "z0": 0.42,
+    "z1": 0.8,
+    "yt": [
+     0.93,
+     0.9
+    ],
+    "yb": [
+     0.62,
+     0.64
+    ]
+   },
+   "clad": {
+    "y0": 0.25,
+    "y1": 0.36,
+    "hex": "#8f9396",
+    "on": true
+   },
+   "moulding": {
+    "y": 0.54,
+    "h": 0.045,
+    "hex": "body",
+    "stripe": "",
+    "on": true
+   },
+   "mirrorBody": true,
+   "aerial": "roofR",
+   "wheel": "cap",
+   "fuel": -1
+  },
+  {
+   "id": "rally",
+   "L": 4.35,
+   "W": 1.77,
+   "wb": 2.51,
+   "fo": 0.95,
+   "rad": 0.32,
+   "tw": 0.225,
+   "arch": 0.06,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.3,
+   "rcR": 0.24,
+   "floor": 0.35,
+   "top": [
+    -2.25,
+    0.88,
+    -2.05,
+    0.915,
+    -1.5,
+    0.925,
+    0.98,
+    0.89,
+    1.5,
+    0.79,
+    2,
+    0.71,
+    2.25,
+    0.675
+   ],
+   "crown": [
+    -2.25,
+    0.02,
+    -1.6,
+    0.035,
+    0.6,
+    0.025,
+    1.5,
+    0.05,
+    2.25,
+    0.035
+   ],
+   "rakeF": [
+    0.5,
+    0.3
+   ],
+   "rakeR": [
+    0.55,
+    0.05
+   ],
+   "crease": 0.08,
+   "gh": {
+    "rb": -1.5,
+    "rrx": -0.88,
+    "fr": 0.15,
+    "fb": 0.98,
+    "roof": 1.37,
+    "crown": 0.03,
+    "rR": 0.22,
+    "rF": 0.15,
+    "curR": 0.03,
+    "curF": 0.025,
+    "beltIn": 0.065,
+    "tumble": 0.33,
+    "pA": 0.065,
+    "pTop": 0.045,
+    "pC": 0.12,
+    "pBelt": 0.012,
+    "xB": [
+     -0.25,
+     -0.22
+    ],
+    "bw": 0.07,
+    "xQ": [],
+    "qw": 0.06,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": true,
+   "seatF": -0.25,
+   "seatR": -1.15,
+   "seamFdF": [
+    0.93,
+    0,
+    0.89,
+    1
+   ],
+   "seamFdR": [
+    -0.25,
+    0,
+    -0.23,
+    1
+   ],
+   "seamRdR": [
+    -0.97,
+    0,
+    -0.97,
+    0.6,
+    -1.17,
+    1
+   ],
+   "handles": [
+    -0.1,
+    -0.85
+   ],
+   "handleBody": false,
+   "bumpF": {
+    "stripe": "#a8282a",
+    "intake": [
+     0.2,
+     0.3,
+     0.5
+    ],
+    "plateY": 0.36,
+    "step": false,
+    "y0": 0.2,
+    "y1": 0.48,
+    "out": 0.06,
+    "col": "#5d6064"
+   },
+   "bumpR": {
+    "stripe": "#a8282a",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.5,
+    "out": 0.055,
+    "col": "#5d6064"
+   },
+   "plateRy": 0.61,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 0,
+    "twin": 0,
+    "z0": 0.17,
+    "z1": 0.79,
+    "yt": [
+     0.645,
+     0.625
+    ],
+    "yb": [
+     0.53,
+     0.53
+    ]
+   },
+   "grille": {
+    "bars": 2,
+    "chrome": 0,
+    "oval": 0,
+    "badge": "",
+    "z": 0.16,
+    "y0": 0.55,
+    "y1": 0.63,
+    "badgeY": 0.67
+   },
+   "indBumper": true,
+   "tail": {
+    "band": 1,
+    "tall": 0,
+    "z0": 0.28,
+    "z1": 0.79,
+    "yt": [
+     0.84,
+     0.84
+    ],
+    "yb": [
+     0.64,
+     0.66
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.5,
+    "h": 0.06,
+    "hex": "#26282b",
+    "stripe": "#a8282a",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "wing",
+   "wheel": "cap",
+   "fuel": -1
+  },
+  {
+   "id": "coupe80",
+   "L": 4.45,
+   "W": 1.67,
+   "wb": 2.52,
+   "fo": 0.92,
+   "rad": 0.29,
+   "tw": 0.195,
+   "arch": 0.06,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.3,
+   "rcR": 0.24,
+   "floor": 0.35,
+   "top": [
+    -2.25,
+    0.88,
+    -2.05,
+    0.915,
+    -1.5,
+    0.925,
+    0.98,
+    0.89,
+    1.5,
+    0.79,
+    2,
+    0.71,
+    2.25,
+    0.675
+   ],
+   "crown": [
+    -2.25,
+    0.02,
+    -1.6,
+    0.035,
+    0.6,
+    0.025,
+    1.5,
+    0.05,
+    2.25,
+    0.035
+   ],
+   "rakeF": [
+    0.5,
+    0.3
+   ],
+   "rakeR": [
+    0.55,
+    0.05
+   ],
+   "crease": 0.08,
+   "gh": {
+    "rb": -1.5,
+    "rrx": -0.88,
+    "fr": 0.15,
+    "fb": 0.98,
+    "roof": 1.37,
+    "crown": 0.03,
+    "rR": 0.22,
+    "rF": 0.15,
+    "curR": 0.03,
+    "curF": 0.025,
+    "beltIn": 0.065,
+    "tumble": 0.33,
+    "pA": 0.065,
+    "pTop": 0.045,
+    "pC": 0.12,
+    "pBelt": 0.012,
+    "xB": [
+     -0.25,
+     -0.22
+    ],
+    "bw": 0.07,
+    "xQ": [],
+    "qw": 0.06,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": true,
+   "seatF": -0.25,
+   "seatR": -1.15,
+   "seamFdF": [
+    0.93,
+    0,
+    0.89,
+    1
+   ],
+   "seamFdR": [
+    -0.25,
+    0,
+    -0.23,
+    1
+   ],
+   "seamRdR": [
+    -0.97,
+    0,
+    -0.97,
+    0.6,
+    -1.17,
+    1
+   ],
+   "handles": [
+    -0.1,
+    -0.85
+   ],
+   "handleBody": false,
+   "bumpF": {
+    "stripe": "#a8282a",
+    "intake": [
+     0.2,
+     0.3,
+     0.5
+    ],
+    "plateY": 0.36,
+    "step": false,
+    "y0": 0.2,
+    "y1": 0.48,
+    "out": 0.06,
+    "col": "#5d6064"
+   },
+   "bumpR": {
+    "stripe": "#a8282a",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.5,
+    "out": 0.055,
+    "col": "#5d6064"
+   },
+   "plateRy": 0.61,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 0,
+    "twin": 0,
+    "z0": 0.17,
+    "z1": 0.79,
+    "yt": [
+     0.645,
+     0.625
+    ],
+    "yb": [
+     0.53,
+     0.53
+    ]
+   },
+   "grille": {
+    "bars": 2,
+    "chrome": 0,
+    "oval": 0,
+    "badge": "",
+    "z": 0.16,
+    "y0": 0.55,
+    "y1": 0.63,
+    "badgeY": 0.67
+   },
+   "indBumper": true,
+   "tail": {
+    "band": 1,
+    "tall": 0,
+    "z0": 0.28,
+    "z1": 0.79,
+    "yt": [
+     0.84,
+     0.84
+    ],
+    "yb": [
+     0.64,
+     0.66
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.5,
+    "h": 0.06,
+    "hex": "#26282b",
+    "stripe": "#a8282a",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "wing",
+   "wheel": "cap",
+   "fuel": -1
+  },
+  {
+   "id": "estate90",
+   "L": 4.71,
+   "W": 1.76,
+   "wb": 2.66,
+   "fo": 0.97,
+   "rad": 0.31,
+   "tw": 0.205,
+   "arch": 0.06,
+   "sill": 0.25,
+   "endY": 0.33,
+   "rcF": 0.3,
+   "rcR": 0.26,
+   "floor": 0.35,
+   "top": [
+    -2.215,
+    0.9,
+    -2,
+    0.925,
+    -1.6,
+    0.93,
+    0.98,
+    0.89,
+    1.5,
+    0.79,
+    2,
+    0.71,
+    2.215,
+    0.675
+   ],
+   "crown": [
+    -2.215,
+    0.02,
+    -1.7,
+    0.03,
+    0.6,
+    0.025,
+    1.5,
+    0.05,
+    2.215,
+    0.035
+   ],
+   "rakeF": [
+    0.5,
+    0.3
+   ],
+   "rakeR": [
+    0.58,
+    0.1
+   ],
+   "crease": 0.08,
+   "gh": {
+    "rb": -1.88,
+    "rrx": -1,
+    "fr": 0.15,
+    "fb": 0.98,
+    "roof": 1.37,
+    "crown": 0.03,
+    "rR": 0.25,
+    "rF": 0.15,
+    "curR": 0.035,
+    "curF": 0.025,
+    "beltIn": 0.065,
+    "tumble": 0.33,
+    "pA": 0.065,
+    "pTop": 0.045,
+    "pC": 0.07,
+    "pBelt": 0.012,
+    "xB": [
+     -0.25,
+     -0.22
+    ],
+    "bw": 0.07,
+    "xQ": [
+     -1.25,
+     -1.15
+    ],
+    "qw": 0.06,
+    "van": false
+   },
+   "doors": 4,
+   "van": false,
+   "boot": false,
+   "seatF": -0.25,
+   "seatR": -1.2,
+   "seamFdF": [
+    0.92,
+    0,
+    0.88,
+    1
+   ],
+   "seamFdR": [
+    -0.25,
+    0,
+    -0.23,
+    1
+   ],
+   "seamRdR": [
+    -0.95,
+    0,
+    -0.95,
+    0.6,
+    -1.15,
+    1
+   ],
+   "handles": [
+    -0.1,
+    -0.85
+   ],
+   "handleBody": false,
+   "bumpF": {
+    "stripe": "#a8282a",
+    "intake": [
+     0.2,
+     0.3,
+     0.5
+    ],
+    "plateY": 0.36,
+    "step": false,
+    "y0": 0.2,
+    "y1": 0.48,
+    "out": 0.06,
+    "col": "#5d6064"
+   },
+   "bumpR": {
+    "stripe": "#a8282a",
+    "intake": [],
+    "plateY": 0,
+    "step": false,
+    "y0": 0.21,
+    "y1": 0.5,
+    "out": 0.055,
+    "col": "#5d6064"
+   },
+   "plateRy": 0.61,
+   "plateROnBumper": false,
+   "head": {
+    "oval": 0,
+    "wrap": 0,
+    "twin": 0,
+    "z0": 0.17,
+    "z1": 0.79,
+    "yt": [
+     0.645,
+     0.625
+    ],
+    "yb": [
+     0.53,
+     0.53
+    ]
+   },
+   "grille": {
+    "bars": 2,
+    "chrome": 0,
+    "oval": 0,
+    "badge": "",
+    "z": 0.16,
+    "y0": 0.55,
+    "y1": 0.63,
+    "badgeY": 0.67
+   },
+   "indBumper": true,
+   "tail": {
+    "band": 1,
+    "tall": 0,
+    "z0": 0.3,
+    "z1": 0.79,
+    "yt": [
+     0.84,
+     0.84
+    ],
+    "yb": [
+     0.62,
+     0.64
+    ]
+   },
+   "clad": {
+    "y0": 0,
+    "y1": 0,
+    "hex": "",
+    "on": false
+   },
+   "moulding": {
+    "y": 0.5,
+    "h": 0.06,
+    "hex": "#26282b",
+    "stripe": "#a8282a",
+    "on": true
+   },
+   "mirrorBody": false,
+   "aerial": "wing",
+   "wheel": "cap",
+   "fuel": -1
+  }
+ ]
+}

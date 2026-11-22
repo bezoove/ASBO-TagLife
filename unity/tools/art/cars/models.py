@@ -1,0 +1,66 @@
+# Measurements for each car (metres). u is distance back from the front tip; top is the roof/bonnet line.
+MODELS = {
+ 'hatch90': dict(  # 90s five-door family hatch (photo 01)
+    L=4.03, W=1.675, wb=2.45, fo=0.83, rad=0.29, tyre_w=0.185, sill=0.21, belt=0.9, belt_rise=0.04,
+    top=[(0.0, 0.66), (0.07, 0.73), (0.95, 0.86), (1.62, 1.35), (3.12, 1.37), (3.9, 1.0), (3.99, 0.97), (4.03, 0.93)],
+    ws=(0.95, 1.62), rw=(3.12, 3.9), pillars=[(2.3, 2.4), (3.15, 9)], tumble=0.17, cornerF=0.2, cornerR=0.13,
+    bumpF_bot=0.22, bumpF_top=0.47, bumpR_bot=0.26, bumpR_top=0.5, bumper='body', moulding=(0.56, 0.05),
+    head=dict(w=0.42, h=0.115, z=0.6, inner=0.21), grille=dict(h=0.06, z=0.6, slats=2),
+    tail=dict(w=0.4, h=0.15, z=0.82), door_lines=[1.24, 2.3, 2.4, (3.0, 0.64)], handles=[2.2, 2.9], seat_u=2.05, wheel='hubcap'),
+ 'saloon90': dict(  # 90s four-door saloon (photos 02, 05)
+    L=4.45, W=1.69, wb=2.58, fo=0.9, rad=0.3, tyre_w=0.195, sill=0.21, belt=0.88, belt_rise=0.05,
+    top=[(0.0, 0.66), (0.07, 0.72), (1.05, 0.85), (1.75, 1.36), (3.05, 1.38), (3.62, 1.0), (4.38, 0.97), (4.45, 0.92)],
+    ws=(1.05, 1.75), rw=(3.05, 3.62), pillars=[(2.45, 2.55), (3.22, 9)], tumble=0.17, cornerF=0.2, cornerR=0.14,
+    bumpF_bot=0.22, bumpF_top=0.46, bumpR_bot=0.26, bumpR_top=0.5, bumper='body', moulding=(0.52, 0.05),
+    head=dict(w=0.4, h=0.13, z=0.6, inner=0.22), grille=dict(h=0.07, z=0.6, slats=3),
+    tail=dict(w=0.42, h=0.15, z=0.8), door_lines=[1.32, 2.45, 2.55, (3.2, 0.66)], handles=[2.33, 3.05], seat_u=2.2, wheel='alloy5'),
+ 'jeep': dict(  # small three-door 4x4 (photo 03)
+    L=3.62, W=1.64, wb=2.2, fo=0.65, rad=0.34, tyre_w=0.205, sill=0.4, belt=1.06, belt_rise=0.02, arch_gap=0.05,
+    top=[(0.0, 0.9), (0.06, 0.96), (0.72, 1.06), (1.22, 1.66), (3.42, 1.68), (3.6, 1.12), (3.62, 1.08)],
+    ws=(0.72, 1.22), rw=(3.42, 3.6), pillars=[(2.0, 2.1), (3.32, 9)], tumble=0.1, cornerF=0.12, cornerR=0.1,
+    bumpF_bot=0.42, bumpF_top=0.62, bumpR_bot=0.46, bumpR_top=0.64, bumper='black', flares=0.045, spare=True,
+    head=dict(w=0.3, h=0.15, z=0.86, inner=0.28), grille=dict(h=0.15, z=0.86, slats=5),
+    tail=dict(w=0.14, h=0.3, z=0.95), door_lines=[1.0, (2.0, 0.78)], handles=[1.9], seat_u=1.75, wheel='steel'),
+ 'boxy80': dict(  # boxy 80s saloon (photo 04)
+    L=4.26, W=1.68, wb=2.49, fo=0.85, rad=0.29, tyre_w=0.175, sill=0.22, belt=0.88, belt_rise=0.06,
+    top=[(0.0, 0.7), (0.06, 0.76), (1.0, 0.87), (1.62, 1.4), (3.0, 1.42), (3.5, 1.02), (4.2, 0.99), (4.26, 0.94)],
+    ws=(1.0, 1.62), rw=(3.0, 3.5), pillars=[(2.37, 2.47), (3.15, 9)], tumble=0.15, cornerF=0.15, cornerR=0.12,
+    bumpF_bot=0.24, bumpF_top=0.46, bumpR_bot=0.27, bumpR_top=0.5, bumper='black', moulding=(0.6, 0.05),
+    head=dict(w=0.38, h=0.14, z=0.62, inner=0.25), grille=dict(h=0.1, z=0.62, slats=3),
+    tail=dict(w=0.42, h=0.16, z=0.82), door_lines=[1.25, 2.37, 2.47, (3.13, 0.65)], handles=[2.25, 2.98], seat_u=2.1, wheel='alloy5'),
+ 'supermini': dict(  # small five-door city car (photo 06)
+    L=3.5, W=1.5, wb=2.34, fo=0.65, rad=0.27, tyre_w=0.155, sill=0.2, belt=0.9, belt_rise=0.04,
+    top=[(0.0, 0.68), (0.06, 0.74), (0.62, 0.86), (1.25, 1.45), (2.9, 1.48), (3.38, 1.05), (3.46, 1.02), (3.5, 0.98)],
+    ws=(0.62, 1.25), rw=(2.9, 3.38), pillars=[(1.85, 1.95), (2.85, 9)], tumble=0.14, cornerF=0.18, cornerR=0.14,
+    bumpF_bot=0.22, bumpF_top=0.46, bumpR_bot=0.25, bumpR_top=0.48, bumper='body',
+    head=dict(w=0.34, h=0.16, z=0.66, inner=0.18), grille=dict(h=0.05, z=0.66, slats=1),
+    tail=dict(w=0.16, h=0.3, z=0.95), door_lines=[0.98, 1.85, 1.95, (2.62, 0.62)], handles=[1.75, 2.5], seat_u=1.6, wheel='steel'),
+ 'hatch70': dict(  # 70s three-door hatch with chrome bumpers (photo 07)
+    L=4.1, W=1.75, wb=2.39, fo=0.8, rad=0.3, tyre_w=0.165, sill=0.24, belt=0.82, belt_rise=0.03,
+    top=[(0.0, 0.68), (0.05, 0.75), (1.12, 0.84), (1.8, 1.28), (2.85, 1.3), (3.95, 0.9), (4.06, 0.86), (4.1, 0.8)],
+    ws=(1.12, 1.8), rw=(2.85, 3.95), pillars=[(2.55, 2.62), (3.2, 9)], tumble=0.16, cornerF=0.1, cornerR=0.12,
+    bumpF_bot=0.4, bumpF_top=0.52, bumpR_bot=0.42, bumpR_top=0.55, bumper='chrome', bumpF_out=0.07, bumpR_out=0.07,
+    head=dict(w=0.24, h=0.2, z=0.6, inner=0.32), grille=dict(h=0.17, z=0.6, slats=6, chrome=True), ind='outer',
+    tail=dict(w=0.3, h=0.16, z=0.72), door_lines=[1.35, (2.55, 0.26)], handles=[2.4], seat_u=2.15, wheel='hubcap'),
+ 'rally': dict(  # modified rally saloon (photos 08-09)
+    L=4.35, W=1.77, wb=2.51, fo=0.95, rad=0.32, tyre_w=0.225, sill=0.17, belt=0.84, belt_rise=0.06, track_out=0.02,
+    top=[(0.0, 0.58), (0.08, 0.68), (1.1, 0.84), (1.78, 1.38), (2.95, 1.4), (3.55, 1.0), (4.28, 1.0), (4.35, 0.95)],
+    ws=(1.1, 1.78), rw=(2.95, 3.55), pillars=[(2.45, 2.55), (3.15, 9)], tumble=0.17, cornerF=0.2, cornerR=0.12,
+    bumpF_bot=0.12, bumpF_top=0.5, bumpR_bot=0.22, bumpR_top=0.5, bumper='body', wing=True, flares=0.035, rally=True,
+    head=dict(w=0.4, h=0.13, z=0.62, inner=0.25), grille=dict(h=0.06, z=0.62, slats=2),
+    tail=dict(w=0.42, h=0.15, z=0.82), door_lines=[1.34, 2.45, 2.55, (3.15, 0.66)], handles=[2.32, 3.0], seat_u=2.2, wheel='multi'),
+ 'coupe80': dict(  # 80s wedge-nosed coupé (photo 10)
+    L=4.45, W=1.67, wb=2.52, fo=0.92, rad=0.29, tyre_w=0.195, sill=0.2, belt=0.82, belt_rise=0.05,
+    top=[(0.0, 0.6), (0.15, 0.68), (1.25, 0.82), (1.95, 1.28), (2.85, 1.3), (3.55, 0.98), (4.38, 0.96), (4.45, 0.92)],
+    ws=(1.25, 1.95), rw=(2.85, 3.55), pillars=[(3.0, 9)], tumble=0.16, cornerF=0.18, cornerR=0.12,
+    bumpF_bot=0.25, bumpF_top=0.42, bumpR_bot=0.27, bumpR_top=0.45, bumper='black', ind='bumper',
+    head=dict(w=0.42, h=0.11, z=0.56, inner=0.22), grille=dict(h=0.09, z=0.56, slats=5),
+    tail=dict(w=0.48, h=0.14, z=0.78), door_lines=[1.4, (2.62, 0.25)], handles=[2.5], seat_u=2.3, wheel='alloy5'),
+ 'estate90': dict(  # big square 90s estate (photo 11)
+    L=4.71, W=1.76, wb=2.66, fo=0.97, rad=0.31, tyre_w=0.205, sill=0.22, belt=0.9, belt_rise=0.04,
+    top=[(0.0, 0.7), (0.06, 0.77), (1.15, 0.89), (1.82, 1.42), (4.45, 1.45), (4.66, 1.0), (4.71, 0.96)],
+    ws=(1.15, 1.82), rw=(4.45, 4.66), pillars=[(2.6, 2.7), (3.42, 3.5), (4.3, 9)], tumble=0.15, cornerF=0.12, cornerR=0.1,
+    bumpF_bot=0.23, bumpF_top=0.47, bumpR_bot=0.27, bumpR_top=0.5, bumper='black', roof_rails=True,
+    head=dict(w=0.36, h=0.15, z=0.64, inner=0.3), grille=dict(h=0.13, z=0.64, slats=5),
+    tail=dict(w=0.18, h=0.42, z=1.0), door_lines=[1.42, 2.6, 2.7, (3.5, 0.67)], handles=[2.48, 3.35], seat_u=2.3, wheel='alloy_dark'),
+}

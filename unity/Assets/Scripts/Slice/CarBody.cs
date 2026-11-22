@@ -361,6 +361,7 @@ namespace ASBO.Slice
         /// <summary>Builds the car under parent (local origin at ground centre, front = +z). Returns 4 wheel visuals FL, FR, RL, RR.</summary>
         public static Transform[] Build(Transform parent, Spec s, Color paintCol, bool castShadow = true, int seed = -1, bool rough = true)
         {
+            if (CarKit.Has(s.m.id)) return CarKit.Build(parent, s, paintCol, castShadow, seed, rough);
             Init();
             var m = s.m; var G = m.gh;
             var rng = new System.Random(seed >= 0 ? seed : UnityEngine.Random.Range(0, int.MaxValue));
@@ -1052,8 +1053,27 @@ namespace ASBO.Slice
 
         static Texture2D PlateTex(string reg, bool rear)
         {
+            var tex = new Texture2D(208, 48, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Clamp, anisoLevel = 2, name = "Plate " + reg };
+            tex.SetPixels32(PlatePx(reg, rear)); tex.Apply(true, true);
+            return tex;
+        }
+
+        /// <summary>Front (white) and rear (yellow) plates side by side in one texture, for the modelled cars.</summary>
+        internal static Texture2D PlateAtlas(System.Random r)
+        {
+            string reg = Registration(r);
+            var f = PlatePx(reg, false); var b = PlatePx(reg, true);
+            const int W = 208, H = 48;
+            var px = new Color32[W * 2 * H];
+            for (int y = 0; y < H; y++) { System.Array.Copy(f, y * W, px, y * W * 2, W); System.Array.Copy(b, y * W, px, y * W * 2 + W, W); }
+            var tex = new Texture2D(W * 2, H, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Clamp, anisoLevel = 2, name = "Plates " + reg };
+            tex.SetPixels32(px); tex.Apply(true, true);
+            return tex;
+        }
+
+        static Color32[] PlatePx(string reg, bool rear)
+        {
             const int W = 208, H = 48, sx = 3, sy = 4;
-            var tex = new Texture2D(W, H, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Clamp, anisoLevel = 2, name = "Plate " + reg };
             var bg = rear ? new Color32(250, 205, 20, 255) : new Color32(242, 242, 236, 255);
             var ink = new Color32(18, 18, 20, 255);
             var px = new Color32[W * H];
@@ -1078,8 +1098,7 @@ namespace ASBO.Slice
                 DrawChar(px, W, H, ch, cx, cy, sx, sy, ink);
                 cx += charW + gap;
             }
-            tex.SetPixels32(px); tex.Apply(true, true);
-            return tex;
+            return px;
         }
 
         static void DrawText(Color32[] px, int W, int H, string s, int x, int y, int sx, int sy, Color32 c) { foreach (char ch in s) { DrawChar(px, W, H, ch, x, y, sx, sy, c); x += 6 * sx; } }
@@ -1099,8 +1118,11 @@ namespace ASBO.Slice
 
         // ---------------------------------------------------------------- what's on the estate
         static readonly (string id, int w)[] Mix = { ("hatch_a", 16), ("hatch_b", 12), ("saloon_b", 9), ("supermini_a", 14), ("supermini_b", 13), ("micro_a", 10), ("hatch_c", 9), ("hatch_d", 7), ("van_a", 13) };
+        // the modelled UK cars from the reference photos (used when their prefabs are in the build)
+        static readonly (string id, int w)[] Mix2 = { ("hatch90", 15), ("saloon90", 11), ("boxy80", 9), ("supermini", 13), ("hatch70", 6), ("rally", 3), ("coupe80", 5), ("estate90", 9), ("jeep", 5), ("van_a", 11) };
         public static Spec Random(System.Random r)
         {
+            var Mix = CarKit.Has("hatch90") ? Mix2 : CarBody.Mix;
             int tot = 0; foreach (var e in Mix) tot += e.w;
             int k = r.Next(tot);
             foreach (var e in Mix) { if (k < e.w) return Get(e.id); k -= e.w; }

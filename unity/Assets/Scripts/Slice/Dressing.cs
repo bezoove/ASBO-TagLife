@@ -27,6 +27,7 @@ namespace ASBO.Slice
             Physics.SyncTransforms();
             foreach (var h in Estate.Houses) House(h);
             Verges();
+            Wrecks();
             Outcrop(new Vector3(58f, 0f, -72f), 1f);
             Outcrop(new Vector3(-76f, 0f, -58f), 0.8f);
             Debug.Log($"[ASBO] dressing: {root.childCount} pieces placed");
@@ -131,6 +132,20 @@ namespace ASBO.Slice
                 if (Mathf.Abs(x) < 6.5f) continue;
                 if (rng.NextDouble() < 0.55) Put(rng.NextDouble() < 0.6 ? Any(Ferns) : Any(Flowers), new Vector3(x, 0, -21.55f + R(0.1f, 0.4f)), R(0, 360), R(1.1f, 1.6f));
             }
+        }
+
+        /// <summary>Dumped cars: a burnt-out saloon on the verge, a torched supermini by the field gate, a smashed-up 4x4.</summary>
+        static void Wrecks()
+        {
+            void Dump(string id, CarKit.Wear w, Vector3 p, float yaw, int seed)
+            {
+                if (Physics.Raycast(p + Vector3.up * 3f, Vector3.down, out var hit, 8f, Mask, QueryTriggerInteraction.Ignore)) p.y = hit.point.y;
+                CarKit.Scenery(root, id, w, p, yaw, seed);
+            }
+            Dump("saloon90", CarKit.Wear.Burnt, new Vector3(-52f, 0f, World.RoadZ - 10.5f), 78f, 11);
+            Dump("supermini", CarKit.Wear.Burnt, new Vector3(36f, 0f, World.RoadZ - 12f), 200f, 12);
+            Dump("jeep", CarKit.Wear.Wreck, new Vector3(-66f, 0f, -46f), 140f, 13);
+            Dump("hatch90", CarKit.Wear.Wreck, new Vector3(70f, 0f, World.RoadZ - 11f), 95f, 14);
         }
 
         /// <summary>A rocky clump out in the fields: mossy boulders, a couple of young firs, stones and ferns round it.</summary>
