@@ -142,6 +142,8 @@ namespace ASBO.Slice
         public static void CarTest() { new GameObject("CarTest").AddComponent<CarTestRun>(); }
         public static void HardHit() { var v = Object.FindObjectsByType<Resident>(FindObjectsSortMode.None).Select(r => r.GetComponent<Person>()).FirstOrDefault(p => p != null && p.Ready && p.state == Person.State.Walking); var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (v != null && pc != null) { v.GetComponent<Resident>().HoldAt(pc.transform.position + pc.transform.forward * 3f, 0f, 30f); v.Hit(pc.transform.forward * 9f, v.transform.position + Vector3.up, 9f); } }
         public static void AmbTest() { new GameObject("AmbTest").AddComponent<AmbTestRun>(); }
+        /// <summary>Photograph the council estate from a few set viewpoints: Shots/estate_N.png.</summary>
+        public static void EstateShots() { new GameObject("EstateShots").AddComponent<EstateShotsRun>(); }
         public static void TouchDrive() { new GameObject("TouchDriveTest").AddComponent<TouchDriveTest>().Run(); }
         public static void EditSwitch() { if (TouchControls.I != null) TouchControls.I.SwitchEditSet(); }
         public static void EditPreset() { if (TouchControls.I != null) TouchControls.I.NextPreset(); }
@@ -706,6 +708,33 @@ namespace ASBO.Slice
                 yield return new WaitForSeconds(1f);
             }
             Destroy(cg); World.HideHud = false; Debug.Log($"[ASBO] ambtest end frames={n}");
+            Destroy(gameObject);
+        }
+    }
+
+    public class EstateShotsRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            var cg = new GameObject("EstateCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 60f; cam.farClipPlane = 600f; World.HideHud = true;
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots"); System.IO.Directory.CreateDirectory(dir);
+            var views = new (Vector3 from, Vector3 at)[]
+            {
+                (new Vector3(-37f, 1.7f, -36.5f), new Vector3(-47f, 4f, -66f)),
+                (new Vector3(0f, 48f, -18f), new Vector3(0f, 0f, -86f)),
+                (new Vector3(-40.5f, 1.7f, -58f), new Vector3(-52f, 4.5f, -61f)),
+                (new Vector3(-4f, 1.8f, -96f), new Vector3(-14f, 5f, -122f)),
+                (new Vector3(38f, 1.7f, -33f), new Vector3(50f, 4f, -62f)),
+                (new Vector3(-48f, 1.7f, -76f), new Vector3(-52f, 3f, -70f)),
+            };
+            for (int i = 0; i < views.Length; i++)
+            {
+                cg.transform.position = views[i].from; cg.transform.LookAt(views[i].at);
+                yield return new WaitForSeconds(0.6f);
+                ScreenCapture.CaptureScreenshot(dir + "/estate_" + i + ".png");
+                yield return new WaitForSeconds(0.3f);
+            }
+            Destroy(cg); World.HideHud = false; Debug.Log("[ASBO] estate shots done");
             Destroy(gameObject);
         }
     }

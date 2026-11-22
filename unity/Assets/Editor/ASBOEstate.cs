@@ -1,0 +1,235 @@
+#if UNITY_EDITOR
+using System.Collections.Generic;
+using System.IO;
+using ASBO.Slice;
+using Unity.AI.Navigation;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+
+namespace ASBO.EditorTools
+{
+    /// <summary>
+    /// Builds Hawthorn Way (the council estate, <see cref="CouncilEstate"/>) into the playable scene: makes its
+    /// materials (Resources/Estate) from the textures in tools/art/estate, levels the ground and clears field trees
+    /// where it goes, builds the terraces, roads and lamps under the baked World, saves the meshes, plants trees on the
+    /// green, rebakes the NavMesh with it in, and saves the scene. Run again any time: it replaces the old estate.
+    /// Menu: ASBO/Art/Build Council Estate.
+    /// </summary>
+    public static class ASBOEstate
+    {
+        const string TestScene = "Assets/Scenes/AbbotsWend_Test.unity", Tex = "Assets/Art/Estate", MatDir = "Assets/Resources/Estate", MeshDir = "Assets/Art/Generated/Estate";
+
+        [MenuItem("ASBO/Art/Build Council Estate")]
+        public static void Build()
+        {
+            ASBOSurfaces.ImportAndMake();
+            Materials();
+            var scene = EditorSceneManager.GetActiveScene();
+            if (scene.path != TestScene) scene = EditorSceneManager.OpenScene(TestScene, OpenSceneMode.Single);
+            var world = Object.FindFirstObjectByType<BakedWorld>();
+            if (world == null) { Debug.LogError("[ASBO] estate: no baked World in " + TestScene); return; }
+            var old = world.transform.Find(CouncilEstate.RootName); if (old != null) Object.DestroyImmediate(old.gameObject);
+            var terrain = Object.FindFirstObjectByType<Terrain>();
+            if (terrain != null) Ground(terrain);
+            var root = CouncilEstate.Build(world.transform);
+            if (root == null) return;
+            SaveMeshes(root);
+            foreach (var r in root.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                GameObjectUtility.SetStaticEditorFlags(r.gameObject, StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic | StaticEditorFlags.ReflectionProbeStatic);
+                r.receiveGI = ReceiveGI.LightProbes; r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.BlendProbes;
+            }
+            if (terrain != null) Trees(terrain);
+            Probes(world.transform);
+            // NavMesh with the estate in it (its own asset, so the original Abbots Wend scene keeps its own)
+            var surf = world.GetComponent<NavMeshSurface>();
+            if (surf != null)
+            {
+                surf.BuildNavMesh();
+                const string navPath = "Assets/Art/Generated/NavMesh_Test.asset";
+                if (File.Exists(navPath)) AssetDatabase.DeleteAsset(navPath);
+                AssetDatabase.CreateAsset(surf.navMeshData, navPath);
+                EditorUtility.SetDirty(surf);
+            }
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[ASBO] estate: built into " + TestScene);
+        }
+
+        // ------------------------------------------------------------------------------ materials
+        static void Materials()
+        {
+            Directory.CreateDirectory(MatDir);
+            foreach (var f in Directory.GetFiles(Tex, "*.png"))
+            {
+                var imp = (TextureImporter)AssetImporter.GetAtPath(f.Replace('\\', '/'));
+                bool win = f.Contains("estate_windows");
+                imp.textureType = TextureImporterType.Default; imp.sRGBTexture = true; imp.mipmapEnabled = true; imp.filterMode = FilterMode.Trilinear; imp.anisoLevel = 4;
+                imp.alphaSource = win ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None; imp.alphaIsTransparency = false;
+                imp.wrapMode = TextureWrapMode.Clamp;
+                imp.SetPlatformTextureSettings(new TextureImporterPlatformSettings { name = "Android", overridden = true, maxTextureSize = win ? 1024 : 512, format = TextureImporterFormat.ASTC_6x6 });
+                imp.SaveAndReimport();
+            }
+            Texture2D T(string n) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{Tex}/{n}.png");
+            Material Plain(string n, Color c, float smooth, float metal = 0f, Texture2D tex = null)
+            {
+                return Mat(n, null, m => { m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", smooth); m.SetFloat("_Metallic", metal); if (tex != null) { m.SetTexture("_BaseMap", tex); m.mainTexture = tex; } });
+            }
+            Material From(string n, string surface, Color tint) => Mat(n, Surfaces.Source(surface), m => { m.SetColor("_BaseColor", tint); });
+            From("EstateRoof", "roof_slates_03", new Color(0.66f, 0.6f, 0.56f));
+            From("EstateBrick", "buff_brick", new Color(1.2f, 1.16f, 1.06f));   // the light buff of the photos, a touch brighter than the raw scan
+            From("EstateCream", "plaster_smooth", new Color(1.16f, 1.11f, 0.95f));
+            From("EstateDrive", "hangar_concrete_floor", new Color(0.92f, 0.91f, 0.88f));
+            From("EstateKerb", "concrete_layers", new Color(1.2f, 1.19f, 1.17f));
+            From("EstatePave", "large_grey_tiles", new Color(0.88f, 0.88f, 0.86f));
+            From("EstateFence", "hinoki_planks", new Color(0.66f, 0.48f, 0.34f));
+            From("EstateStep", "concrete_layers", new Color(1.1f, 1.1f, 1.08f));
+            Plain("EstateRidge", new Color(0.26f, 0.25f, 0.25f), 0.2f);
+            Plain("EstateWhite", new Color(0.9f, 0.9f, 0.88f), 0.45f);
+            Plain("EstateBlack", new Color(0.04f, 0.04f, 0.045f), 0.5f);
+            Plain("EstatePost", new Color(0.03f, 0.03f, 0.03f), 0.4f);
+            Plain("EstateLampColumn", new Color(0.5f, 0.52f, 0.54f), 0.4f, 0.6f);
+            Plain("EstateLine", new Color(0.92f, 0.92f, 0.88f), 0.1f);
+            Plain("EstateDoors", Color.white, 0.5f, 0f, T("estate_doors"));
+            Plain("EstateSign", Color.white, 0.3f, 0f, T("sign_hawthorn_way_1_28"));
+            var gd = T("garage_door");
+            Plain("EstateGarageBlue", new Color(0.2f, 0.42f, 0.86f), 0.45f, 0.3f, gd);
+            Plain("EstateGarageRed", new Color(0.82f, 0.13f, 0.11f), 0.45f, 0.3f, gd);
+            Plain("EstateGarageWhite", new Color(1f, 1f, 0.98f), 0.45f, 0.3f, gd);
+            Plain("EstateGarageBrown", new Color(0.56f, 0.37f, 0.23f), 0.4f, 0.3f, gd);
+            Mat("EstateWindows", null, m =>
+            {
+                var t = T("estate_windows"); m.SetTexture("_BaseMap", t); m.mainTexture = t; m.SetColor("_BaseColor", Color.white);
+                m.SetFloat("_Metallic", 0f); m.SetFloat("_Smoothness", 1f); m.SetFloat("_SmoothnessTextureChannel", 1f); m.EnableKeyword("_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A");
+            });
+            Mat("EstateLampGlow", null, m =>
+            {
+                m.SetColor("_BaseColor", new Color(1f, 0.85f, 0.6f)); m.SetColor("_EmissionColor", new Color(1f, 0.74f, 0.42f) * 1.6f); m.EnableKeyword("_EMISSION");
+                m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            });
+            AssetDatabase.SaveAssets();
+        }
+
+        static Material Mat(string name, Material from, System.Action<Material> set)
+        {
+            string path = $"{MatDir}/{name}.mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (m != null && from != null) { m.CopyPropertiesFromMaterial(from); m.shaderKeywords = from.shaderKeywords; }
+            if (m == null) { m = from != null ? new Material(from) { name = name } : new Material(Gfx.Lit) { name = name }; AssetDatabase.CreateAsset(m, path); }
+            set(m); m.enableInstancing = true; EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        // ------------------------------------------------------------------------------ meshes
+        static void SaveMeshes(Transform root)
+        {
+            if (AssetDatabase.IsValidFolder(MeshDir)) AssetDatabase.DeleteAsset(MeshDir);
+            Directory.CreateDirectory(MeshDir); AssetDatabase.Refresh();
+            int n = 0;
+            foreach (var mf in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                var mesh = mf.sharedMesh; if (mesh == null || !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(mesh))) continue;
+                AssetDatabase.CreateAsset(mesh, $"{MeshDir}/{mf.transform.parent.name.Replace(' ', '_')}_{mf.name}_{n++}.asset");
+            }
+            Debug.Log($"[ASBO] estate: saved {n} meshes");
+        }
+
+        // ------------------------------------------------------------------------------ ground and trees
+        /// <summary>Level the fields where the estate goes (smoothly back up to the hills), and clear field trees and long grass off it.</summary>
+        static void Ground(Terrain t)
+        {
+            var td = t.terrainData; Vector3 tp = t.transform.position, size = td.size;
+            int res = td.heightmapResolution; var h = td.GetHeights(0, 0, res, res);
+            var area = CouncilEstate.Area; const float fall = 28f;
+            for (int y = 0; y < res; y++)
+                for (int x = 0; x < res; x++)
+                {
+                    float wx = tp.x + x / (float)(res - 1) * size.x, wz = tp.z + y / (float)(res - 1) * size.z;
+                    float dx = Mathf.Max(0f, Mathf.Max(area.xMin - wx, wx - area.xMax)), dz = Mathf.Max(0f, Mathf.Max(area.yMin - wz, wz - area.yMax));
+                    float d = Mathf.Sqrt(dx * dx + dz * dz); if (d >= fall) continue;
+                    float k = Mathf.SmoothStep(0f, 1f, d / fall);
+                    h[y, x] = Mathf.Lerp(-tp.y / size.y, h[y, x], k);
+                }
+            td.SetHeights(0, 0, h);
+            // field trees inside the estate go
+            var keep = new List<TreeInstance>();
+            foreach (var ti in td.treeInstances)
+            {
+                float wx = tp.x + ti.position.x * size.x, wz = tp.z + ti.position.z * size.z;
+                if (wx > area.xMin - 3f && wx < area.xMax + 3f && wz > area.yMin - 3f && wz < area.yMax + 3f) continue;
+                keep.Add(ti);
+            }
+            td.treeInstances = keep.ToArray();
+            // long grass off the roads, drives and house plots (it stays on the green and in the back gardens)
+            int dr = td.detailResolution;
+            var houses = CouncilEstate.Blocks; var c = CouncilEstate.Centreline();
+            for (int layer = 0; layer < td.detailPrototypes.Length; layer++)
+            {
+                var map = td.GetDetailLayer(0, 0, dr, dr, layer); int cleared = 0;
+                for (int y = 0; y < dr; y++)
+                    for (int x = 0; x < dr; x++)
+                    {
+                        if (map[y, x] == 0) continue;
+                        float wx = tp.x + (x + 0.5f) / dr * size.x, wz = tp.z + (y + 0.5f) / dr * size.z;
+                        if (wx < area.xMin || wx > area.xMax || wz < area.yMin || wz > area.yMax) continue;
+                        if (Paved(new Vector3(wx, 0, wz), c)) { map[y, x] = 0; cleared++; }
+                    }
+                td.SetDetailLayer(0, 0, layer, map);
+            }
+            EditorUtility.SetDirty(td);
+        }
+
+        static bool Paved(Vector3 p, List<Vector3> c)
+        {
+            // near the loop road
+            for (int i = 0; i < c.Count - 1; i++)
+            {
+                Vector3 a = c[i], b = c[i + 1], ab = b - a; float t = Mathf.Clamp01(Vector3.Dot(p - a, ab) / Mathf.Max(1e-4f, ab.sqrMagnitude));
+                if ((a + ab * t - p).magnitude < CouncilEstate.RoadHalf + CouncilEstate.KerbW + CouncilEstate.PaveW + 0.6f) return true;
+            }
+            if (Mathf.Abs(p.x) < 1.6f && p.z < -37f && p.z > -105f) return true; // the footpath
+            foreach (var b in CouncilEstate.Blocks)
+            {
+                var l = Quaternion.Inverse(Quaternion.Euler(0, b.yaw, 0)) * (p - b.origin);
+                if (l.x > -0.6f && l.x < b.n * CouncilEstate.W + 0.6f && l.z < CouncilEstate.Forecourt + 0.4f && l.z > -CouncilEstate.D - 2.9f) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Mature trees round the green: a row inside each pavement and a few loose on the grass, kept off the footpath.</summary>
+        static void Trees(Terrain t)
+        {
+            var td = t.terrainData; if (td.treePrototypes.Length == 0) return;
+            Vector3 tp = t.transform.position, size = td.size;
+            var list = new List<TreeInstance>(td.treeInstances); var rng = new System.Random(77);
+            void Add(float x, float z)
+            {
+                if (Mathf.Abs(x) < 4f) return;
+                var ti = new TreeInstance
+                {
+                    position = new Vector3((x - tp.x) / size.x, 0f, (z - tp.z) / size.z), prototypeIndex = rng.Next(td.treePrototypes.Length),
+                    widthScale = 0.85f + (float)rng.NextDouble() * 0.35f, color = Color.white, lightmapColor = Color.white, rotation = (float)rng.NextDouble() * Mathf.PI * 2f,
+                };
+                ti.heightScale = ti.widthScale * (0.95f + (float)rng.NextDouble() * 0.15f);
+                list.Add(ti);
+            }
+            for (float z = -48f; z > -98f; z -= 12.5f) { Add(-29.5f + (float)rng.NextDouble(), z); Add(29.5f - (float)rng.NextDouble(), z - 5f); }
+            for (float x = -22f; x < 24f; x += 13f) Add(x + (float)rng.NextDouble() * 2f, -98.5f);
+            Add(-12f, -66f); Add(14f, -78f); Add(-18f, -84f); Add(8f, -46f);
+            td.treeInstances = list.ToArray();
+            t.Flush();
+        }
+
+        static void Probes(Transform world)
+        {
+            var old = world.Find("EstateProbes"); if (old != null) Object.DestroyImmediate(old.gameObject);
+            var pts = new List<Vector3>();
+            for (float x = -76f; x <= 76f; x += 8f) for (float z = -136f; z <= -40f; z += 8f) { pts.Add(new Vector3(x, 0.8f, z)); pts.Add(new Vector3(x, 4f, z)); }
+            var g = new GameObject("EstateProbes"); g.transform.SetParent(world, false);
+            g.AddComponent<LightProbeGroup>().probePositions = pts.ToArray();
+        }
+    }
+}
+#endif

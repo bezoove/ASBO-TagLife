@@ -28,9 +28,10 @@ namespace ASBO.Slice
             foreach (var h in Estate.Houses) House(h);
             Verges();
             Wrecks();
-            Outcrop(new Vector3(58f, 0f, -72f), 1f);
-            Outcrop(new Vector3(-76f, 0f, -58f), 0.8f);
+            Outcrop(new Vector3(92f, 0f, -70f), 1f);   // out past the estate's back gardens, on the rising fields
+            Outcrop(new Vector3(-92f, 0f, -60f), 0.8f);
             Debug.Log($"[ASBO] dressing: {root.childCount} pieces placed");
+            CouncilEstate.Dress(parent);
         }
 
         static float R(float a, float b) => a + (float)rng.NextDouble() * (b - a);
@@ -143,8 +144,8 @@ namespace ASBO.Slice
                 CarKit.Scenery(root, id, w, p, yaw, seed);
             }
             Dump("saloon90", CarKit.Wear.Burnt, new Vector3(-52f, 0f, World.RoadZ - 10.5f), 78f, 11);
-            Dump("supermini", CarKit.Wear.Burnt, new Vector3(36f, 0f, World.RoadZ - 12f), 200f, 12);
-            Dump("jeep", CarKit.Wear.Wreck, new Vector3(-66f, 0f, -46f), 140f, 13);
+            Dump("supermini", CarKit.Wear.Burnt, new Vector3(26f, 0f, -50f), 200f, 12);   // dumped on the estate green
+            Dump("jeep", CarKit.Wear.Wreck, new Vector3(12f, 0f, -60f), 140f, 13);
             Dump("hatch90", CarKit.Wear.Wreck, new Vector3(70f, 0f, World.RoadZ - 11f), 95f, 14);
         }
 

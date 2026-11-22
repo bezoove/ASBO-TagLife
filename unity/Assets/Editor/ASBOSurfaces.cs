@@ -33,6 +33,9 @@ namespace ASBO.EditorTools
             Debug.Log("[ASBO] surfaces: done");
         }
 
+        /// <summary>Just the texture import settings and the Resources/Surfaces materials (no scene changes).</summary>
+        public static void ImportAndMake() { ImportAll(); MakeMaterials(); AssetDatabase.SaveAssets(); }
+
         // ------------------------------------------------------------ import settings
         static int ImportAll()
         {

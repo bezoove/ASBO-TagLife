@@ -484,6 +484,7 @@ namespace ASBO.EditorTools
             else Debug.LogError("[ASBO] RCC demo car prefab not found");
             EditorSceneManager.SaveScene(scene);
             Debug.Log("[ASBO] Test scene built: " + dst);
+            ASBOEstate.Build(); // Hawthorn Way goes back in whenever the test scene is rebuilt
         }
     }
 }
