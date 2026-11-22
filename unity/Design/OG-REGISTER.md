@@ -13,10 +13,10 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - Old game: [DRIVE_CARS](og/modules/DRIVE_CARS.md), [CARJACK_NAMES](og/modules/CARJACK_NAMES.md) (0 behaviours, 8 lines said or shown, 5 tuning numbers)
 - [x] **No real brand names or logos**: Every shop, car and product name is made up.
   - You asked: No real brands or logos anywhere in the game.
-- [x] **Touch controls customisable like the old game**: Drag, resize, hide; separate on-foot and vehicle layouts; presets; reset. v20: no RUN button; the left stick appears wherever your thumb goes down and pushing it further turns the walk into a run.
+- [x] **Touch controls customisable like the old game**: Drag, resize, hide; separate on-foot and vehicle layouts; presets; reset. v20: no RUN button; the left stick appears wherever your thumb goes down and pushing it further turns the walk into a run. v21: the stick works on phones now (it let go the instant you touched it: a phone numbers each finger differently from what the stick was checking); tested with pretend phone touches, with a second finger looking about at the same time.
   - You asked: No run button: a left stick that turns a walk into a run when pushed further, and isn't fixed in one place.
   - Old game: [TOUCH_PRESETS](og/modules/TOUCH_PRESETS.md), [UI:controls](og/modules/UI-controls.md) (29 behaviours, 33 lines said or shown, 3 tuning numbers)
-- [x] **Smooth frame rate checked on every change**: Frame-time readout in test builds; phones lower render scale and shadows themselves when they can't keep up.
+- [~] **Smooth frame rate checked on every change**: Frame-time readout in test builds; phones lower render scale and shadows themselves when they can't keep up. v21: not checked properly on v20, and it showed. The jitter was the people: every one had about 25 full-size textures of their own, gigabytes in all, and once they had all loaded in the frame rate fell to single figures even on the laptop (and a slow frame then ran up to 16 physics steps to catch up, making the next one slower still). People now get quarter-size textures (the player half), far-off people aren't drawn and only nearby ones cast shadows, and a slow frame never runs more than five physics steps. Laptop: 7 to 9 fps before, 54 to 56 now, on foot, sat in a car and driving. Still to prove on an old phone: each person is about 60,000 triangles, a lot for a phone when a crowd is in view.
   - You asked: Heavy optimisation pass, kept up for every change from now on.
   - You asked: Smooth on phones up to about five years old.
   - Old game: [Perf](og/modules/Perf.md), [PerfProf](og/modules/PerfProf.md), [Adapt](og/modules/Adapt.md), [Tier](og/modules/Tier.md), [DynRes](og/modules/DynRes.md), [MG](og/modules/MG.md), [BQ](og/modules/BQ.md), [P9](og/modules/P9.md), [TexRes](og/modules/TexRes.md), [Perf7](og/modules/Perf7.md), [Perf8](og/modules/Perf8.md), [CharPool](og/modules/CharPool.md), [SpatialQ](og/modules/SpatialQ.md) (66 behaviours, 0 lines said or shown, 125 tuning numbers)
@@ -157,7 +157,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 
 ## Your body
 
-- [x] **Walk, run, sprint, jump, landing**: Faster running in v8. v20: running is back on the pack's motion-capture run (the Mixamo runs from v19 twisted a foot out, pulled the arms into the body and pushed the chest out). Planted feet are pinned to the floor so they don't skate (a kick's standing foot, shuffling in a fight); checked on the run, not yet move by move.
+- [x] **Walk, run, sprint, jump, landing**: Faster running in v8. v20: running is back on the pack's motion-capture run (the Mixamo runs from v19 twisted a foot out, pulled the arms into the body and pushed the chest out). Planted feet are pinned to the floor so they don't skate (a kick's standing foot, shuffling in a fight); checked on the run, not yet move by move. v21: only feet the animation itself holds still get pinned (walking and running feet were being caught and popping), and they let go while turning.
   - You asked: Movement must look human: a massive overhaul of running, jumping, throwing and walking with motion capture.
   - You asked: Legs not so bent when walking, for you and everyone else (v10: bodies stand on the real ground, legs straighter).
   - You asked: Running looked wrong: a foot at a crazy angle, arms in the body, chest puffed out. Use the motion assets.
@@ -168,7 +168,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - Old game: [Sit](og/modules/Sit.md), [FpSeat](og/modules/FpSeat.md) (12 behaviours, 3 lines said or shown, 2 tuning numbers)
 - [ ] **Climbing and ladders**: Fall too far and something in your knee goes click.
   - Old game: [Climb](og/modules/Climb.md), [Ladders](og/modules/Ladders.md), [LADDER_KINDS](og/modules/LADDER_KINDS.md) (76 behaviours, 70 lines said or shown, 59 tuning numbers)
-- [ ] **First and third person view**
+- [ ] **First and third person view**: v21: the car camera stays the same distance behind at every speed (it used to drop back further the faster you went, and judder) and isn't pushed about by cars or bodies; that distance is a saved setting ready for the custom view, which isn't built yet.
   - You asked: First/third person toggle, centre dot and a discreet info box (old game).
   - Old game: [View](og/modules/View.md), [CamRig](og/modules/CamRig.md) (39 behaviours, 10 lines said or shown, 31 tuning numbers)
 - [ ] **Bladder**: Meter, warning, wee button, puddles, people's reactions.

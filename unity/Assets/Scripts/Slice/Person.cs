@@ -73,6 +73,7 @@ namespace ASBO.Slice
                 hips = anim.isHuman ? anim.GetBoneTransform(HumanBodyBones.Hips) : anim.transform;
                 smrs = GetComponentsInChildren<SkinnedMeshRenderer>(true);
                 foreach (var r in smrs) r.updateWhenOffscreen = false;
+                if (!isPlayer && GetComponent<BodyLOD>() == null) gameObject.AddComponent<BodyLOD>(); // far-off people aren't drawn
             }, isParamedic || label == "Paramedic" ? "Paramedic" : label == "Builder" ? "Builder" : label == "Staff" ? "Staff" : null);
             if (!isPlayer)
             {

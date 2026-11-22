@@ -139,6 +139,10 @@ namespace ASBO.Slice
         {
             yield return null; // RCC may put the car on its own layers when it starts: the body goes back on ours (ragdolls pass through, ground probes skip it)
             foreach (var t in vis.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = Person.VehicleLayer;
+            // and drawn smoothly between physics steps (without it the car judders against the camera, worse the faster it goes)
+            if (rb != null) { if (rb.interpolation != RigidbodyInterpolation.Interpolate) Debug.Log("[ASBO] RCC car had interpolation " + rb.interpolation + ": put back"); rb.interpolation = RigidbodyInterpolation.Interpolate; }
+            yield return new WaitForSeconds(0.5f);
+            if (rb != null) rb.interpolation = RigidbodyInterpolation.Interpolate;
         }
 
         void EnterRcc()
@@ -164,8 +168,15 @@ namespace ASBO.Slice
         }
 
         /// <summary>One physics step of the RCC car: our buttons become its pedals, wheel and handbrake.</summary>
+        static bool toldInterp;
         void DriveRcc(float dt)
         {
+            // drawn smoothly between physics steps, always (RCC sets this itself in places; without it the car judders at speed)
+            if (rb != null && rb.interpolation != RigidbodyInterpolation.Interpolate)
+            {
+                if (!toldInterp) { toldInterp = true; Debug.Log("[ASBO] RCC switched the car's interpolation to " + rb.interpolation + ": kept on Interpolate"); }
+                rb.interpolation = RigidbodyInterpolation.Interpolate;
+            }
             sp = Vector3.Dot(rb.linearVelocity, transform.forward);
             var c = Read(dt);
             if (driven)

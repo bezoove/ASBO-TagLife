@@ -19,7 +19,8 @@ namespace ASBO.Slice
         Animator anim; float pelvis, lOff, rOff, lW, rW;
         struct Pin { public bool on, seen; public Vector3 at, lastLocal, lastWorld; public float w; }
         Pin lPin, rPin;
-        const float PinReach = 0.28f; // how far the body can move off a planted foot before it has to step
+        const float PinReach = 0.22f; // how far the body can move off a planted foot before it has to step
+        float lastYaw; float turnRate;
 
         /// <summary>The foot target with the pin applied: held where it landed while the animation has it planted.</summary>
         Vector3 Pinned(ref Pin k, Vector3 raw, Vector3 target, float bottom, float dt)
@@ -29,10 +30,12 @@ namespace ASBO.Slice
             float h = Vector3.Dot(raw - root.position, up) - bottom;
             float vLocal = k.seen ? (local - k.lastLocal).WithY(0).magnitude / dt : 9f, vWorld = k.seen ? (raw - k.lastWorld).WithY(0).magnitude / dt : 9f;
             k.lastLocal = local; k.lastWorld = raw; k.seen = true;
-            bool down = h < 0.045f && (vLocal < 0.4f || vWorld < 0.4f);
+            // planted = low, and held still by the animation itself (a kick's standing foot, a fighting stance); walking and
+            // running feet travel back under the body, so they're left to the animation (pinning those made legs pop)
+            bool down = h < 0.04f && vLocal < 0.22f && turnRate < 120f;
             if (down && !k.on) { k.on = true; k.at = target; }
             if (k.on && (!down || (k.at - target).WithY(0).magnitude > PinReach)) k.on = false;
-            k.w = Mathf.MoveTowards(k.w, k.on ? 1f : 0f, dt / 0.1f);
+            k.w = Mathf.MoveTowards(k.w, k.on ? 1f : 0f, dt / (k.on ? 0.08f : 0.18f));
             if (k.w <= 0f) return target;
             Vector3 at = k.at; at.y = target.y; // keep the ground fit's height
             return Vector3.Lerp(target, at, k.w);
@@ -84,6 +87,7 @@ namespace ASBO.Slice
             // feet go to the surface; the hip drop is already in the IK goals' frame, so add it back
             anim.SetIKPositionWeight(AvatarIKGoal.LeftFoot, lW); anim.SetIKRotationWeight(AvatarIKGoal.LeftFoot, lW * 0.7f);
             float dt = Mathf.Max(Time.deltaTime, 1e-4f);
+            float yawNow = anim.transform.eulerAngles.y; turnRate = Mathf.Lerp(turnRate, Mathf.Abs(Mathf.DeltaAngle(lastYaw, yawNow)) / dt, 0.3f); lastYaw = yawNow;
             Vector3 lt = Pinned(ref lPin, lp, lp + up * lOff, anim.leftFeetBottomHeight, dt), rt = Pinned(ref rPin, rp, rp + up * rOff, anim.rightFeetBottomHeight, dt);
             anim.SetIKPosition(AvatarIKGoal.LeftFoot, lt); anim.SetIKRotation(AvatarIKGoal.LeftFoot, lr);
             anim.SetIKPositionWeight(AvatarIKGoal.RightFoot, rW); anim.SetIKRotationWeight(AvatarIKGoal.RightFoot, rW * 0.7f);

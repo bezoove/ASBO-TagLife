@@ -48,17 +48,26 @@ namespace ASBO.Slice
             orbit.OrbitStyle = CinemachineOrbitalFollow.OrbitStyles.Sphere;
             orbit.Radius = 4.2f;
             orbit.TrackerSettings.BindingMode = Unity.Cinemachine.TargetTracking.BindingMode.WorldSpace;
+            // no follow lag of its own: our target is already smoothed on foot and locked to the car when driving,
+            // so the view stays the same distance at any speed (it used to trail off behind at speed)
+            orbit.TrackerSettings.PositionDamping = Vector3.zero; orbit.TrackerSettings.RotationDamping = Vector3.zero;
             var comp = vg.AddComponent<CinemachineRotationComposer>();
-            comp.Composition.ScreenPosition = new Vector2(0f, 0.05f);
+            comp.Composition.ScreenPosition = new Vector2(0f, 0.05f); comp.Damping = Vector2.zero;
             var deocc = vg.AddComponent<CinemachineDeoccluder>();
-            deocc.CollideAgainst = ~(1 << 2);
+            deocc.CollideAgainst = ~((1 << 2) | (1 << Person.VehicleLayer) | (1 << Person.RagdollLayer)); // cars and bodies don't shove the camera about
             deocc.MinimumDistanceFromTarget = 0.25f;
-            var av = deocc.AvoidObstacles; av.Enabled = true; av.CameraRadius = 0.12f; deocc.AvoidObstacles = av;
+            var av = deocc.AvoidObstacles; av.Enabled = true; av.CameraRadius = 0.12f;
+            av.MinimumOcclusionTime = 0.25f; // a lamp post or a tree flicking past doesn't make it jump in and out
+            av.DampingWhenOccluded = 0.15f; av.Damping = 0.35f;
+            deocc.AvoidObstacles = av;
             touch = TouchControls.Wanted;
             if (touch) TouchControls.Create(this);
             else { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
             yaw = bodyYaw = transform.eulerAngles.y;
         }
+
+        /// <summary>Get in or out of the nearest car (the car button).</summary>
+        public void UseCar() => ToggleCar();
 
         public void Teleport(Vector3 pos, float yawDeg, float pitchDeg = 12f)
         {
@@ -325,6 +334,14 @@ namespace ASBO.Slice
             doorBusy = false;
         }
 
+        /// <summary>How far behind the car the camera sits: the same at every speed. The custom view setting will change it (saved).</summary>
+        public static float CarView
+        {
+            get { if (carView < 0f) carView = PlayerPrefs.GetFloat("view.car", 7f); return carView; }
+            set { carView = Mathf.Clamp(value, 4f, 12f); PlayerPrefs.SetFloat("view.car", carView); }
+        }
+        static float carView = -1f;
+
         void UpdateCamera()
         {
             if (camTarget == null || orbit == null) return;
@@ -332,10 +349,16 @@ namespace ASBO.Slice
             Vector3 focus = tgt.position + Vector3.up * (inCar ? 1.6f : 1.55f);
             if (!inCar && person != null && person.state != Person.State.Walking) focus = person.BodyPos + Vector3.up * 0.5f;
             if (spectate && Person.LastHit != null) focus = Person.LastHit.BodyPos + Vector3.up * 0.6f;
-            camTarget.position = Vector3.Lerp(camTarget.position, focus, 1f - Mathf.Exp(-14f * Time.deltaTime));
+            if (inCar && VehT != null && !doorBusy)
+            {
+                // locked to the car across the ground (no trailing behind at speed); only bumps are eased so the view doesn't shake
+                var c = camTarget.position;
+                camTarget.position = new Vector3(focus.x, Mathf.Lerp(c.y, focus.y, 1f - Mathf.Exp(-10f * Time.deltaTime)), focus.z);
+            }
+            else camTarget.position = Vector3.Lerp(camTarget.position, focus, 1f - Mathf.Exp(-14f * Time.deltaTime));
             if (inCar && VehT != null && VehSpeed > 2f && Vector3.Dot(VehVel, VehT.forward) > 0) yaw = Mathf.LerpAngle(yaw, VehT.eulerAngles.y, 2f * Time.deltaTime);
             bool indoors = !inCar && GameAudio.I != null && GameAudio.I.InsideAny(transform.position + Vector3.up);
-            orbit.Radius = Mathf.Lerp(orbit.Radius, inCar ? 8f : indoors ? 2.4f : spectate ? 6f : 4.2f, 4f * Time.deltaTime);
+            orbit.Radius = Mathf.Lerp(orbit.Radius, inCar ? CarView : indoors ? 2.4f : spectate ? 6f : 4.2f, 4f * Time.deltaTime);
             if (!inCar && Fighter.Session.Hot && fighter != null && Time.time - lookT > 0.8f)
             {
                 var foe = fighter.Target != null ? fighter.Target : fighter.NearestFoe();

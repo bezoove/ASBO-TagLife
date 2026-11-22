@@ -20,6 +20,8 @@ namespace ASBO.Slice
             for (int i = 0; i < 32; i++) Physics.IgnoreLayerCollision(CamBlockLayer, i, true);
             if (Application.isEditor) Application.runInBackground = true; // keep playing while the editor is unfocused (scripted captures)
             if (Application.isMobilePlatform) { Application.targetFrameRate = 60; Screen.sleepTimeout = SleepTimeout.NeverSleep; }
+            // a slow frame never runs more than five physics steps to catch up (more makes the next frame slower still: a spiral)
+            Time.maximumDeltaTime = 0.1f;
             if (inst != null || FindFirstObjectByType<World>() != null) return;
             var g = new GameObject("ASBO_Slice"); inst = g.AddComponent<World>();
             DontDestroyOnLoad(g);

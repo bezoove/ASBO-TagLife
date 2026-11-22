@@ -16,10 +16,12 @@ namespace ASBO.Slice
         static GameObject basePrefab; static bool looked, configured;
         const float GamePull = 2.4f;
 
+        public static bool Off; // tests: arcade cars only
         public static bool Ready
         {
             get
             {
+                if (Off) return false;
                 if (!looked) { looked = true; basePrefab = Resources.Load<GameObject>("CarRig/RccBase"); if (basePrefab == null) Debug.Log("[ASBO] no RCC rig in the build: arcade cars"); }
                 return basePrefab != null;
             }

@@ -113,6 +113,10 @@ namespace ASBO.Slice
             go.AddComponent<AnimEventSink>(); // the walk clips carry footstep events
             var dca = go.AddComponent<DynamicCharacterAvatar>();
             dca.RacePreset = race.raceName;
+            // texture size: UMA makes every person their own set of textures (about 25 of them: five skin tiles with five maps each,
+            // hair, clothes), 1024 square at full size. Forty-odd people at that was gigabytes of graphics memory, which brought even
+            // the laptop down to single figures; a quarter size is plenty for someone across the street (the player gets half)
+            dca.AtlasResolutionScale = isPlayer ? 0.5f : 0.25f;
             bool stock = PlayerPrefs.GetInt("asbo_stock", 0) == 1; // before/after comparison: UMA defaults, no foot IK
             string k = (isMale ? "M" : "F") + (stock ? "_Stock" : p != null && p.drunk && isMale ? "_Drunk" : PlayerPrefs.GetInt("asbo_sa", 1) == 1 ? "_SA" : "");
             if (!ctrls.TryGetValue(k, out var ctrl)) { ctrl = Resources.Load<RuntimeAnimatorController>("Anim/Loco" + k); if (ctrl == null && k.EndsWith("_Drunk")) ctrl = Resources.Load<RuntimeAnimatorController>("Anim/LocoM_SA"); ctrls[k] = ctrl; }

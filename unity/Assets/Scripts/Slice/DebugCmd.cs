@@ -181,6 +181,12 @@ namespace ASBO.Slice
         public static void EstateShots() { new GameObject("EstateShots").AddComponent<EstateShotsRun>(); }
         /// <summary>Photograph one set of places: 0 the estate, 1 the building site, 2 the castle (Shots/place_N.png).</summary>
         public static void PlaceShots(int set) { var r = new GameObject("PlaceShots").AddComponent<EstateShotsRun>(); r.set = set; }
+        /// <summary>A phone finger on the left stick (a pretend touchscreen, so the touch ids are a phone's), with a second finger looking about.</summary>
+        public static void StickTest() { new GameObject("StickTest").AddComponent<StickTestRun>(); }
+        /// <summary>Drive flat out down the long road with the real camera: how far back it sits and how steady the car is on screen.</summary>
+        public static void CamTest(string id) { var r = new GameObject("CamTest").AddComponent<CamTestRun>(); r.id = string.IsNullOrEmpty(id) ? "hatch90" : id; }
+        /// <summary>Where the frame time goes: on foot, sat in a car, then driving (Unity's own timers, a few seconds each).</summary>
+        public static void PerfRun(string id) { var r = new GameObject("PerfRun").AddComponent<PerfRunner>(); r.id = string.IsNullOrEmpty(id) ? "hatch90" : id; }
         public static void TouchDrive() { new GameObject("TouchDriveTest").AddComponent<TouchDriveTest>().Run(); }
         public static void EditSwitch() { if (TouchControls.I != null) TouchControls.I.SwitchEditSet(); }
         public static void EditPreset() { if (TouchControls.I != null) TouchControls.I.NextPreset(); }
@@ -982,6 +988,291 @@ namespace ASBO.Slice
             }
             Destroy(cg); World.HideHud = false; Debug.Log("[ASBO] estate shots done");
             Destroy(gameObject);
+        }
+    }
+
+    public class StickTestRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            var set = UnityEngine.InputSystem.InputSystem.settings;
+            var oldEd = set.editorInputBehaviorInPlayMode; var oldBg = set.backgroundBehavior;
+            set.editorInputBehaviorInPlayMode = UnityEngine.InputSystem.InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            set.backgroundBehavior = UnityEngine.InputSystem.InputSettings.BackgroundBehavior.IgnoreFocus;
+            var ts = UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Touchscreen>("TestTouch");
+            var pc = FindFirstObjectByType<PlayerCtl>();
+            if (pc != null) pc.Teleport(new Vector3(-40f, 0.15f, World.RoadZ - 9f), 90f);
+            yield return new WaitForSeconds(0.6f);
+            Vector2 p0 = new Vector2(Screen.width * 0.18f, Screen.height * 0.3f);
+            void T(int id, UnityEngine.InputSystem.TouchPhase ph, Vector2 at) =>
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(ts, new UnityEngine.InputSystem.LowLevel.TouchState { touchId = id, phase = ph, position = at, pressure = 1f });
+            T(7, UnityEngine.InputSystem.TouchPhase.Began, p0);
+            yield return null; yield return null;
+            Debug.Log($"[ASBO] sticktest down: active={FloatStick.Active} value={FloatStick.Value} screen={Screen.width}x{Screen.height}");
+            {
+                var t0 = ts.touches[0]; Debug.Log($"[ASBO] sticktest device: added={ts.added} enabled={ts.enabled} current={(UnityEngine.InputSystem.Touchscreen.current == ts)} touch0 id={t0.touchId.ReadValue()} pressed={t0.press.isPressed} pos={t0.position.ReadValue()} phase={t0.phase.ReadValue()}");
+                var es = UnityEngine.EventSystems.EventSystem.current;
+                var hits = new System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult>();
+                if (es != null) es.RaycastAll(new UnityEngine.EventSystems.PointerEventData(es) { position = p0 }, hits);
+                var ui = es != null ? es.currentInputModule as UnityEngine.InputSystem.UI.InputSystemUIInputModule : null;
+                Debug.Log($"[ASBO] sticktest ui: module={(es != null && es.currentInputModule != null ? es.currentInputModule.GetType().Name : "none")} point={(ui != null && ui.point != null ? string.Join(",", ui.point.action.bindings.Select(bb => bb.effectivePath)) : "-")} click={(ui != null && ui.leftClick != null ? string.Join(",", ui.leftClick.action.bindings.Select(bb => bb.effectivePath)) : "-")} under finger: {string.Join(" > ", hits.Select(h => h.gameObject.name))}");
+            }
+            Vector3 pos0 = pc != null ? pc.transform.position : Vector3.zero;
+            for (int i = 1; i <= 12; i++)
+            {
+                Vector2 at = p0 + new Vector2(Mathf.Min(1f, i / 4f) * Screen.height * 0.08f, 0f);
+                T(7, UnityEngine.InputSystem.TouchPhase.Moved, at);
+                if (i == 5) T(8, UnityEngine.InputSystem.TouchPhase.Began, new Vector2(Screen.width * 0.8f, Screen.height * 0.5f)); // a second finger, looking
+                if (i > 5 && i < 10) T(8, UnityEngine.InputSystem.TouchPhase.Moved, new Vector2(Screen.width * 0.8f + i * 12f, Screen.height * 0.5f));
+                if (i == 10) T(8, UnityEngine.InputSystem.TouchPhase.Ended, new Vector2(Screen.width * 0.8f + 120f, Screen.height * 0.5f));
+                yield return new WaitForSeconds(0.1f);
+                if (i % 2 == 0) Debug.Log($"[ASBO] sticktest t={i * 0.1f:F1}s active={FloatStick.Active} value=({FloatStick.Value.x:F2},{FloatStick.Value.y:F2}) moved={(pc != null ? (pc.transform.position - pos0).WithY(0).magnitude : 0f):F2} m");
+            }
+            T(7, UnityEngine.InputSystem.TouchPhase.Ended, p0);
+            yield return null; yield return null;
+            Debug.Log($"[ASBO] sticktest up: active={FloatStick.Active} value={FloatStick.Value}");
+            UnityEngine.InputSystem.InputSystem.RemoveDevice(ts);
+            set.editorInputBehaviorInPlayMode = oldEd; set.backgroundBehavior = oldBg;
+            Destroy(gameObject);
+        }
+    }
+
+    public class CamTestRun : MonoBehaviour
+    {
+        public string id;
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>(); var cam = Camera.main;
+            if (pc == null || cam == null) { Debug.Log("[ASBO] camtest: no player/camera"); yield break; }
+            var traffic = Object.FindObjectsByType<TrafficCar>(FindObjectsSortMode.None); foreach (var tc in traffic) tc.gameObject.SetActive(false);
+            Vector3 start = new Vector3(-150f, 0.25f, World.RoadZ - 2.1f);
+            var car = PlayerCar.Create(start, 90f, new Color(0.5f, 0.1f, 0.1f), id, CarKit.Wear.Clean, 3);
+            yield return new WaitForSeconds(0.8f);
+            pc.Teleport(car.transform.position - car.transform.right * 2.3f, 90f);
+            yield return new WaitForSeconds(0.3f);
+            pc.UseCar();
+            yield return new WaitForSeconds(1.5f);
+            var rb = car.GetComponent<Rigidbody>();
+            var brain = cam.GetComponent<Unity.Cinemachine.CinemachineBrain>();
+            Debug.Log($"[ASBO] camtest {id}: inCar={pc.InCar} physical={car.Physical} interp={rb?.interpolation} fixedDt={Time.fixedDeltaTime} fps cap={Application.targetFrameRate} brain={brain?.UpdateMethod} view={PlayerCtl.CarView}");
+            TouchCar.Clear(); TouchCar.fwd = true;
+            float t0 = Time.time, nextLog = 1f; Vector3 lastVp = Vector3.zero; bool have = false;
+            float sumJ = 0f, maxJ = 0f; int nJ = 0; float distMin = 99f, distMax = 0f;
+            while (Time.time - t0 < 10f && car.transform.position.x < 150f)
+            {
+                yield return new WaitForEndOfFrame();
+                Vector3 vp = cam.WorldToViewportPoint(car.transform.position + Vector3.up * 0.7f);
+                if (have) { float j = ((Vector2)(vp - lastVp)).magnitude * 1000f; sumJ += j; nJ++; maxJ = Mathf.Max(maxJ, j); }
+                lastVp = vp; have = true;
+                float dist = (cam.transform.position - car.transform.position).WithY(0).magnitude; distMin = Mathf.Min(distMin, dist); distMax = Mathf.Max(distMax, dist);
+                if (Time.time - t0 >= nextLog)
+                {
+                    Debug.Log($"[ASBO] camtest t={Time.time - t0:F0}s v={car.SignedSpeed * 3.6f:F0} km/h camera {distMin:F1}-{distMax:F1} m behind, car on screen moves {sumJ / Mathf.Max(1, nJ):F1}/1000 per frame (worst {maxJ:F1}), screen pos ({vp.x:F2},{vp.y:F2}) interp={rb?.interpolation}");
+                    sumJ = 0f; maxJ = 0f; nJ = 0; distMin = 99f; distMax = 0f; nextLog += 1f;
+                    if (Mathf.Abs(nextLog - 7f) < 0.01f) DebugCmd.Shot("camtest_speed");
+                }
+            }
+            TouchCar.Clear(); TouchCar.brake = true; yield return new WaitForSeconds(2.5f); TouchCar.Clear();
+            pc.UseCar(); yield return new WaitForSeconds(1.2f);
+            foreach (var tc in traffic) if (tc != null) tc.gameObject.SetActive(true);
+            Debug.Log("[ASBO] camtest done");
+            Destroy(gameObject);
+        }
+    }
+
+    public class PerfRunner : MonoBehaviour
+    {
+        public string id; int fixedSteps;
+        void FixedUpdate() { fixedSteps++; }
+        static readonly (Unity.Profiling.ProfilerCategory cat, string name)[] Marks =
+        {
+            (Unity.Profiling.ProfilerCategory.Internal, "Main Thread"),
+            (Unity.Profiling.ProfilerCategory.Internal, "PlayerLoop"),
+            (Unity.Profiling.ProfilerCategory.Physics, "FixedUpdate.PhysicsFixedUpdate"),
+            (Unity.Profiling.ProfilerCategory.Scripts, "FixedUpdate.ScriptRunBehaviourFixedUpdate"),
+            (Unity.Profiling.ProfilerCategory.Scripts, "Update.ScriptRunBehaviourUpdate"),
+            (Unity.Profiling.ProfilerCategory.Scripts, "PreLateUpdate.ScriptRunBehaviourLateUpdate"),
+            (Unity.Profiling.ProfilerCategory.Animation, "PreLateUpdate.DirectorUpdateAnimationBegin"),
+            (Unity.Profiling.ProfilerCategory.Animation, "PreLateUpdate.DirectorUpdateAnimationEnd"),
+            (Unity.Profiling.ProfilerCategory.Render, "PostLateUpdate.FinishFrameRendering"),
+            (Unity.Profiling.ProfilerCategory.Render, "Gfx.WaitForPresentOnGfxThread"),
+            (Unity.Profiling.ProfilerCategory.Ai, "AI.Navigation"),
+            (Unity.Profiling.ProfilerCategory.Audio, "PostLateUpdate.UpdateAudio"),
+            (Unity.Profiling.ProfilerCategory.Render, "GfxDeviceD3D12.WaitForLastPresentation.WaitForGPU"),
+            (Unity.Profiling.ProfilerCategory.Render, "RenderLoop.DrawSRPBatcher"),
+            (Unity.Profiling.ProfilerCategory.Particles, "PreLateUpdate.ParticleSystemBeginUpdateAll"),
+            (Unity.Profiling.ProfilerCategory.Scripts, "Update.ScriptRunDelayedDynamicFrameRate"),
+            (Unity.Profiling.ProfilerCategory.Render, "Inl_UniversalRenderPipeline.RenderSingleCameraInternal"),
+        };
+        System.Collections.IEnumerator Measure(string label, float secs)
+        {
+            var recs = Marks.Select(m => Unity.Profiling.ProfilerRecorder.StartNew(m.cat, m.name, 400)).ToArray();
+            var gc = Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Memory, "GC.Alloc", 400);
+            var dc = Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Render, "Draw Calls Count");
+            var tris = Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Render, "Triangles Count");
+            float t0 = Time.realtimeSinceStartup; int f0 = Time.frameCount; fixedSteps = 0; float worst = 0f;
+            while (Time.realtimeSinceStartup - t0 < secs) { yield return null; worst = Mathf.Max(worst, Time.unscaledDeltaTime); }
+            int frames = Mathf.Max(1, Time.frameCount - f0); float real = Time.realtimeSinceStartup - t0;
+            var parts = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < recs.Length; i++)
+            {
+                var r = recs[i]; if (!r.Valid || r.Count == 0) { parts.Add($"{Marks[i].name}=-"); r.Dispose(); continue; }
+                double sum = 0; int n = Mathf.Min(r.Count, r.Capacity); for (int k = 0; k < n; k++) sum += r.GetSample(k).Value; parts.Add($"{Marks[i].name.Replace("PreLateUpdate.", "").Replace("PostLateUpdate.", "").Replace("FixedUpdate.", "F.").Replace("Update.", "")}={sum / n * 1e-6:F1}"); r.Dispose();
+            }
+            Debug.Log($"[ASBO] perf {label}: {frames / real:F0} fps ({real * 1000f / frames:F1} ms, worst {worst * 1000f:F0}), physics steps/frame {fixedSteps / (float)frames:F2}, draws {dc.LastValue} tris {tris.LastValue / 1000}k, GC {(gc.Valid && gc.Count > 0 ? gc.LastValue / 1024 : -1)} KB/frame; ms: {string.Join(" ", parts)}");
+            gc.Dispose(); dc.Dispose(); tris.Dispose();
+        }
+        /// <summary>Every timer Unity has, for a few seconds: the 30 biggest (parents and children both show).</summary>
+        System.Collections.IEnumerator Top(string label, float secs)
+        {
+            var hs = new System.Collections.Generic.List<Unity.Profiling.LowLevel.Unsafe.ProfilerRecorderHandle>();
+            Unity.Profiling.LowLevel.Unsafe.ProfilerRecorderHandle.GetAvailable(hs);
+            var recs = new System.Collections.Generic.List<(string n, Unity.Profiling.ProfilerRecorder r)>();
+            foreach (var h in hs)
+            {
+                var d = Unity.Profiling.LowLevel.Unsafe.ProfilerRecorderHandle.GetDescription(h);
+                if (d.UnitType != Unity.Profiling.ProfilerMarkerDataUnit.TimeNanoseconds) continue;
+                recs.Add((d.Name, new Unity.Profiling.ProfilerRecorder(d.Category, d.Name, 300)));
+            }
+            foreach (var x in recs) x.r.Start();
+            float t0 = Time.realtimeSinceStartup; int f0 = Time.frameCount;
+            while (Time.realtimeSinceStartup - t0 < secs) yield return null;
+            int frames = Mathf.Max(1, Time.frameCount - f0);
+            var res = new System.Collections.Generic.List<(string n, double ms)>();
+            foreach (var x in recs)
+            {
+                var r = x.r; double sum = 0; int n = r.Valid ? Mathf.Min(r.Count, r.Capacity) : 0;
+                for (int k = 0; k < n; k++) sum += r.GetSample(k).Value;
+                if (n > 0) res.Add((x.n, sum * 1e-6 / frames)); r.Dispose();
+            }
+            Debug.Log($"[ASBO] perf top {label} ({recs.Count} timers, {frames} frames): " + string.Join(" | ", res.OrderByDescending(q => q.ms).Take(40).Select(q => $"{q.n} {q.ms:F1}")));
+        }
+
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>();
+            if (id == "shaders")
+            {
+                pc.Teleport(new Vector3(-150f, 0.15f, World.RoadZ - 6f), 90f);
+                yield return new WaitForSeconds(12f);
+                var smr = Object.FindObjectsByType<SkinnedMeshRenderer>(FindObjectsSortMode.None).Where(r => r.enabled).ToArray();
+                var one = smr.FirstOrDefault(r => r.GetComponentInParent<PlayerCtl>() == null);
+                if (one != null)
+                {
+                    var mesh = one.sharedMesh;
+                    for (int i = 0; i < one.sharedMaterials.Length; i++)
+                    {
+                        var m = one.sharedMaterials[i]; if (m == null) continue;
+                        var texs = m.GetTexturePropertyNames().Select(n => (n, t: m.GetTexture(n))).Where(x => x.t != null).Select(x => $"{x.n}={x.t.width}x{x.t.height}");
+                        Debug.Log($"[ASBO] perf mat {i}: {m.name} shader {m.shader.name} passes {m.passCount} queue {m.renderQueue} sub tris {(mesh != null && i < mesh.subMeshCount ? mesh.GetIndexCount(i) / 3 : -1)} keywords [{string.Join(" ", m.shaderKeywords)}] tex [{string.Join(" ", texs)}] floats [{string.Join(" ", new[] { "_Surface", "_AlphaClip", "_Cutoff", "_Cull", "_Smoothness", "_Metallic" }.Where(m.HasProperty).Select(n => n + "=" + m.GetFloat(n).ToString("F2")))}]");
+                    }
+                }
+                var all = smr.Select(r => r.sharedMaterials).ToArray();
+                var plain = new Material(Shader.Find("Universal Render Pipeline/Simple Lit"));
+                yield return Measure("people as built", 2.5f);
+                foreach (var key in new[] { "Hair", "Skin", "UMA3_Lit", "Universal" })
+                {
+                    foreach (var r in smr) r.sharedMaterials = r.sharedMaterials.Select(m => m != null && m.shader.name.Contains(key) ? plain : m).ToArray();
+                    yield return new WaitForSeconds(0.5f);
+                    yield return Measure("plain " + key, 2.5f);
+                    for (int i = 0; i < smr.Length; i++) smr[i].sharedMaterials = all[i];
+                    yield return new WaitForSeconds(0.3f);
+                }
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            if (id == "skin")
+            {
+                pc.Teleport(new Vector3(-150f, 0.15f, World.RoadZ - 6f), 90f);
+                yield return new WaitForSeconds(12f);
+                var smr = Object.FindObjectsByType<SkinnedMeshRenderer>(FindObjectsSortMode.None).Where(r => r.enabled).ToArray();
+                long tri = 0; int bs = 0, offscreen = 0, quality4 = 0; var shaders = new System.Collections.Generic.Dictionary<string, int>();
+                foreach (var r in smr)
+                {
+                    if (r.sharedMesh != null) { for (int k = 0; k < r.sharedMesh.subMeshCount; k++) tri += r.sharedMesh.GetIndexCount(k) / 3; bs += r.sharedMesh.blendShapeCount; }
+                    if (r.updateWhenOffscreen) offscreen++; if (r.quality == SkinQuality.Bone4 || r.quality == SkinQuality.Auto) quality4++;
+                    foreach (var m in r.sharedMaterials) if (m != null) { string n = m.shader.name; shaders[n] = shaders.TryGetValue(n, out var c) ? c + 1 : 1; }
+                }
+                Debug.Log($"[ASBO] perf skin: {smr.Length} skinned, {tri / 1000}k tris, blendshapes {bs}, updateWhenOffscreen {offscreen}, shaders: {string.Join(", ", shaders.Select(kv => kv.Key + " x" + kv.Value))}; gpu skinning {SystemInfo.supportsComputeShaders} quality skinWeights {QualitySettings.skinWeights}");
+                yield return Measure("all people drawn", 2.5f);
+                foreach (var r in smr) r.enabled = false;
+                yield return new WaitForSeconds(0.5f);
+                yield return Measure("people hidden", 2.5f);
+                var modes = smr.Select(r => r.shadowCastingMode).ToArray();
+                foreach (var r in smr) { r.enabled = true; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; }
+                yield return new WaitForSeconds(0.5f);
+                yield return Measure("people, no shadows", 2.5f);
+                for (int i = 0; i < smr.Length; i++) smr[i].shadowCastingMode = modes[i];
+                var mats = smr.Select(r => r.sharedMaterials).ToArray();
+                var plain = new Material(Shader.Find("Universal Render Pipeline/Simple Lit"));
+                foreach (var r in smr) r.sharedMaterials = Enumerable.Repeat(plain, r.sharedMaterials.Length).ToArray();
+                yield return new WaitForSeconds(0.5f);
+                yield return Measure("people, plain material", 2.5f);
+                for (int i = 0; i < smr.Length; i++) smr[i].sharedMaterials = mats[i];
+                yield return new WaitForSeconds(0.5f);
+                yield return Measure("people back", 2.5f);
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            if (id == "time")
+            {
+                pc.Teleport(new Vector3(-150f, 0.15f, World.RoadZ - 6f), 90f);
+                for (int i = 0; i < 9; i++)
+                {
+                    var ls = Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Where(l => l.isActiveAndEnabled).ToArray();
+                    var cams = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None).Where(c => c.isActiveAndEnabled).ToArray();
+                    var pss = Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None);
+                    var probes = Object.FindObjectsByType<ReflectionProbe>(FindObjectsSortMode.None).Count(r => r.isActiveAndEnabled && r.mode == UnityEngine.Rendering.ReflectionProbeMode.Realtime);
+                    Debug.Log($"[ASBO] perf state t={Time.timeSinceLevelLoad:F0}: hour {GameClock.Hour:F2}, lights {ls.Length} (shadowed {ls.Count(l => l.shadows != LightShadows.None)}: {string.Join(",", ls.Where(l => l.shadows != LightShadows.None).Take(6).Select(l => l.name + ":" + l.type))}), cameras {cams.Length} ({string.Join(",", cams.Select(c => c.name + (c.targetTexture != null ? "[rt]" : "")))}), particles {pss.Sum(p => p.particleCount)} in {pss.Count(p => p.isPlaying)} playing, realtime probes {probes}, people {Object.FindObjectsByType<Person>(FindObjectsSortMode.None).Length}, skinned {Object.FindObjectsByType<SkinnedMeshRenderer>(FindObjectsSortMode.None).Count(r => r.isVisible)} visible, renderers visible {Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None).Count(r => r.isVisible)}");
+                    yield return Measure("standing " + i, 2f);
+                }
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            if (id == "cost")
+            {
+                pc.Teleport(new Vector3(-150f, 0.15f, World.RoadZ - 6f), 90f); yield return new WaitForSeconds(2f);
+                yield return Measure("nothing", 2.5f);
+                foreach (var (model, rccOn) in new[] { ("hatch90", true), ("hatch90", false), ("supermini", true), ("supermini", false) })
+                {
+                    CarRig.Off = !rccOn;
+                    var c = PlayerCar.Create(new Vector3(-150f, 0.25f, World.RoadZ - 2.1f), 90f, new Color(0.5f, 0.1f, 0.1f), model, CarKit.Wear.Clean, 3);
+                    CarRig.Off = false;
+                    yield return new WaitForSeconds(1.5f);
+                    long tri = 0; int rends = 0; foreach (var mf in c.GetComponentsInChildren<MeshFilter>(true)) { if (mf.sharedMesh == null) continue; rends++; for (int sm = 0; sm < mf.sharedMesh.subMeshCount; sm++) tri += mf.sharedMesh.GetIndexCount(sm) / 3; }
+                    var ps = c.GetComponentsInChildren<ParticleSystem>(true);
+                    Debug.Log($"[ASBO] perf car {model} {(c.Physical ? "RCC" : "arcade")}: {rends} meshes {tri / 1000f:F1}k tris, particles {ps.Length} systems ({ps.Sum(p => p.particleCount)} alive, max {ps.Sum(p => p.main.maxParticles)}, colliding {ps.Count(p => p.collision.enabled)}), audio {c.GetComponentsInChildren<AudioSource>(true).Count(a => a.isPlaying)}/{c.GetComponentsInChildren<AudioSource>(true).Length}, lights {c.GetComponentsInChildren<Light>(true).Count(l => l.isActiveAndEnabled)}, behaviours {c.GetComponentsInChildren<MonoBehaviour>(true).Count(b => b.isActiveAndEnabled)}");
+                    yield return Measure(model + (c.Physical ? " RCC" : " arcade"), 2.5f);
+                    Destroy(c.gameObject); yield return new WaitForSeconds(1f);
+                }
+                yield return Measure("nothing again", 2.5f);
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            if (id.StartsWith("top"))
+            {
+                string model = id.Length > 4 ? id.Substring(4) : "hatch90";
+                pc.Teleport(new Vector3(-150f, 0.15f, World.RoadZ - 6f), 90f); yield return new WaitForSeconds(1.5f);
+                var c = PlayerCar.Create(new Vector3(-150f, 0.25f, World.RoadZ - 2.1f), 90f, new Color(0.5f, 0.1f, 0.1f), model, CarKit.Wear.Clean, 3);
+                yield return new WaitForSeconds(1.5f);
+                pc.Teleport(c.transform.position - c.transform.right * 2.3f, 90f); yield return new WaitForSeconds(0.3f);
+                pc.UseCar(); yield return new WaitForSeconds(1.5f);
+                yield return Top("sat in " + model, 2f);
+                pc.UseCar(); yield return new WaitForSeconds(1.5f); Destroy(c.gameObject);
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            Debug.Log($"[ASBO] perf counts: people {Object.FindObjectsByType<Person>(FindObjectsSortMode.None).Length}, rigidbodies {Object.FindObjectsByType<Rigidbody>(FindObjectsSortMode.None).Length} (awake {Object.FindObjectsByType<Rigidbody>(FindObjectsSortMode.None).Count(r => !r.IsSleeping() && !r.isKinematic)}), colliders {Object.FindObjectsByType<Collider>(FindObjectsSortMode.None).Length}, wheels {Object.FindObjectsByType<WheelCollider>(FindObjectsSortMode.None).Length}, dents {Object.FindObjectsByType<RMD_Deformation>(FindObjectsSortMode.None).Length}, audio {Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None).Count(a => a.isPlaying)} playing, lights {Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Count(l => l.isActiveAndEnabled)}, animators {Object.FindObjectsByType<Animator>(FindObjectsSortMode.None).Count(a => a.isActiveAndEnabled)}, cars {PlayerCar.All.Count}/{ParkedCar.All.Count}");
+            pc.Teleport(new Vector3(-150f, 0.15f, World.RoadZ - 6f), 90f);
+            yield return new WaitForSeconds(1.5f);
+            yield return Measure("on foot", 3f);
+            var car = PlayerCar.Create(new Vector3(-150f, 0.25f, World.RoadZ - 2.1f), 90f, new Color(0.5f, 0.1f, 0.1f), id, CarKit.Wear.Clean, 3);
+            yield return new WaitForSeconds(1f);
+            yield return Measure("rcc car parked beside", 3f);
+            pc.Teleport(car.transform.position - car.transform.right * 2.3f, 90f); yield return new WaitForSeconds(0.3f);
+            pc.UseCar(); yield return new WaitForSeconds(1.5f);
+            yield return Measure("sat in car", 3f);
+            TouchCar.Clear(); TouchCar.fwd = true;
+            yield return new WaitForSeconds(1f);
+            yield return Measure("driving", 4f);
+            TouchCar.Clear(); TouchCar.brake = true; yield return new WaitForSeconds(2f); TouchCar.Clear();
+            pc.UseCar(); yield return new WaitForSeconds(1.5f);
+            Debug.Log("[ASBO] perf done"); Destroy(gameObject);
         }
     }
 }

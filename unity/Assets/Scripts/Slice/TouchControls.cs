@@ -423,7 +423,7 @@ namespace ASBO.Slice
         public RectTransform stick, knob, root; public CanvasGroup group;
         public static Vector2 Value; public static bool Active, Sprint;
         public const float RunAt = 0.62f;
-        int pid = int.MinValue; Vector2 rest; bool restSet; Vector2 origin;
+        int pid = int.MinValue, tid = -1; Vector2 rest; bool restSet; Vector2 origin, lastScreen;
         float R => stick.rect.width * 0.4f;
 
         public void Rest() { if (stick == null || Active) return; rest = stick.anchoredPosition; restSet = true; if (!Active) group.alpha = Mathf.Min(group.alpha, 0.55f); }
@@ -431,14 +431,16 @@ namespace ASBO.Slice
         {
             if (Active) return;
             if (!restSet) Rest();
-            pid = e.pointerId; Active = true;
+            pid = e.pointerId; Active = true; lastScreen = e.position;
+            // which finger it is: the UI's pointer id on a phone is not the screen's touch id, so take the touch id itself
+            tid = e is UnityEngine.InputSystem.UI.ExtendedPointerEventData x && x.touchId > 0 ? x.touchId : -1;
             RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)stick.parent, e.position, null, out origin);
             // anchored position for the stick's anchor (bottom left or right) from a point in its parent
             var pr = ((RectTransform)stick.parent).rect; var anc = new Vector2(Mathf.Lerp(pr.xMin, pr.xMax, stick.anchorMin.x), Mathf.Lerp(pr.yMin, pr.yMax, stick.anchorMin.y));
             stick.anchoredPosition = origin - anc; group.alpha = 1f;
             Move(e.position);
         }
-        public void OnDrag(PointerEventData e) { if (e.pointerId == pid) Move(e.position); }
+        public void OnDrag(PointerEventData e) { if (e.pointerId == pid) { lastScreen = e.position; Move(e.position); } }
         public void OnPointerUp(PointerEventData e) { if (e.pointerId == pid) Release(); }
         void Move(Vector2 screen)
         {
@@ -452,15 +454,29 @@ namespace ASBO.Slice
             if (!Active) return;
             // never stuck: if the finger that owns the stick has gone, let go
             var ts = Touchscreen.current; bool alive = false;
-            if (ts != null) foreach (var t in ts.touches) if (t.press.isPressed && t.touchId.ReadValue() == pid) { alive = true; break; }
-            var m = Mouse.current; if (!alive && m != null && m.leftButton.isPressed && pid < 0) alive = true; // editor mouse (pointerId -1)
+            if (ts != null)
+                foreach (var t in ts.touches)
+                {
+                    if (!t.press.isPressed) continue;
+                    int id = t.touchId.ReadValue();
+                    // our finger by its id; failing that, a finger still down right where ours last was
+                    var at = t.position.ReadValue();
+                    if (id == tid || (tid < 0 && (at - lastScreen).sqrMagnitude < 160f * 160f))
+                    {
+                        alive = true;
+                        // follow the finger straight from the screen (doesn't rely on the UI's drag events, which can stop)
+                        if ((at - lastScreen).sqrMagnitude > 0.25f) { lastScreen = at; Move(at); }
+                        break;
+                    }
+                }
+            var m = Mouse.current; if (!alive && tid < 0 && m != null && m.leftButton.isPressed) alive = true; // the editor's mouse
             if (!alive) Release();
         }
         void OnDisable() { Release(); }
         void Release()
         {
             if (!Active && pid == int.MinValue) return;
-            Active = false; Sprint = false; Value = Vector2.zero; pid = int.MinValue;
+            Active = false; Sprint = false; Value = Vector2.zero; pid = int.MinValue; tid = -1;
             if (knob != null) knob.anchoredPosition = Vector2.zero;
             if (stick != null && restSet) stick.anchoredPosition = rest;
             if (group != null) group.alpha = 0.55f;
