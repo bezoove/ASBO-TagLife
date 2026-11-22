@@ -94,7 +94,7 @@ SECTIONS = [
    ['A creepy old castle set aside on a big hill.']),
   ('todo', 'Casino', 'Planned: on the edge of town by the long road out, with a made-up name. Doorman, cashier\'s cage for chips, bar, croupiers, security and regulars. Only the game\'s own money goes in.', [], [],
    ['A casino where you can gamble your money.']),
-  ('part', 'Props everywhere', 'Hedges, walls, lamps, cars in; most small street and indoor props not yet.', ['Decor', 'Props', 'KIT', 'Grime', 'Decay', 'Walls', 'World:light', 'World:door', 'World'], [],
+  ('part', 'Props everywhere', 'v11: your scanned textures on the road, pavements, kerbs, walls and roofs; gnomes, pots, plants, dustbins (kick them over), hoses on walls, weeds in the gutters, grass on the verges, ferns, rocks and young firs. Most indoor props not yet.', ['Decor', 'Props', 'KIT', 'Grime', 'Decay', 'Walls', 'World:light', 'World:door', 'World'], [],
    ['World detail audit: recognisable props everywhere.', 'Door frames right (old-game bug).']),
  ]),
  ('People', [
@@ -189,7 +189,7 @@ SECTIONS = [
   ('done', 'Traffic that stops at the zebra', '', [], [], []),
   ('part', 'Crashes and damage', 'Sounds in; dents, cracked glass, tyres going, fire not yet.', ['CarDmg', 'CarBump', 'CARBUMP', 'SkidMarks', 'Glass'], [], []),
   ('todo', 'You visible in the driver\'s seat', '', ['Drivers'], [], []),
-  ('todo', 'Car models built from your photos', 'Period UK-style cars (70s hatch, 80s coupe, 90s estate, modified rally saloon) and rough ones: rust, dents, mismatched panels, dirt, smashed windows, flat tyres, burnt-out shells. No badges or real names.', ['World:cars'], [],
+  ('part', 'Car models built from your photos', 'v12: nine cars modelled in Blender from your photos and real measurements: 90s five-door hatch, 90s saloon, boxy 80s saloon, small city car, 70s chrome-bumper hatch, rally saloon with wing and flares, 80s wedge coupé, square 90s estate with roof rails, small three-door 4x4 with a spare on the back. Each comes clean, tired and faded, filthy, rusty and dented with a mismatched panel, or a smashed-up wreck; burnt-out shells and wrecks dumped round the estate. UK plates, no badges. Still to come: flat tyres, the van, more photo detail where you want it.', ['World:cars'], [],
    ['Cars should look like the photos sent (they don\'t yet).', 'Crappy cars mixed in with the modern clean ones.', 'Look up real cars to get them right.']),
  ]),
  ('Sound and music', [

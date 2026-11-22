@@ -110,7 +110,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - You asked: A creepy old castle set aside on a big hill.
 - [ ] **Casino**: Planned: on the edge of town by the long road out, with a made-up name. Doorman, cashier's cage for chips, bar, croupiers, security and regulars. Only the game's own money goes in.
   - You asked: A casino where you can gamble your money.
-- [~] **Props everywhere**: Hedges, walls, lamps, cars in; most small street and indoor props not yet.
+- [~] **Props everywhere**: v11: your scanned textures on the road, pavements, kerbs, walls and roofs; gnomes, pots, plants, dustbins (kick them over), hoses on walls, weeds in the gutters, grass on the verges, ferns, rocks and young firs. Most indoor props not yet.
   - You asked: World detail audit: recognisable props everywhere.
   - You asked: Door frames right (old-game bug).
   - Old game: [Decor](og/modules/Decor.md), [Props](og/modules/Props.md), [KIT](og/modules/KIT.md), [Grime](og/modules/Grime.md), [Decay](og/modules/Decay.md), [Walls](og/modules/Walls.md), [World:light](og/modules/World-light.md), [World:door](og/modules/World-door.md), [World](og/modules/World.md) (654 behaviours, 473 lines said or shown, 387 tuning numbers)
@@ -309,7 +309,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - Old game: [CarDmg](og/modules/CarDmg.md), [CarBump](og/modules/CarBump.md), [CARBUMP](og/modules/CARBUMP.md), [SkidMarks](og/modules/SkidMarks.md), [Glass](og/modules/Glass.md) (89 behaviours, 16 lines said or shown, 66 tuning numbers)
 - [ ] **You visible in the driver's seat**
   - Old game: [Drivers](og/modules/Drivers.md) (8 behaviours, 0 lines said or shown, 5 tuning numbers)
-- [ ] **Car models built from your photos**: Period UK-style cars (70s hatch, 80s coupe, 90s estate, modified rally saloon) and rough ones: rust, dents, mismatched panels, dirt, smashed windows, flat tyres, burnt-out shells. No badges or real names.
+- [~] **Car models built from your photos**: v12: nine cars modelled in Blender from your photos and real measurements: 90s five-door hatch, 90s saloon, boxy 80s saloon, small city car, 70s chrome-bumper hatch, rally saloon with wing and flares, 80s wedge coupé, square 90s estate with roof rails, small three-door 4x4 with a spare on the back. Each comes clean, tired and faded, filthy, rusty and dented with a mismatched panel, or a smashed-up wreck; burnt-out shells and wrecks dumped round the estate. UK plates, no badges. Still to come: flat tyres, the van, more photo detail where you want it.
   - You asked: Cars should look like the photos sent (they don't yet).
   - You asked: Crappy cars mixed in with the modern clean ones.
   - You asked: Look up real cars to get them right.
