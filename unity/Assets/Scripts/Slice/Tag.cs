@@ -13,6 +13,8 @@ namespace ASBO.Slice
         public static Tag I;
         public static int Violations;
         public static Rect Zone; static bool haveZone;
+        /// <summary>Switched off for now (you asked): no warnings, no violations, nothing on screen. Flip back on for the story.</summary>
+        public static bool Enabled = false;
         public static float EdgeDist { get; private set; } = 999f;
         public static bool Outside { get; private set; }
         public static float Countdown { get; private set; }
@@ -60,7 +62,7 @@ namespace ASBO.Slice
         void Update()
         {
             if (pc == null) { pc = FindFirstObjectByType<PlayerCtl>(); return; }
-            if (!haveZone) return;
+            if (!haveZone || !Enabled) { Outside = false; EdgeDist = 999f; Countdown = 0f; return; }
             Vector3 p = pc.transform.position;
             float dx = Mathf.Min(p.x - Zone.xMin, Zone.xMax - p.x), dz = Mathf.Min(p.z - Zone.yMin, Zone.yMax - p.z);
             EdgeDist = Mathf.Min(dx, dz);
@@ -97,6 +99,6 @@ namespace ASBO.Slice
         }
 
         /// <summary>The line for the screen: how close you are, or the violation countdown.</summary>
-        public static string HudLine => !haveZone ? null : Outside ? "TAG ZONE: return to the area" + (Countdown > 0f ? "  ·  reported in " + Mathf.CeilToInt(Countdown) + "s" : "") : EdgeDist < Warn ? Mathf.CeilToInt(EdgeDist) + " m to the edge of the zone" : null;
+        public static string HudLine => !haveZone || !Enabled ? null : Outside ? "TAG ZONE: return to the area" + (Countdown > 0f ? "  ·  reported in " + Mathf.CeilToInt(Countdown) + "s" : "") : EdgeDist < Warn ? Mathf.CeilToInt(EdgeDist) + " m to the edge of the zone" : null;
     }
 }

@@ -73,7 +73,7 @@ namespace ASBO.Slice
                 hips = anim.isHuman ? anim.GetBoneTransform(HumanBodyBones.Hips) : anim.transform;
                 smrs = GetComponentsInChildren<SkinnedMeshRenderer>(true);
                 foreach (var r in smrs) r.updateWhenOffscreen = false;
-            }, isParamedic || label == "Paramedic" ? "Paramedic" : label == "Builder" ? "Builder" : null);
+            }, isParamedic || label == "Paramedic" ? "Paramedic" : label == "Builder" ? "Builder" : label == "Staff" ? "Staff" : null);
             if (!isPlayer)
             {
                 trigger = gameObject.AddComponent<CapsuleCollider>();
@@ -178,15 +178,41 @@ namespace ASBO.Slice
         /// <summary>In a fight (the Fighter moves them, not their walking route).</summary>
         bool InScrap { get { if (!fighterLooked) { fighterLooked = true; fighterC = GetComponent<Fighter>(); } return fighterC != null && fighterC.Fighting; } }
 
-        public void Step(Vector3 target, float spd)
+        public void Step(Vector3 target, float spd) => Step(target, spd, true);
+
+        /// <summary>
+        /// Walk a step towards target. Unless told not to, they look ahead for cars and walls in the way and step round
+        /// them (trying a little to the side, then more), or wait if they're hemmed in, rather than walking through.
+        /// </summary>
+        public void Step(Vector3 target, float spd, bool avoid)
         {
             Vector3 d = target - transform.position; d.y = 0;
             if (d.sqrMagnitude < 0.0004f) return;
             Vector3 dir = d.normalized;
+            if (avoid && !isPlayer) { dir = Clear(dir, Mathf.Min(0.8f, d.magnitude)); if (dir == Vector3.zero) { Animate(0f); return; } }
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir), 360f * Time.deltaTime);
             transform.position += dir * Mathf.Min(spd * Time.deltaTime, d.magnitude);
             Animate(spd);
         }
+
+        // what people won't walk through: walls and buildings (Default), and cars
+        static readonly int BlockMask = (1 << 0) | (1 << VehicleLayer);
+        Vector3 swerve; float swerveUntil; int checkFrame;
+        Vector3 Clear(Vector3 dir, float look)
+        {
+            if (Time.time < swerveUntil && Vector3.Dot(swerve, dir) > -0.2f) dir = swerve; // keep going round for a moment (no dithering)
+            if (Time.frameCount < checkFrame) return dir; // look every few frames, not every one
+            checkFrame = Time.frameCount + 3;
+            Vector3 o = transform.position + Vector3.up * 0.95f;
+            if (!Physics.SphereCast(o, 0.24f, dir, out _, look, BlockMask, QueryTriggerInteraction.Ignore)) return dir;
+            foreach (float a in Swerves)
+            {
+                var dd = Quaternion.Euler(0f, a, 0f) * dir;
+                if (!Physics.SphereCast(o, 0.24f, dd, out _, look, BlockMask, QueryTriggerInteraction.Ignore)) { swerve = dd; swerveUntil = Time.time + 0.45f; return dd; }
+            }
+            swerveUntil = 0f; return Vector3.zero;
+        }
+        static readonly float[] Swerves = { 35f, -35f, 70f, -70f, 110f, -110f };
 
         void Update()
         {
@@ -357,6 +383,19 @@ namespace ASBO.Slice
                 b.rb.linearVelocity = v * UnityEngine.Random.Range(0.85f, 1.05f) + Vector3.up * Mathf.Clamp(severity * 0.32f, 1f, 5f) * Mathf.Clamp01(h / 1.2f);
                 b.rb.angularVelocity = UnityEngine.Random.onUnitSphere * Mathf.Clamp(severity * 0.45f, 1f, 6f);
             }
+        }
+
+        /// <summary>
+        /// Thrown out of a moving car (v: how you leave it). A stumble at a crawl, a tumble at town speeds, a splat when
+        /// it's going fast: up again after a moment, or a good while, hurt and bleeding to match.
+        /// </summary>
+        public void Bail(Vector3 v, float speed)
+        {
+            if (state != State.Walking || anim == null) return;
+            LastHit = this; injured = speed > 9f; getUp = true; knockKO = speed > 9f; knockDelay = speed > 15f ? 3.8f : speed > 9f ? 2.4f : 0.9f;
+            EnterRagdoll(v, Mathf.Clamp(speed * 0.32f, 1.2f, 7f));
+            if (speed > 9f) Gore.Burst(BodyPos, -v.normalized + Vector3.up * 0.4f, speed > 17f ? 70 : 24);
+            if (GameAudio.I != null) { GameAudio.I.CarImpact(BodyPos, Mathf.Clamp(speed * 0.45f, 2f, 10f)); GameAudio.I.Pain(BodyPos + Vector3.up * 0.3f, male, 0.25f); }
         }
 
         float knockDelay; bool knockKO = true;

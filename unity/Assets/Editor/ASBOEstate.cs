@@ -40,6 +40,9 @@ namespace ASBO.EditorTools
             var oldSite = world.transform.Find(ConstructionSite.RootName); if (oldSite != null) Object.DestroyImmediate(oldSite.gameObject);
             var oldCastle = world.transform.Find(Castle.RootName); if (oldCastle != null) Object.DestroyImmediate(oldCastle.gameObject);
             var oldHigh = world.transform.Find(HighStreet.RootName); if (oldHigh != null) Object.DestroyImmediate(oldHigh.gameObject);
+            var oldCasino = world.transform.Find(CasinoHall.RootName); if (oldCasino != null) Object.DestroyImmediate(oldCasino.gameObject);
+            var oldManor = world.transform.Find(TudorManor.RootName); if (oldManor != null) Object.DestroyImmediate(oldManor.gameObject);
+            CasinoMaterials();
             var terrain = Object.FindFirstObjectByType<Terrain>();
             if (terrain != null) Ground(terrain);
             var root = CouncilEstate.Build(world.transform);
@@ -47,11 +50,15 @@ namespace ASBO.EditorTools
             var site = ConstructionSite.Build(world.transform);
             var castle = Castle.Build(world.transform, terrain);
             var high = HighStreet.Build(world.transform);
+            var casino = CasinoHall.Build(world.transform);
+            var manor = TudorManor.Build(world.transform);
             SaveMeshes(root, MeshDir);
+            if (manor != null) SaveMeshes(manor, "Assets/Art/Generated/Manor");
             if (site != null) SaveMeshes(site, SiteMeshes);
             if (castle != null) SaveMeshes(castle, "Assets/Art/Generated/Castle");
             if (high != null) SaveMeshes(high, "Assets/Art/Generated/HighStreet");
-            var built = new List<Transform> { root }; if (site != null) built.Add(site); if (castle != null) built.Add(castle); if (high != null) built.Add(high);
+            if (casino != null) SaveMeshes(casino, "Assets/Art/Generated/Casino");
+            var built = new List<Transform> { root }; if (site != null) built.Add(site); if (castle != null) built.Add(castle); if (high != null) built.Add(high); if (casino != null) built.Add(casino); if (manor != null) built.Add(manor);
             foreach (var t in built)
                 foreach (var r in t.GetComponentsInChildren<MeshRenderer>(true))
                 {
@@ -234,6 +241,60 @@ namespace ASBO.EditorTools
             Plain("TownPot", new Color(0.55f, 0.28f, 0.18f), 0.25f);
         }
 
+        /// <summary>The Silver Sixpence: carpet, wallpaper and the lit signs from tools/art/casino, plus plain felt, wood, gold and cladding.</summary>
+        static void CasinoMaterials()
+        {
+            const string dir = "Assets/Resources/Casino", tex = "Assets/Art/Casino"; Directory.CreateDirectory(dir);
+            if (Directory.Exists(tex))
+                foreach (var f in Directory.GetFiles(tex, "*.png"))
+                {
+                    var imp = (TextureImporter)AssetImporter.GetAtPath(f.Replace('\\', '/')); if (imp == null) continue;
+                    bool tiles = f.Contains("carpet") || f.Contains("wallpaper");
+                    imp.textureType = TextureImporterType.Default; imp.sRGBTexture = true; imp.mipmapEnabled = true; imp.filterMode = FilterMode.Trilinear; imp.anisoLevel = 4;
+                    imp.alphaSource = TextureImporterAlphaSource.None; imp.wrapMode = tiles ? TextureWrapMode.Repeat : TextureWrapMode.Clamp; imp.maxTextureSize = 2048;
+                    imp.SetPlatformTextureSettings(new TextureImporterPlatformSettings { name = "Android", overridden = true, maxTextureSize = f.Contains("sign") ? 1024 : 512, format = TextureImporterFormat.ASTC_6x6 });
+                    imp.SaveAndReimport();
+                }
+            Texture2D T(string n) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{tex}/{n}.png");
+            void Plain(string n, Color c, float smooth, float metal = 0f, Texture2D t = null) => Mat(n, null, m => { m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", smooth); m.SetFloat("_Metallic", metal); if (t != null) { m.SetTexture("_BaseMap", t); m.mainTexture = t; } }, dir);
+            void Lit(string n, Texture2D t, Color glow) => Mat(n, null, m =>
+            {
+                m.SetColor("_BaseColor", Color.white); m.SetFloat("_Smoothness", 0.5f); m.SetFloat("_Metallic", 0f);
+                if (t != null) { m.SetTexture("_BaseMap", t); m.mainTexture = t; m.SetTexture("_EmissionMap", t); }
+                m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", glow); m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            }, dir);
+            Plain("CasinoCarpet", Color.white, 0.05f, 0f, T("carpet"));
+            Plain("CasinoWall", Color.white, 0.15f, 0f, T("wallpaper"));
+            Lit("CasinoSign", T("sign"), new Color(1.6f, 1.5f, 1.4f));
+            Lit("CasinoPylon", T("pylon"), new Color(1.5f, 1.4f, 1.4f));
+            Lit("CasinoSlots", T("slots"), new Color(0.9f, 0.85f, 0.8f));
+            Lit("CasinoLight", null, new Color(2.2f, 1.95f, 1.6f));
+            Plain("CasinoRoulette", Color.white, 0.1f, 0f, T("roulette_felt"));
+            Plain("CasinoBlackjack", Color.white, 0.1f, 0f, T("blackjack_felt"));
+            Plain("CasinoFelt", new Color(0.07f, 0.36f, 0.19f), 0.08f);
+            Plain("CasinoWood", new Color(0.28f, 0.11f, 0.06f), 0.7f);
+            Plain("CasinoGold", new Color(0.85f, 0.66f, 0.28f), 0.75f, 0.9f);
+            Plain("CasinoChrome", new Color(0.72f, 0.74f, 0.78f), 0.7f, 0.8f);
+            Plain("CasinoClad", new Color(0.62f, 0.64f, 0.67f), 0.45f, 0.35f);
+            Plain("CasinoNavy", new Color(0.05f, 0.06f, 0.14f), 0.4f);
+            Plain("CasinoGlass", new Color(0.06f, 0.08f, 0.1f), 0.95f, 0.2f);
+            Plain("CasinoCeiling", new Color(0.08f, 0.05f, 0.05f), 0.2f);
+            Plain("CasinoCabinet", new Color(0.5f, 0.04f, 0.06f), 0.8f, 0.1f);
+            // the bottles behind the bar: a strip of coloured glass, drawn here
+            var bt = new Texture2D(256, 64, TextureFormat.RGBA32, true); var rr = new System.Random(4);
+            for (int x = 0; x < 256; x++) for (int y = 0; y < 64; y++) bt.SetPixel(x, y, new Color(0.18f, 0.08f, 0.05f));
+            for (int b = 0; b < 24; b++)
+            {
+                int bx = b * 10 + 4; var col = new[] { new Color(0.15f, 0.45f, 0.15f), new Color(0.6f, 0.35f, 0.08f), new Color(0.85f, 0.85f, 0.8f), new Color(0.5f, 0.1f, 0.1f), new Color(0.2f, 0.25f, 0.6f) }[rr.Next(5)];
+                int top = 26 + rr.Next(18) + (b % 2) * 0; for (int x = bx; x < bx + 7; x++) for (int y = 4; y < top; y++) bt.SetPixel(x, y, col * (x == bx + 1 ? 1.4f : 1f));
+                for (int x = bx + 2; x < bx + 5; x++) for (int y = top; y < top + 8; y++) bt.SetPixel(x, y, col);
+                if (b % 12 == 0) for (int x = 0; x < 256; x++) bt.SetPixel(x, 2, new Color(0.5f, 0.4f, 0.2f));
+            }
+            bt.Apply(); var bp = tex + "/bottles_gen.png"; Directory.CreateDirectory(tex); File.WriteAllBytes(bp, bt.EncodeToPNG()); AssetDatabase.ImportAsset(bp);
+            var bimp = (TextureImporter)AssetImporter.GetAtPath(bp); bimp.wrapMode = TextureWrapMode.Repeat; bimp.SaveAndReimport();
+            Lit("CasinoBottles", AssetDatabase.LoadAssetAtPath<Texture2D>(bp), new Color(0.35f, 0.32f, 0.3f));
+        }
+
         static Material Mat(string name, Material from, System.Action<Material> set) => Mat(name, from, set, MatDir);
         static Material Mat(string name, Material from, System.Action<Material> set, string dir)
         {
@@ -288,7 +349,7 @@ namespace ASBO.EditorTools
                 for (int x = 0; x < res; x++)
                 {
                     float wx = tp.x + x / (float)(res - 1) * size.x, wz = tp.z + y / (float)(res - 1) * size.z;
-                    float d = Mathf.Min(Mathf.Min(Dist(area, wx, wz), Dist(SiteGround, wx, wz)), Mathf.Min(Dist(HighNorth, wx, wz), Dist(HighSouth, wx, wz))); if (d >= fall) continue;
+                    float d = Mathf.Min(Mathf.Min(Mathf.Min(Mathf.Min(Dist(area, wx, wz), Dist(SiteGround, wx, wz)), Mathf.Min(Dist(HighNorth, wx, wz), Dist(HighSouth, wx, wz))), Dist(CasinoHall.Plot, wx, wz)), Dist(TudorManor.Plot, wx, wz)); if (d >= fall) continue;
                     float k = Mathf.SmoothStep(0f, 1f, d / fall);
                     h[y, x] = Mathf.Lerp(-tp.y / size.y, h[y, x], k);
                 }
@@ -303,6 +364,8 @@ namespace ASBO.EditorTools
                 if (Vector2.Distance(new Vector2(wx, wz), new Vector2(Castle.Centre.x, Castle.Centre.z)) < Castle.Plateau + 4f || NearLane(wx, wz, 4f)) continue;
                 if (Mathf.Abs(wz - World.RoadZ) < 10f) continue; // nothing growing in the road
                 if (HighNorth.Contains(new Vector2(wx, wz)) || HighSouth.Contains(new Vector2(wx, wz))) continue;
+                if (Grow(CasinoHall.Plot, 4f).Contains(new Vector2(wx, wz))) continue; // the casino and its car park
+                if (Grow(TudorManor.Plot, 3f).Contains(new Vector2(wx, wz))) continue; // the Eggy Duck and its grounds
                 keep.Add(ti);
             }
             td.treeInstances = keep.ToArray();
@@ -317,7 +380,8 @@ namespace ASBO.EditorTools
                     {
                         if (map[y, x] == 0) continue;
                         float wx = tp.x + (x + 0.5f) / dr * size.x, wz = tp.z + (y + 0.5f) / dr * size.z;
-                        if (HighNorth.Contains(new Vector2(wx, wz)) || HighSouth.Contains(new Vector2(wx, wz))) { map[y, x] = 0; cleared++; continue; }
+                        if (HighNorth.Contains(new Vector2(wx, wz)) || HighSouth.Contains(new Vector2(wx, wz)) || CasinoHall.Plot.Contains(new Vector2(wx, wz))) { map[y, x] = 0; cleared++; continue; }
+                        if (new Rect(TudorManor.Origin.x - 6.5f, World.RoadZ + 7f, 45f, TudorManor.Origin.z + 22f - World.RoadZ - 7f).Contains(new Vector2(wx, wz))) { map[y, x] = 0; cleared++; continue; } // the manor and its car park (the beer garden keeps its grass)
                         if (ConstructionSite.Area.Contains(new Vector2(wx, wz)) || wx > ConstructionSite.GateX0 - 1f && wx < ConstructionSite.GateX1 + 1f && wz < -34f && wz > ConstructionSite.FrontZ - 1f) { map[y, x] = 0; cleared++; continue; }
                         if (wx < area.xMin || wx > area.xMax || wz < area.yMin || wz > area.yMax) continue;
                         if (Paved(new Vector3(wx, 0, wz), c)) { map[y, x] = 0; cleared++; }

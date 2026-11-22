@@ -49,7 +49,7 @@ namespace ASBO.Slice
                 // the Abbots Wend scene holds the static world (prefabs, terrain, baked lighting, baked NavMesh)
                 Look.ApplyPost(Root);
                 GameAudio.Create(Root); Perf.Create(Root); Social.Create(Root); GameClock.Create(Root); Tag.Create(Root);
-                Estate.Attach();
+                Estate.Attach(); TudorManor.Attach();
                 Dressing.Place(Root);
                 Nav.UseBaked();
             }
@@ -127,6 +127,7 @@ namespace ASBO.Slice
             r.speed = 1.0f;
             CouncilEstate.Locals(); // people out on Hawthorn Way, if the scene has it
             ConstructionSite.Builders();
+            CasinoHall.People(); // staff and regulars at the Silver Sixpence
         }
 
         void Walker(Vector3 a, Vector3 b, Color shirt, bool important)

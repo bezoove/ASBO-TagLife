@@ -258,14 +258,7 @@ namespace ASBO.Slice
             Vector3 vp = victim.BodyPos; vp.y = 0;
             float laneZ = World.LaneZ; float parkX = Mathf.Clamp(vp.x - 7f, -150f, 150f);
             transform.position = new Vector3(parkX - 120f, 0, laneZ); transform.rotation = Quaternion.Euler(0, 90f, 0);
-            float v = 0;
-            while (parkX - transform.position.x > 0.3f)
-            {
-                float dist = parkX - transform.position.x;
-                v = Mathf.MoveTowards(v, Mathf.Clamp(dist * 0.8f, 0f, 17f), 6f * Time.deltaTime);
-                transform.position += Vector3.right * (Mathf.Max(v, dist > 2f ? 1f : 0f) * Time.deltaTime);
-                yield return null;
-            }
+            yield return DriveTo(parkX, 17f, true);
             Status = "Ambulance on scene";
             siren.Stop(); // blues stay on, siren off at the scene
 
@@ -317,11 +310,11 @@ namespace ASBO.Slice
             st.rotation = Quaternion.LookRotation(-transform.forward);
             // pull it out of the back
             Vector3 outPos = Rear(1.2f);
-            for (float t = 0; t < 1f; t += Time.deltaTime / 1.3f) { st.position = Vector3.Lerp(transform.position - transform.forward * (Le - 0.6f) + Vector3.up * floorY, outPos, Mathf.SmoothStep(0, 1, t)); crew[1].Step(st.position + st.forward * 1.25f, 1f); yield return null; }
+            for (float t = 0; t < 1f; t += Time.deltaTime / 1.3f) { st.position = Vector3.Lerp(transform.position - transform.forward * (Le - 0.6f) + Vector3.up * floorY, outPos, Mathf.SmoothStep(0, 1, t)); crew[1].Step(st.position + st.forward * 1.25f, 1f, false); yield return null; }
             st.position = outPos;
             // wheel it to the casualty: it only rolls while the medic is at the handle
             Vector3 bedSpot = vp - sideV * 1.1f;
-            yield return Wheel(st, castors, new List<Person> { crew[1] }, bedSpot, Quaternion.LookRotation(toV));
+            yield return WheelPath(st, castors, new List<Person> { crew[1] }, bedSpot, Quaternion.LookRotation(toV));
             // both at the body: lift onto the stretcher
             crew[0].SetKneel(false); Hands(crew[0])?.Release();
             yield return WalkPath(crew[0], new[] { vp + toV * 0.9f }, 1.4f);
@@ -346,10 +339,10 @@ namespace ASBO.Slice
             Status = "Casualty on the stretcher";
             yield return new WaitForSeconds(0.6f);
             // both push it back to the van, head end first
-            yield return Wheel(st, castors, crew, Rear(1.3f), Quaternion.LookRotation(transform.forward));
+            yield return WheelPath(st, castors, crew, Rear(1.3f), Quaternion.LookRotation(transform.forward));
             // in it goes, then the doors shut
             Vector3 inPos = transform.position - transform.forward * (Le - 1.1f) + Vector3.up * floorY, from = st.position;
-            for (float t = 0; t < 1f; t += Time.deltaTime / 1.6f) { st.position = Vector3.Lerp(from, inPos, Mathf.SmoothStep(0, 1, t)); foreach (var c in crew) if (!Busy(c)) c.Step(st.position - st.forward * 1.2f + (c == crew[0] ? -transform.right : transform.right) * 0.35f, 0.8f); yield return null; }
+            for (float t = 0; t < 1f; t += Time.deltaTime / 1.6f) { st.position = Vector3.Lerp(from, inPos, Mathf.SmoothStep(0, 1, t)); foreach (var c in crew) if (!Busy(c)) c.Step(st.position - st.forward * 1.2f + (c == crew[0] ? -transform.right : transform.right) * 0.35f, 0.8f, false); yield return null; }
             st.gameObject.SetActive(false); victim.gameObject.SetActive(false);
             yield return WalkAll(crew, new[] { Rear(1.4f) + transform.right * -0.6f, Rear(1.4f) + transform.right * 0.6f }, 1.4f);
             yield return Doors(false);
@@ -361,16 +354,78 @@ namespace ASBO.Slice
             foreach (var c in crew) if (c != null && !Busy(c)) c.gameObject.SetActive(false); // anyone still scrapping gets left behind
             siren.Play();
             obstacle.enabled = false;
-            float v2 = 0;
-            while (transform.position.x < parkX + 260f)
-            {
-                v2 = Mathf.MoveTowards(v2, 22f, 5f * Time.deltaTime);
-                transform.position += Vector3.right * (v2 * Time.deltaTime);
-                yield return null;
-            }
+            yield return DriveTo(parkX + 260f, 22f, false);
             Destroy(st.gameObject); Destroy(victim.gameObject);
             foreach (var c in crew) if (c != null && !c.gameObject.activeSelf) Destroy(c.gameObject);
             Destroy(gameObject);
+        }
+
+        // what the van won't drive through: buildings, walls, cars and people (not bodies on the floor, not triggers)
+        static readonly int AheadMask = ~((1 << Person.RagdollLayer) | (1 << 2) | (1 << 31));
+
+        /// <summary>
+        /// Drive along the lane to x: brakes for anything in front (a car, someone in the road, a wall), waits, and if
+        /// it stays blocked pulls out into the other lane, gets past and pulls back in. Stops at x if told to.
+        /// </summary>
+        IEnumerator DriveTo(float toX, float top, bool stopAtEnd)
+        {
+            float v = 0f, blocked = 0f, off = 0f, wantOff = 0f, passFrom = 0f, baseZ = World.LaneZ;
+            while (toX - transform.position.x > 0.3f)
+            {
+                float dt = Time.deltaTime, dist = toX - transform.position.x;
+                float want = stopAtEnd ? Mathf.Clamp(dist * 0.8f, 0f, top) : top;
+                float look = Le + 2.5f + v * 1.2f;
+                Vector3 o = transform.position + transform.forward * (Le + 0.2f) + Vector3.up * 1.15f;
+                bool hitSomething = false;
+                foreach (var h in Physics.BoxCastAll(o, new Vector3(hw * 0.95f, 0.7f, 0.1f), transform.forward, transform.rotation, look, AheadMask, QueryTriggerInteraction.Ignore))
+                {
+                    if (h.transform.IsChildOf(transform) || h.distance <= 0f) continue;
+                    hitSomething = true; want = Mathf.Min(want, Mathf.Max(0f, (h.distance - 1.6f) * 1.4f));
+                }
+                if (hitSomething && v < 1.2f) blocked += dt; else blocked = Mathf.Max(0f, blocked - dt);
+                if (blocked > 1.3f && wantOff == 0f) { wantOff = -4.2f; passFrom = transform.position.x; blocked = 0f; } // pull out round it
+                if (wantOff != 0f && transform.position.x - passFrom > Le * 2f + 14f && LaneClear(baseZ)) wantOff = 0f; // past it and the lane's clear: back in
+                if (!stopAtEnd || dist > 2f) want = Mathf.Max(want, hitSomething ? 0f : 1f);
+                v = Mathf.MoveTowards(v, want, (want < v ? 9f : 6f) * dt);
+                float newOff = Mathf.MoveTowards(off, wantOff, 2.2f * dt * Mathf.Clamp01(v / 3f + 0.2f));
+                Vector3 step = new Vector3(v * dt, 0f, newOff - off); off = newOff;
+                transform.position += step;
+                if (step.sqrMagnitude > 1e-6f) transform.rotation = Quaternion.Euler(0f, 90f - Mathf.Atan2(step.z, step.x) * Mathf.Rad2Deg, 0f);
+                yield return null;
+            }
+        }
+
+        /// <summary>Nothing (but us) in our own lane alongside and just ahead.</summary>
+        bool LaneClear(float laneZ)
+        {
+            foreach (var c in Physics.OverlapBox(new Vector3(transform.position.x + 2f, 1.15f, laneZ), new Vector3(Le + 3f, 0.7f, hw), Quaternion.identity, AheadMask, QueryTriggerInteraction.Ignore))
+                if (!c.transform.IsChildOf(transform)) return false;
+            return true;
+        }
+
+        static readonly NavMeshPath navPath = new NavMeshPath();
+        /// <summary>The way on foot from one spot to another round buildings, walls and cars (the walking mesh), ending exactly at to.</summary>
+        static List<Vector3> NavCorners(Vector3 from, Vector3 to)
+        {
+            var list = new List<Vector3>();
+            if (NavMesh.SamplePosition(from, out var a, 2.5f, NavMesh.AllAreas) && NavMesh.SamplePosition(to, out var b, 2.5f, NavMesh.AllAreas)
+                && NavMesh.CalculatePath(a.position, b.position, NavMesh.AllAreas, navPath) && navPath.status != NavMeshPathStatus.PathInvalid)
+                for (int i = 1; i < navPath.corners.Length; i++) list.Add(navPath.corners[i]);
+            if (list.Count > 0 && (list[list.Count - 1] - to).WithY(0).magnitude < 0.8f) list[list.Count - 1] = to; else list.Add(to);
+            return list;
+        }
+
+        /// <summary>Push the stretcher along the walking route, a leg at a time.</summary>
+        IEnumerator WheelPath(Transform st, Transform[] castors, List<Person> pushers, Vector3 to, Quaternion endRot)
+        {
+            var pts = NavCorners(st.position, to);
+            for (int i = 0; i < pts.Count; i++)
+            {
+                bool last = i == pts.Count - 1;
+                Vector3 next = last ? to : pts[i];
+                Quaternion face = last ? endRot : Quaternion.LookRotation((next - st.position).WithY(0).sqrMagnitude > 0.01f ? (next - st.position).WithY(0) : st.forward);
+                yield return Wheel(st, castors, pushers, next.WithY(st.position.y), face);
+            }
         }
 
         static MedicHands Hands(Person p) => p != null && p.anim != null ? p.anim.GetComponent<MedicHands>() : null;
@@ -430,7 +485,7 @@ namespace ASBO.Slice
                 {
                     var p = pushers[i]; if (Busy(p)) continue;
                     Vector3 spot = i == 0 ? back : front;
-                    if ((spot - p.transform.position).WithY(0).magnitude > 0.35f) { p.Step(spot, 1.8f); ready = false; }
+                    if ((spot - p.transform.position).WithY(0).magnitude > 0.35f) { p.Step(spot, 1.8f, false); ready = false; }
                     else
                     {
                         p.transform.rotation = Quaternion.RotateTowards(p.transform.rotation, Quaternion.LookRotation((i == 0 ? st.forward : -st.forward)), 360f * Time.deltaTime);
@@ -453,12 +508,17 @@ namespace ASBO.Slice
 
         static bool Busy(Person c) { if (c == null || c.state != Person.State.Walking) return true; var f = c.GetComponent<Fighter>(); return f != null && f.Fighting; }
 
+        /// <summary>Walk through the points, each leg by the walking route (round houses and walls, not through them).</summary>
         IEnumerator WalkPath(Person p, Vector3[] pts, float spd)
         {
             foreach (var pt in pts)
             {
-                float guard = 0f;
-                while (guard < 15f && !Busy(p) && (pt - p.transform.position).WithY(0).magnitude > 0.3f) { guard += Time.deltaTime; p.Step(pt, spd); yield return null; }
+                var legs = NavCorners(p.transform.position, pt);
+                for (int i = 0; i < legs.Count; i++)
+                {
+                    Vector3 c = legs[i]; bool last = i == legs.Count - 1; float guard = 0f;
+                    while (guard < 15f && !Busy(p) && (c - p.transform.position).WithY(0).magnitude > (last ? 0.3f : 0.5f)) { guard += Time.deltaTime; p.Step(c, spd); yield return null; }
+                }
             }
         }
 

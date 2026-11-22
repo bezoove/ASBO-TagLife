@@ -28,6 +28,9 @@ namespace ASBO.Slice
             var spec = CarBody.Random(r);
             t.L = spec.L;
             t.wheels = CarBody.Build(g.transform, spec, spec.van ? CarBody.VanPaint(r) : CarBody.RandomPaint(r), true, r.Next());
+            Dents.Add(g, g.transform, spec.van ? 2000f : 1200f);
+            var ob = g.AddComponent<UnityEngine.AI.NavMeshObstacle>(); ob.shape = UnityEngine.AI.NavMeshObstacleShape.Box; ob.carving = false; // walkers steer round it
+            ob.center = new Vector3(0f, 0.8f, 0f); ob.size = new Vector3(spec.m.W + 0.3f, 1.6f, spec.m.L + 0.4f);
             g.layer = Person.VehicleLayer; // bodies on the road pass through, not crushed
             var bc = g.AddComponent<BoxCollider>();
             float h = spec.van ? 2.0f : 1.4f;

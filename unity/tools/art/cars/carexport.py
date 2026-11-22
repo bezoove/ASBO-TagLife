@@ -209,6 +209,52 @@ def wheel_swatch(ob, rimkey):
     me.materials.clear(); me.materials.append(wm)
     for p in me.polygons: p.material_index = 0
 
+def split_door(ob, car, P, name):
+    """
+    Cut the driver's door (the front door on the right: a UK car) out of the body as its own part, so it can swing
+    open: clean vertical cuts at its shut lines, the sill below and just under the roof rail above, with its window
+    and mirror. Gets a dark inner skin so it isn't see-through from inside when it's open. Coordinates here: front +x,
+    right side -y, up +z.
+    """
+    dl = [d if not isinstance(d, (list, tuple)) else d[0] for d in P.get('door_lines', [])]
+    if len(dl) < 2: return None
+    u0, u1 = dl[0], dl[1]; L = car.L; x0, x1 = L / 2 - u1, L / 2 - u0
+    zs = P['sill'] + 0.015; ztop = car.ztop(u1) - 0.07  # under the roof rail (the front of the frame follows the screen pillar, below)
+    me = ob.data; bm = bmesh.new(); bm.from_mesh(me)
+    for co, no in (((x0, 0, 0), (1, 0, 0)), ((x1, 0, 0), (1, 0, 0)), ((0, 0, zs), (0, 0, 1)), ((0, 0, ztop), (0, 0, 1))):
+        geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
+        bmesh.ops.bisect_plane(bm, geom=geom, plane_co=co, plane_no=no)
+    edge_y = -(car.hw0 - 0.2)
+    def inside(f):
+        c = f.calc_center_median()
+        return x0 < c.x < x1 and zs < c.z < min(ztop, car.ztop(L / 2 - c.x) - 0.06) and c.y < edge_y and f.normal.z < 0.6
+    sel = [f for f in bm.faces if inside(f)]
+    if len(sel) < 10: bm.free(); return None
+    # the door: a new mesh from those faces, plus an inner skin turned round and set in a little
+    dm = bmesh.new(); vmap = {}
+    uvl = bm.loops.layers.uv.active; duv = dm.loops.layers.uv.new('UVMap')
+    for f in sel:
+        vs = []
+        for v in f.verts:
+            if v not in vmap: vmap[v] = dm.verts.new(v.co)
+            vs.append(vmap[v])
+        try:
+            nf = dm.faces.new(vs); nf.material_index = f.material_index; nf.smooth = f.smooth
+            for l_new, l_old in zip(nf.loops, f.loops): l_new[duv].uv = l_old[uvl].uv if uvl else (0, 0)
+        except ValueError: pass
+    inner = []
+    for f in list(dm.faces):
+        if f.material_index == 3: continue  # the window glass is one sheet
+        vs = [dm.verts.new(v.co + Vector((0, 0.035, 0))) for v in reversed(f.verts)]
+        try: nf = dm.faces.new(vs); nf.material_index = 1; inner.append(nf)
+        except ValueError: pass
+    bmesh.ops.delete(bm, geom=sel, context='FACES')
+    bm.to_mesh(me); bm.free()
+    dme = bpy.data.meshes.new(name); dm.to_mesh(dme); dm.free()
+    for m in ob.data.materials: dme.materials.append(m)
+    dob = bpy.data.objects.new(name, dme); bpy.context.scene.collection.objects.link(dob)
+    return dob
+
 manifest = {}
 mf = os.path.join(OUT, 'cars.json')
 if os.path.exists(mf): manifest = json.load(open(mf))
@@ -253,13 +299,15 @@ for name, P in models.MODELS.items():
     dh = hi.copy(); dh.data = hi.data.copy(); bpy.context.scene.collection.objects.link(dh); dh.name = 'dent_LOD0'
     dl = lo.copy(); dl.data = lo.data.copy(); bpy.context.scene.collection.objects.link(dl); dl.name = 'dent_LOD1'
     dents(dh, hash(name) & 0xffff); dents(dl, hash(name) & 0xffff)
+    # the driver's door as its own part (clean and battered), so it opens
+    door = split_door(hi, car, P, 'door_LOD0'); ddoor = split_door(dh, car, P, 'dentdoor_LOD0')
     # wheels
     rim = {'multi': 'white', 'alloy_dark': 'gun', 'steel': 'tyre'}.get(P.get('wheel', 'steel'), 'silver')
     if P.get('wheel') == 'steel': rim = 'silver' if name != 'jeep' else 'tyre'
     for w in parts['wheels']: wheel_swatch(w, rim)
     # turn everything so the front faces -Y (Unity +Z), then export
     R = Matrix.Rotation(math.radians(-90), 4, 'Z')
-    for o in [hi, lo, dh, dl]:
+    for o in [hi, lo, dh, dl] + [d for d in (door, ddoor) if d]:
         o.data.transform(R); o.matrix_world = Matrix.Identity(4)
     for w in parts['wheels']:
         w.matrix_world = R @ w.matrix_world
@@ -269,7 +317,7 @@ for name, P in models.MODELS.items():
         cen = Vector(((bb[0] + bb[1]) / 2, c.y, P['rad']))
         w.data.transform(Matrix.Translation(-cen)); w.location = cen
     for o in bpy.context.scene.objects: o.select_set(False)
-    keep = [hi, lo, dh, dl] + parts['wheels']
+    keep = [hi, lo, dh, dl] + [d for d in (door, ddoor) if d] + parts['wheels']
     for o in keep: o.select_set(True)
     bpy.context.view_layer.objects.active = hi
     path = os.path.join(OUT, name + '.fbx')

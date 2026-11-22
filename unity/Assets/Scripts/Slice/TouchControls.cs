@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.OnScreen;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
@@ -29,7 +30,7 @@ namespace ASBO.Slice
         [Serializable] class Entry { public string id; public float x, y, s = 1f; public bool hide; }
         [Serializable] class Layout { public List<Entry> e = new List<Entry>(); }
 
-        PlayerCtl pc; static Sprite disc, ring; Font font; Canvas canvas; RectTransform root;
+        PlayerCtl pc; static Sprite disc, ring; Font font; Canvas canvas; RectTransform root; RectTransform stickZone; FloatStick floatStick;
         readonly List<Ctl> ctls = new List<Ctl>();
         Layout foot, car; bool carSet;
         bool editing; bool editCar; Ctl selected; int presetIdx;
@@ -142,20 +143,23 @@ namespace ASBO.Slice
             dim = Rect("Dim", root, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero).gameObject; Stretch((RectTransform)dim.transform);
             Img((RectTransform)dim.transform, null, new Color(0f, 0f, 0f, 0.45f)); dim.SetActive(false);
 
-            // stick (both layouts): static base, knob with a large invisible grab area
+            // the stick floats: put your thumb down anywhere on its side of the screen and it's there; a small push walks,
+            // past the inner ring runs, pushed out past the edge sprints. Where it rests (and its size) can still be edited.
             {
                 var c = AddCtl("stick", "Stick", true, false, true, new Vector2(270, 270), default, 300f);
                 var b = Rect("Base", c.rt, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); Stretch(b); Img(b, ring, new Color(1, 1, 1, 0.45f), false);
+                var inner = Rect("RunRing", c.rt, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); inner.anchorMin = new Vector2(0.19f, 0.19f); inner.anchorMax = new Vector2(0.81f, 0.81f); inner.sizeDelta = Vector2.zero; Img(inner, ring, new Color(1, 1, 1, 0.18f), false);
                 var knob = Rect("Knob", c.rt, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(150, 150));
-                Img(knob, disc, new Color(1, 1, 1, 0.38f));
-                var grab = Rect("Grab", knob, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(460, 460)); Img(grab, disc, new Color(1, 1, 1, 0f));
-                var st = knob.gameObject.AddComponent<OnScreenStick>(); st.controlPath = "<Gamepad>/leftStick"; st.movementRange = 120f;
-                c.onScreen = new Behaviour[] { st };
+                Img(knob, disc, new Color(1, 1, 1, 0.38f), false);
+                var zone = Rect("StickZone", root, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); zone.SetSiblingIndex(look.GetSiblingIndex() + 1);
+                Img(zone, null, new Color(0, 0, 0, 0));
+                var fs = zone.gameObject.AddComponent<FloatStick>(); fs.stick = c.rt; fs.knob = knob; fs.group = c.group; fs.root = root;
+                stickZone = zone; floatStick = fs;
+                c.onScreen = new Behaviour[] { fs };
                 AddCover(c);
             }
             Color dark = new Color(0.05f, 0.06f, 0.08f, 0.42f), blue = new Color(0.1f, 0.25f, 0.45f, 0.5f);
             Button("jump", "JUMP", "<Gamepad>/buttonSouth", true, false, new Vector2(-170, 190), default, 190, dark);
-            Button("run", "RUN", "<Gamepad>/leftStickPress", true, false, new Vector2(-380, 130), default, 160, dark);
             Button("car", "CAR", "<Gamepad>/select", true, false, new Vector2(-150, 430), default, 140, blue);
             Button("punch", "PUNCH", "<Gamepad>/buttonWest", true, false, new Vector2(-400, 330), default, 160, new Color(0.45f, 0.12f, 0.08f, 0.5f));
             Button("kick", "KICK", "<Gamepad>/buttonEast", true, false, new Vector2(-600, 170), default, 150, new Color(0.45f, 0.25f, 0.06f, 0.5f));
@@ -272,6 +276,15 @@ namespace ASBO.Slice
                 foreach (var b in c.onScreen) b.enabled = !editing;
                 c.cover.gameObject.SetActive(editing);
             }
+            // the stick's catch area: its own side of the screen (the left, or the right in a mirrored layout), only on foot
+            if (stickZone != null)
+            {
+                var sc = ctls.Find(x => x.id == "stick"); bool on = !carSet && !editing && sc != null && sc.rt.gameObject.activeSelf;
+                stickZone.gameObject.SetActive(on);
+                bool leftSide = sc == null || sc.rt.anchorMin.x < 0.5f;
+                stickZone.anchorMin = new Vector2(leftSide ? 0f : 0.58f, 0f); stickZone.anchorMax = new Vector2(leftSide ? 0.42f : 1f, 0.78f); stickZone.sizeDelta = Vector2.zero; stickZone.anchoredPosition = Vector2.zero;
+                if (floatStick != null) floatStick.Rest();
+            }
         }
 
         void Store(Ctl c)
@@ -341,7 +354,7 @@ namespace ASBO.Slice
             if (!talkLooked) { talkLooked = true; foreach (var c in ctls) if (c.id == "talk") talkCtl = c; }
             if (talkCtl != null && talkCtl.rt.gameObject.activeSelf)
             {
-                bool can = !inCar && Social.I != null && (Social.I.Near != null || DialogueUI.Open);
+                bool can = !inCar && (Social.I != null && (Social.I.Near != null || DialogueUI.Open) || CasinoFloor.Near != null);
                 talkCtl.group.alpha = Mathf.MoveTowards(talkCtl.group.alpha, can ? 1f : 0f, Time.deltaTime * 6f);
                 talkCtl.group.blocksRaycasts = can; talkCtl.group.interactable = can;
             }
@@ -357,15 +370,101 @@ namespace ASBO.Slice
         }
     }
 
-    /// <summary>Press-and-hold button for driving; lets go cleanly if the finger slides off or the button is disabled.</summary>
-    public class HoldButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDragHandler
+    /// <summary>
+    /// Press-and-hold button for driving. It doesn't wait to be told a finger has lifted (that message can go missing
+    /// with several fingers on the glass, which left the accelerator stuck on): every frame it looks at where the
+    /// fingers actually are, and it's held only while one is on it. FORWARD also boosts when that finger drags upwards
+    /// (it stays held as it slides up off the top). Slide off any other way and it lets go.
+    /// </summary>
+    public class HoldButton : MonoBehaviour
     {
-        public Action<bool> set; public bool boost; float downY; bool held;
-        public void OnPointerDown(PointerEventData e) { held = true; downY = e.position.y; set?.Invoke(true); }
-        public void OnPointerUp(PointerEventData e) { Release(); }
-        public void OnDrag(PointerEventData e) { if (boost && held) TouchCar.boost = e.position.y - downY > Screen.height * 0.035f; }
+        public Action<bool> set; public bool boost; float downY; bool held; int track = -1;
+        void Update()
+        {
+            var rt = (RectTransform)transform; int found = -1; Vector2 at = default;
+            var ts = Touchscreen.current;
+            if (ts != null)
+                foreach (var t in ts.touches)
+                {
+                    if (!t.press.isPressed) continue;
+                    int id = t.touchId.ReadValue(); var p = t.position.ReadValue();
+                    if (id == track && Covers(rt, p, true)) { found = id; at = p; break; }
+                    if (found < 0 && Covers(rt, p, false)) { found = id; at = p; }
+                }
+            var m = Mouse.current; // in the editor
+            if (found < 0 && m != null && m.leftButton.isPressed && Covers(rt, m.position.ReadValue(), track == 9999)) { found = 9999; at = m.position.ReadValue(); }
+            if (found >= 0)
+            {
+                if (found != track) { track = found; downY = at.y; }
+                if (!held) { held = true; set?.Invoke(true); }
+                if (boost) TouchCar.boost = at.y - downY > Screen.height * 0.035f;
+            }
+            else Release();
+        }
+        /// <summary>Is this point on the button (a circle); once it's ours, a FORWARD finger may drag up above it.</summary>
+        bool Covers(RectTransform rt, Vector2 p, bool ours)
+        {
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, p, null, out var l)) return false;
+            float r = rt.rect.width * 0.5f;
+            if (ours && boost) return Mathf.Abs(l.x) < r * 1.2f && l.y > -r * 1.2f && l.y < r * 3.5f;
+            return l.magnitude < r * (ours ? 1.15f : 1f);
+        }
         void OnDisable() { Release(); }
-        void Release() { if (!held) return; held = false; set?.Invoke(false); if (boost) TouchCar.boost = false; }
+        void Release() { track = -1; if (!held) return; held = false; set?.Invoke(false); if (boost) TouchCar.boost = false; }
+    }
+
+    /// <summary>
+    /// The floating stick: wherever your thumb goes down on its side of the screen, the stick appears there. Push a little
+    /// to walk (slow to brisk), past the inner ring to run, and out past the edge to sprint. Lift and it goes back to
+    /// where it rests, faded.
+    /// </summary>
+    public class FloatStick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
+    {
+        public RectTransform stick, knob, root; public CanvasGroup group;
+        public static Vector2 Value; public static bool Active, Sprint;
+        public const float RunAt = 0.62f;
+        int pid = int.MinValue; Vector2 rest; bool restSet; Vector2 origin;
+        float R => stick.rect.width * 0.4f;
+
+        public void Rest() { if (stick == null || Active) return; rest = stick.anchoredPosition; restSet = true; if (!Active) group.alpha = Mathf.Min(group.alpha, 0.55f); }
+        public void OnPointerDown(PointerEventData e)
+        {
+            if (Active) return;
+            if (!restSet) Rest();
+            pid = e.pointerId; Active = true;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)stick.parent, e.position, null, out origin);
+            // anchored position for the stick's anchor (bottom left or right) from a point in its parent
+            var pr = ((RectTransform)stick.parent).rect; var anc = new Vector2(Mathf.Lerp(pr.xMin, pr.xMax, stick.anchorMin.x), Mathf.Lerp(pr.yMin, pr.yMax, stick.anchorMin.y));
+            stick.anchoredPosition = origin - anc; group.alpha = 1f;
+            Move(e.position);
+        }
+        public void OnDrag(PointerEventData e) { if (e.pointerId == pid) Move(e.position); }
+        public void OnPointerUp(PointerEventData e) { if (e.pointerId == pid) Release(); }
+        void Move(Vector2 screen)
+        {
+            RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)stick.parent, screen, null, out var p);
+            var d = p - origin; float r = R; float m = d.magnitude / r;
+            Sprint = m > 1.3f; Value = d / r; if (Value.magnitude > 1f) Value = Value.normalized;
+            knob.anchoredPosition = Vector2.ClampMagnitude(d, r);
+        }
+        void Update()
+        {
+            if (!Active) return;
+            // never stuck: if the finger that owns the stick has gone, let go
+            var ts = Touchscreen.current; bool alive = false;
+            if (ts != null) foreach (var t in ts.touches) if (t.press.isPressed && t.touchId.ReadValue() == pid) { alive = true; break; }
+            var m = Mouse.current; if (!alive && m != null && m.leftButton.isPressed && pid < 0) alive = true; // editor mouse (pointerId -1)
+            if (!alive) Release();
+        }
+        void OnDisable() { Release(); }
+        void Release()
+        {
+            if (!Active && pid == int.MinValue) return;
+            Active = false; Sprint = false; Value = Vector2.zero; pid = int.MinValue;
+            if (knob != null) knob.anchoredPosition = Vector2.zero;
+            if (stick != null && restSet) stick.anchoredPosition = rest;
+            if (group != null) group.alpha = 0.55f;
+        }
     }
 
     /// <summary>Drag anywhere not covered by a control to turn the camera.</summary>

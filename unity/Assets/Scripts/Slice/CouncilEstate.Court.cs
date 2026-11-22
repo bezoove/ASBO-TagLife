@@ -17,7 +17,8 @@ namespace ASBO.Slice
         public static Vector3 TowerDoor => new Vector3(Tower.xMin - 1.2f, 0f, Tower.center.y);
         // lock-up garages: fronts face north along z = GaragesZ, from x = GaragesX
         public const float GaragesX = -26f, GaragesZ = -93.5f, GarageW = 2.75f, GarageD = 5.5f; public const int GarageCount = 8;
-        public static readonly Rect Playground = new Rect(-22f, -62f, 14f, 12f);
+        // out on the open green on its own, away from the parade and the houses, its gate onto the east road's pavement
+        public static readonly Rect Playground = new Rect(14f, -57f, 14f, 12f);
 
         static void Court(Transform root)
         {
@@ -207,7 +208,9 @@ namespace ASBO.Slice
             // rubber safety surface
             k.Box(M.rubber, new Vector3(x0, 0f, z0), new Vector3(x1, 0.05f, z1));
             // bow-top railings (alpha-cut texture), with the gate gap facing the footpath
-            const float rh = 1.0f; float gate0 = -57.2f, gate1 = -55.8f;
+            const float rh = 1.0f; float gate0 = z0 + 4.8f, gate1 = z0 + 6.2f;
+            // a slab path from the gate to the pavement
+            k.Box(M.slabs, new Vector3(x1, 0f, gate0 - 0.2f), new Vector3(RoadOuterX() - RoadHalf - KerbW - PaveW + 0.05f, 0.06f, gate1 + 0.2f), 16);
             void Run(Vector3 a, Vector3 b)
             {
                 float len = Vector3.Distance(a, b); float t = MeshKit.TileOf(M.railing);
@@ -276,6 +279,8 @@ namespace ASBO.Slice
                 Side(new Vector3(x1, 0, z0), new Vector3(x1, 0, gate0)); Side(new Vector3(x1, 0, gate1), new Vector3(x1, 0, z1));
             }
         }
+
+        static float RoadOuterX() => Loop != null && Loop.Length > 0 ? Mathf.Abs(Loop[Loop.Length - 1].x) : 40f;
 
         static Material RailPost() => M.railGreen != null ? M.railGreen : M.post;
 

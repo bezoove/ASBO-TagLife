@@ -205,6 +205,7 @@ namespace ASBO.Slice
         public void TalkPressed()
         {
             if (DialogueUI.Open) { EndTalk(true); return; }
+            if (CasinoFloor.TryUse()) return; // at a table or a machine in the casino: sit down to it
             var n = Near; if (n == null) return;
             string kind = n == approacher ? pending : null;
             CancelApproach(true);

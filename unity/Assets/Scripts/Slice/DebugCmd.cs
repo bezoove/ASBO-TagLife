@@ -116,6 +116,7 @@ namespace ASBO.Slice
         public static void FightFilmFrom(int clip, float step, float secs, float from) { var r = new GameObject("FightFilm").AddComponent<FightFilmRun>(); r.clip = clip; r.step = step; r.secs = secs; r.from = from; }
         public static void BrawlTest() { new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); }
         /// <summary>The scripted scrap, filmed only at the moment each blow lands (Shots/brawl/hit_##.png): do fists meet faces?</summary>
+        public static void CasinoShots() { new GameObject("CasinoShots").AddComponent<CasinoShotsRun>(); }
         public static void MobTest() { new GameObject("MobTest").AddComponent<MobTestRun>(); }
         public static void BrawlHits(float secs) { var r = new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); r.onHit = true; r.secs = secs; r.kickFinish = true; }
         public static void TalkTest() { new GameObject("TalkTest").AddComponent<TalkTestRun>(); }
@@ -143,6 +144,37 @@ namespace ASBO.Slice
         }
         public static void KnockTest() { new GameObject("KnockTest").AddComponent<KnockTestRun>(); }
         public static void CarTest() { new GameObject("CarTest").AddComponent<CarTestRun>(); }
+        /// <summary>Every kind of car on the main road: flat out, brake, handbrake turn. Logs pace and grip per car; a side shot of each.</summary>
+        public static void CarTypes(string only) { var r = new GameObject("CarTypes").AddComponent<CarTypesRun>(); r.only = only; }
+        public static void CarTrace(string only) { var r = new GameObject("CarTypes").AddComponent<CarTypesRun>(); r.only = only; r.verbose = true; }
+        /// <summary>A straight-down picture of the map around (x, z), size metres across, to Shots/overhead/name.png.</summary>
+        public static void Overhead(float x, float z, float size, string name)
+        {
+            var cg = new GameObject("OverCam"); var cam = cg.AddComponent<Camera>(); cam.orthographic = true; cam.orthographicSize = size * 0.5f; cam.aspect = 1f;
+            cam.transform.position = new Vector3(x, 150f, z); cam.transform.rotation = Quaternion.Euler(90f, 0f, 0f); cam.farClipPlane = 400f; cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = Color.black;
+            var rt = new RenderTexture(1600, 1600, 24); cam.targetTexture = rt; cam.Render();
+            RenderTexture.active = rt; var tex = new Texture2D(1600, 1600, TextureFormat.RGB24, false); tex.ReadPixels(new Rect(0, 0, 1600, 1600), 0, 0); tex.Apply(); RenderTexture.active = null;
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/overhead"); System.IO.Directory.CreateDirectory(dir);
+            System.IO.File.WriteAllBytes(dir + "/" + name + ".png", tex.EncodeToPNG());
+            cam.targetTexture = null; Object.Destroy(rt); Object.Destroy(cg); Debug.Log($"[ASBO] overhead {name} at ({x},{z}) {size} m");
+        }
+        /// <summary>A picture from (x, y, z) looking at (lx, ly, lz), 1600x900, to Shots/views/name.png.</summary>
+        public static void ShotAt(float x, float y, float z, float lx, float ly, float lz, string name)
+        {
+            var cg = new GameObject("ViewCam"); var cam = cg.AddComponent<Camera>(); cam.fieldOfView = 55f; cam.nearClipPlane = 0.05f; cam.farClipPlane = 600f;
+            var main = Camera.main; if (main != null) { var src = main.GetComponent<UniversalAdditionalCameraData>(); var dst = cam.GetUniversalAdditionalCameraData(); if (src != null) { dst.renderPostProcessing = src.renderPostProcessing; dst.antialiasing = src.antialiasing; } }
+            cam.transform.position = new Vector3(x, y, z); cam.transform.LookAt(new Vector3(lx, ly, lz));
+            var rt = new RenderTexture(1600, 900, 24); cam.targetTexture = rt; cam.Render();
+            RenderTexture.active = rt; var tex = new Texture2D(1600, 900, TextureFormat.RGB24, false); tex.ReadPixels(new Rect(0, 0, 1600, 900), 0, 0); tex.Apply(); RenderTexture.active = null;
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/views"); System.IO.Directory.CreateDirectory(dir);
+            System.IO.File.WriteAllBytes(dir + "/" + name + ".png", tex.EncodeToPNG());
+            cam.targetTexture = null; Object.Destroy(rt); Object.Destroy(cg); Debug.Log("[ASBO] view " + name);
+        }
+        /// <summary>Crash test for the dents: a car driven flat out into a parked one on the main road, filmed before and after.</summary>
+        public static void DentTest(string id) { var r = new GameObject("DentTest").AddComponent<DentTestRun>(); r.id = string.IsNullOrEmpty(id) ? "hatch90" : id; }
+        /// <summary>A parked-up look at one kind of car: side, three-quarter front, and with the driver's door open.</summary>
+        public static void CarLook(string id) { var r = new GameObject("CarLook").AddComponent<CarLookRun>(); r.id = id; }
+        public static void RigInfo() { Debug.Log($"[ASBO] rig ready={CarRig.Ready} styles=[{CarRig.Styles()}] fixedDt={Time.fixedDeltaTime} cars={PlayerCar.All.Count} parked={ParkedCar.All.Count}"); }
         public static void HardHit() { var v = Object.FindObjectsByType<Resident>(FindObjectsSortMode.None).Select(r => r.GetComponent<Person>()).FirstOrDefault(p => p != null && p.Ready && p.state == Person.State.Walking); var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (v != null && pc != null) { v.GetComponent<Resident>().HoldAt(pc.transform.position + pc.transform.forward * 3f, 0f, 30f); v.Hit(pc.transform.forward * 9f, v.transform.position + Vector3.up, 9f); } }
         public static void AmbTest() { new GameObject("AmbTest").AddComponent<AmbTestRun>(); }
         /// <summary>Photograph the council estate from a few set viewpoints: Shots/estate_N.png.</summary>
@@ -538,6 +570,32 @@ namespace ASBO.Slice
         }
     }
 
+    /// <summary>The casino: outside from the car park, inside from the door and across the floor, then each game's screen in play (Shots/casino/c_#.png).</summary>
+    public class CasinoShotsRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>(); if (pc == null) { Destroy(gameObject); yield break; }
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/casino"); System.IO.Directory.CreateDirectory(dir); int n = 0;
+            void Shot() { ScreenCapture.CaptureScreenshot(dir + "/c_" + (n++) + ".png"); }
+            GameClock.Set(21.5f); // it looks its best lit up at night
+            var o = CasinoHall.Origin;
+            foreach (var (at, yaw, pitch) in new[] { (new Vector3(20f, 0.2f, -17f), 0f, 4f), (new Vector3(20f, 0.2f, 1.5f), 0f, 8f), (new Vector3(36f, 0.2f, 9f), 245f, 10f), (new Vector3(6f, 0.2f, 16f), 120f, 10f) })
+            { pc.Teleport(o + at, yaw, pitch); yield return new WaitForSeconds(2.5f); Shot(); yield return new WaitForSeconds(0.3f); }
+            ASBO.Casino.CasinoWallet.Held = 300;
+            foreach (var g in new[] { ASBO.Casino.CasinoUI.Game.Roulette, ASBO.Casino.CasinoUI.Game.Blackjack, ASBO.Casino.CasinoUI.Game.Slots, ASBO.Casino.CasinoUI.Game.Poker })
+            {
+                ASBO.Casino.CasinoUI.Show(g, 2); yield return new WaitForSecondsRealtime(0.5f);
+                ASBO.Casino.CasinoUI.DebugAct(); yield return new WaitForSecondsRealtime(g == ASBO.Casino.CasinoUI.Game.Roulette ? 6.5f : g == ASBO.Casino.CasinoUI.Game.Poker ? 5f : 2.5f);
+                Shot(); yield return new WaitForSecondsRealtime(0.4f);
+                if (g == ASBO.Casino.CasinoUI.Game.Roulette) { ASBO.Casino.CasinoUI.DebugAct(); yield return new WaitForSecondsRealtime(2.6f); Shot(); yield return new WaitForSecondsRealtime(0.4f); }
+                ASBO.Casino.CasinoUI.Close(); yield return new WaitForSecondsRealtime(0.3f);
+            }
+            Debug.Log($"[ASBO] casino shots: {n} taken, chips now {ASBO.Casino.CasinoWallet.Held}");
+            Destroy(gameObject);
+        }
+    }
+
     /// <summary>A traffic car nudges a resident at low speed: should fall, lie a moment, get up and limp off.</summary>
     public class KnockTestRun : MonoBehaviour
     {
@@ -596,6 +654,110 @@ namespace ASBO.Slice
             }
             TouchCar.Clear(); m.Invoke(pc, null);
             Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Each car type on the long road: 0-100, top speed in 8 s, braking distance, handbrake turn, crash dent. One line per car.</summary>
+    public class CarTypesRun : MonoBehaviour
+    {
+        public string only; public bool verbose;
+        System.Collections.IEnumerator Start()
+        {
+            string[] ids = { "supermini", "hatch70", "hatch90", "saloon90", "estate90", "boxy80", "coupe80", "rally", "jeep" };
+            string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/cartypes"); System.IO.Directory.CreateDirectory(dir);
+            World.HideHud = true;
+            var traffic = Object.FindObjectsByType<TrafficCar>(FindObjectsSortMode.None); foreach (var tc in traffic) tc.gameObject.SetActive(false); // a clear road
+            var cg = new GameObject("CarCam"); var cam = cg.AddComponent<Camera>(); cam.depth = 50; cam.fieldOfView = 38f;
+            foreach (var id in ids)
+            {
+                if (!string.IsNullOrEmpty(only) && only != "all" && !only.Split(',').Contains(id)) continue;
+                if (!CarKit.Has(id)) continue;
+                Vector3 start = new Vector3(-150f, 0.25f, World.RoadZ - 2.1f);
+                var car = PlayerCar.Create(start, 90f, new Color(0.15f, 0.25f, 0.5f), id, CarKit.Wear.Clean, 7);
+                yield return new WaitForSeconds(0.8f);
+                cg.transform.position = car.transform.position + car.transform.right * -6.5f + Vector3.up * 1.4f; cg.transform.LookAt(car.transform.position + Vector3.up * 0.6f);
+                yield return null; ScreenCapture.CaptureScreenshot(dir + "/" + id + "_side.png"); yield return null;
+                car.driven = true; yield return new WaitForSeconds(0.3f);
+                float t0 = Time.time, t100 = -1f, vmax = 0f; float rest = car.transform.position.y; int gmax = 0; float rpmMax = 0f;
+                var rc = car.GetComponent<RCCP_CarController>();
+                TouchCar.Clear(); TouchCar.fwd = true;
+                while (Time.time - t0 < 8f && car.transform.position.x < 140f)
+                {
+                    float v = car.SignedSpeed * 3.6f; vmax = Mathf.Max(vmax, v); if (t100 < 0f && v >= 100f) t100 = Time.time - t0;
+                    if (rc != null) { gmax = Mathf.Max(gmax, rc.currentGear); rpmMax = Mathf.Max(rpmMax, rc.engineRPM); }
+                    if (verbose && Time.frameCount % 25 == 0) Debug.Log($"[ASBO] cartrace {id} t={Time.time - t0:F1} v={v:F0} gear={rc?.currentGear} dir={rc?.direction} rpm={rc?.engineRPM:F0} thrV={rc?.throttleInput_V:F2} brkV={rc?.brakeInput_V:F2} slip={(rc != null && rc.Stability != null ? rc.Stability.TCSEngaged.ToString() : "-")} tq={rc?.producedEngineTorque:F0}");
+                    cg.transform.position = car.transform.position - car.transform.forward * 7f + Vector3.up * 2.4f; cg.transform.LookAt(car.transform.position + Vector3.up * 0.8f);
+                    yield return new WaitForFixedUpdate();
+                }
+                float accT = Time.time - t0;
+                ScreenCapture.CaptureScreenshot(dir + "/" + id + "_run.png");
+                // brake from whatever it's doing to a stop
+                float vb = car.SignedSpeed * 3.6f; Vector3 pb = car.transform.position; TouchCar.Clear(); TouchCar.brake = true; float tb = Time.time;
+                while (car.SignedSpeed > 0.5f && Time.time - tb < 8f) yield return new WaitForFixedUpdate();
+                float bdist = (car.transform.position - pb).WithY(0).magnitude; TouchCar.Clear();
+                yield return new WaitForSeconds(0.4f);
+                // handbrake turn at about 50 km/h
+                TouchCar.fwd = true; float th = Time.time;
+                while (car.SignedSpeed * 3.6f < 50f && Time.time - th < 6f)
+                {
+                    if (verbose && Time.frameCount % 25 == 0) Debug.Log($"[ASBO] cartrace {id} restart t={Time.time - th:F1} v={car.SignedSpeed * 3.6f:F0} gear={rc?.currentGear} dir={rc?.direction} rpm={rc?.engineRPM:F0} thrV={rc?.throttleInput_V:F2} brkV={rc?.brakeInput_V:F2} hbV={rc?.handbrakeInput_V:F2}");
+                    yield return new WaitForFixedUpdate();
+                }
+                float yaw0 = car.transform.eulerAngles.y, vh = car.SignedSpeed * 3.6f; TouchCar.fwd = false; TouchCar.hand = true; TouchCar.right = true; float th2 = Time.time; float slipMax = 0f;
+                while (Time.time - th2 < 1.4f) { slipMax = Mathf.Max(slipMax, car.Slip); cg.transform.position = car.transform.position + Vector3.up * 9f - Vector3.right * 4f; cg.transform.LookAt(car.transform.position); yield return new WaitForFixedUpdate(); }
+                float turned = Mathf.DeltaAngle(yaw0, car.transform.eulerAngles.y); TouchCar.Clear();
+                ScreenCapture.CaptureScreenshot(dir + "/" + id + "_hb.png");
+                yield return new WaitForSeconds(0.6f);
+                float tilt = Vector3.Angle(car.transform.up, Vector3.up);
+                Debug.Log($"[ASBO] cartype {id} ({(car.Physical ? "RCC" : "arcade")}): 0-100 {(t100 < 0 ? "-" : t100.ToString("F1") + "s")}, {vmax:F0} km/h after {accT:F1}s, braking from {vb:F0}: {bdist:F0} m, handbrake at {vh:F0}: turned {turned:F0} deg (slip {slipMax:F0}), tilt now {tilt:F0}, ride {rest:F2}, top gear {gmax} rpm {rpmMax:F0}{(rc != null ? $" thr {rc.throttleInput_V:F2} running {rc.engineRunning} canControl {rc.canControl}" : "")}");
+                car.driven = false; yield return new WaitForSeconds(0.2f);
+                Destroy(car.gameObject); yield return new WaitForSeconds(0.3f);
+            }
+            TouchCar.Clear(); Destroy(cg); World.HideHud = false; foreach (var tc in traffic) if (tc != null) tc.gameObject.SetActive(true); Destroy(gameObject);
+            Debug.Log("[ASBO] cartypes done");
+        }
+    }
+
+    public class DentTestRun : MonoBehaviour
+    {
+        public string id;
+        System.Collections.IEnumerator Start()
+        {
+            var traffic = Object.FindObjectsByType<TrafficCar>(FindObjectsSortMode.None); foreach (var tc in traffic) tc.gameObject.SetActive(false);
+            float z = World.RoadZ - 2.1f;
+            var parked = CarKit.Scenery(World.Root, "saloon90", CarKit.Wear.Clean, new Vector3(-100f, 0.05f, z), 90f, 5);
+            var car = PlayerCar.Create(new Vector3(-145f, 0.25f, z), 90f, new Color(0.6f, 0.1f, 0.1f), id, CarKit.Wear.Clean, 3);
+            yield return new WaitForSeconds(0.8f);
+            DebugCmd.ShotAt(-104f, 1.6f, z - 5f, -101f, 0.7f, z, "dent_before");
+            car.driven = true; TouchCar.Clear(); TouchCar.fwd = true; float t0 = Time.time, vHit = 0f;
+            while (Time.time - t0 < 9f && car.transform.position.x < -103.5f) { vHit = car.SignedSpeed * 3.6f; yield return new WaitForFixedUpdate(); }
+            yield return new WaitForSeconds(0.25f); TouchCar.Clear(); TouchCar.brake = true;
+            yield return new WaitForSeconds(1.5f); TouchCar.Clear();
+            var front = car.transform.position + car.transform.forward * 2.2f;
+            DebugCmd.ShotAt(front.x + 1.5f, 1.4f, z - 3.6f, front.x, 0.6f, z, "dent_after");
+            DebugCmd.ShotAt(front.x + 4.5f, 1.3f, z + 2.8f, front.x + 1.2f, 0.6f, z, "dent_after2");
+            var d1 = car.GetComponent<RMD_Deformation>(); var d2 = parked != null ? parked.GetComponent<RMD_Deformation>() : null;
+            Debug.Log($"[ASBO] denttest {id}: hit at {vHit:F0} km/h, car dent {(d1 != null ? d1.overallDeform.ToString("F3") : "none")}, parked dent {(d2 != null ? d2.overallDeform.ToString("F3") : "none")}");
+            car.driven = false; foreach (var tc in traffic) if (tc != null) tc.gameObject.SetActive(true);
+            Destroy(gameObject);
+        }
+    }
+
+    public class CarLookRun : MonoBehaviour
+    {
+        public string id;
+        System.Collections.IEnumerator Start()
+        {
+            foreach (var tc in Object.FindObjectsByType<TrafficCar>(FindObjectsSortMode.None)) tc.gameObject.SetActive(false);
+            float z = World.RoadZ - 2.1f; var p = new Vector3(-120f, 0.2f, z);
+            var car = PlayerCar.Create(p, 90f, new Color(0.12f, 0.3f, 0.2f), id, CarKit.Wear.Clean, 11);
+            yield return new WaitForSeconds(1.2f);
+            Vector3 c = car.transform.position;
+            DebugCmd.ShotAt(c.x, 1.3f, c.z - 6f, c.x, 0.7f, c.z, id + "_look_side");
+            DebugCmd.ShotAt(c.x + 4.8f, 1.6f, c.z - 4.2f, c.x, 0.6f, c.z, id + "_look_front");
+            car.Door(1f); yield return new WaitForSeconds(1.2f);
+            DebugCmd.ShotAt(c.x - 1.5f, 1.7f, c.z - 4.6f, c.x + 0.3f, 0.8f, c.z, id + "_look_door");
+            Destroy(car.gameObject); Destroy(gameObject);
         }
     }
 

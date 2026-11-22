@@ -164,7 +164,7 @@ namespace ASBO.Slice
             return true;
         }
 
-        static CPlan ParsePlan(Dictionary<string, object> d)
+        public static CPlan ParsePlan(Dictionary<string, object> d)
         {
             var p = new CPlan
             {

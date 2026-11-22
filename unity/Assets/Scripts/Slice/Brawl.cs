@@ -436,6 +436,14 @@ namespace ASBO.Slice
             foreach (var f in All) if (f != this && f.foe != null && f.foe.p != null && f.foe.p.isPlayer && f.aggr && Random.value < 0.3f) f.flee = true;
         }
 
+        /// <summary>Hurt by something that isn't a fight (a fall, bailing out of a car): takes health, can knock you out.</summary>
+        public void Hurt(float dmg, bool bad)
+        {
+            if (hp <= 0f) return;
+            hp = Mathf.Max(bad ? 0f : 1f, hp - dmg);
+            if (p != null && p.isPlayer && hp <= 0f) { ko = true; Session.PlayerKO(this, null); }
+        }
+
         /// <summary>Called after getting up off the floor.</summary>
         public void Recover(bool afterKO)
         {

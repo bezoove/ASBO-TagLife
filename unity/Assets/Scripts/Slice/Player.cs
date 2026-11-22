@@ -90,6 +90,7 @@ namespace ASBO.Slice
         {
             var kb = Keyboard.current; var ms = Mouse.current; var gp = Gamepad.current;
             if (kb != null && kb.escapeKey.wasPressedThisFrame) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
+            if (ASBO.Casino.CasinoUI.Open) { vel = Vector3.zero; person.SetMove(Vector2.zero); UpdateCamera(); return; } // sat at a casino game
             lockedThisFrame = false;
             if (!touch && ms != null && ms.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; lockedThisFrame = true; }
             if (ms != null && ms.leftButton.isPressed && lockedThisFrame == false && clickLock) lockedThisFrame = true;
@@ -167,11 +168,12 @@ namespace ASBO.Slice
                 else { scripted = null; scriptT = 0f; }
             }
             var pad = Gamepad.current; if (pad != null && pad.leftStick.ReadValue().sqrMagnitude > 0.04f) inp = pad.leftStick.ReadValue();
+            bool touchStick = FloatStick.Active; if (touchStick) inp = FloatStick.Value; // the floating thumb stick
             float mag = Mathf.Clamp01(inp.magnitude);
             Vector3 dir = camYaw * new Vector3(inp.x, 0, inp.y); if (dir.sqrMagnitude > 1e-4f) dir.Normalize();
-            bool sprint = fakeSprint || (kb != null && kb.leftShiftKey.isPressed) || (pad != null && pad.leftStickButton.isPressed);
-            bool walk = (kb != null && kb.leftCtrlKey.isPressed) || (mag > 0.05f && mag < 0.5f);
-            float pace = sprint ? sp.sprint : walk ? sp.walk : sp.run;
+            bool sprint = fakeSprint || (kb != null && kb.leftShiftKey.isPressed) || (pad != null && pad.leftStickButton.isPressed) || touchStick && FloatStick.Sprint;
+            bool walk = (kb != null && kb.leftCtrlKey.isPressed) || (mag > 0.05f && mag < (touchStick ? FloatStick.RunAt : 0.5f));
+            float pace = sprint ? sp.sprint : walk ? sp.walk * (touchStick ? Mathf.Lerp(0.45f, 1f, mag / FloatStick.RunAt) : 1f) : sp.run; // a gentle push ambles, more walks briskly
             if (person.hurt) pace = person.HurtSpeed;
             if (fighter != null)
             {
@@ -260,27 +262,67 @@ namespace ASBO.Slice
             return w;
         }
 
+        bool doorBusy;
         void ToggleCar()
         {
-            var vt = VehT; if (vt == null) return;
+            if (doorBusy) return;
             if (!inCar)
             {
-                if ((vt.position - transform.position).sqrMagnitude > 4.5f * 4.5f) return;
-                inCar = true; cc.enabled = false; SetVisible(false);
-                if (PCar != null) PCar.driven = true;
-                else if (rcc != null && rcc.Car != null) { RCCP.RegisterPlayerVehicle(rcc.Car, true, true); rcc.driven = true; }
-                else if (car != null) car.occupied = true;
+                // the nearest car in reach: one already drivable, or a parked one (which becomes drivable as you get in)
+                var near = PlayerCar.Nearest(transform.position, 4.5f);
+                var parked = ParkedCar.Nearest(transform.position, 4.5f);
+                if (parked != null && (near == null || (parked.transform.position - transform.position).sqrMagnitude < (near.transform.position - transform.position).sqrMagnitude)) near = parked.TakeOver();
+                if (near != null) PlayerCar.I = near;
             }
-            else
+            var vt = VehT; if (vt == null) return;
+            if (!inCar) { if ((vt.position - transform.position).sqrMagnitude > 4.5f * 4.5f) return; StartCoroutine(GetIn(vt)); }
+            else StartCoroutine(GetOut(vt));
+        }
+
+        /// <summary>Getting in: turn to the car, the door swings open, in you go, it shuts behind you.</summary>
+        System.Collections.IEnumerator GetIn(Transform vt)
+        {
+            doorBusy = true;
+            if (PCar != null)
             {
-                inCar = false;
-                Vector3 exit;
-                if (PCar != null) { PCar.driven = false; TouchCar.Clear(); exit = PCar.ExitPoint; }
-                else if (rcc != null && rcc.Car != null) { rcc.driven = false; RCCP.SetControl(rcc.Car, false); RCCP.DeRegisterPlayerVehicle(); exit = vt.position - vt.right * 1.9f; }
-                else { car.occupied = false; exit = car.exitPoint.position; }
-                exit.y = vt.position.y; transform.position = exit; cc.enabled = true; SetVisible(true);
-                bodyYaw = vt.eulerAngles.y; vel = Vector3.zero;
+                PCar.Door(1f); Vector3 to = (PCar.ExitPoint - transform.position).WithY(0); if (to.sqrMagnitude > 0.04f) bodyYaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+                yield return new WaitForSeconds(0.32f);
             }
+            inCar = true; cc.enabled = false; SetVisible(false);
+            if (PCar != null) PCar.driven = true;
+            else if (rcc != null && rcc.Car != null) { RCCP.RegisterPlayerVehicle(rcc.Car, true, true); rcc.driven = true; }
+            else if (car != null) car.occupied = true;
+            if (PCar != null) { yield return new WaitForSeconds(0.3f); PCar.Door(0f); }
+            doorBusy = false;
+        }
+
+        /// <summary>
+        /// Getting out: the door opens and you step out beside it, and it shuts. Do it while it's moving and you're thrown
+        /// out: a stumble at a crawl, a tumble at town speeds, a proper splat going fast, hurt to match. The car rolls on
+        /// without you.
+        /// </summary>
+        System.Collections.IEnumerator GetOut(Transform vt)
+        {
+            doorBusy = true;
+            float spd = VehSpeed; Vector3 carVel = VehVel;
+            if (PCar != null) { PCar.Door(1f); yield return new WaitForSeconds(spd > 2.5f ? 0.14f : 0.3f); spd = VehSpeed; carVel = VehVel; }
+            inCar = false;
+            Vector3 exit;
+            if (PCar != null) { PCar.driven = false; TouchCar.Clear(); exit = PCar.ExitPoint; }
+            else if (rcc != null && rcc.Car != null) { rcc.driven = false; RCCP.SetControl(rcc.Car, false); RCCP.DeRegisterPlayerVehicle(); exit = vt.position - vt.right * 1.9f; }
+            else { car.occupied = false; exit = car.exitPoint.position; }
+            exit.y = vt.position.y; transform.position = exit; cc.enabled = true; SetVisible(true);
+            bodyYaw = vt.eulerAngles.y; vel = Vector3.zero; transform.rotation = Quaternion.Euler(0, bodyYaw, 0);
+            if (spd > 2.5f && person != null)
+            {
+                Vector3 side = PCar != null ? PCar.DoorSide * vt.right : vt.right;
+                person.Bail(carVel * 0.9f + side * Mathf.Min(3f, 1f + spd * 0.08f), spd);
+                if (fighter == null) fighter = GetComponent<Fighter>();
+                if (fighter != null) fighter.Hurt(spd < 6f ? spd * 1.5f : spd < 13f ? 6f + spd * 2.6f : 20f + spd * 3.4f, spd > 15f);
+                World.Toast(spd < 6f ? "You stumble out and go over." : spd < 13f ? "You throw yourself out and tumble down the road." : "You bail out at speed. The road is not kind.", 1);
+            }
+            if (PCar != null) { yield return new WaitForSeconds(spd > 2.5f ? 0.9f : 0.55f); PCar.Door(0f); }
+            doorBusy = false;
         }
 
         void UpdateCamera()

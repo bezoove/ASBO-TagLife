@@ -148,7 +148,7 @@ namespace ASBO.Slice
                 CarKit.Scenery(root, id, w, p, yaw, seed);
             }
             Dump("saloon90", CarKit.Wear.Burnt, new Vector3(-52f, 0f, World.RoadZ - 10.5f), 78f, 11);
-            Dump("supermini", CarKit.Wear.Burnt, new Vector3(26f, 0f, -50f), 200f, 12);   // dumped on the estate green
+            Dump("supermini", CarKit.Wear.Burnt, new Vector3(-12f, 0f, -84.5f), 200f, 12); // dumped on the green by the lock-ups
             Dump("jeep", CarKit.Wear.Wreck, new Vector3(12f, 0f, -60f), 140f, 13);
             Dump("hatch90", CarKit.Wear.Wreck, new Vector3(70f, 0f, World.RoadZ - 11f), 95f, 14);
         }

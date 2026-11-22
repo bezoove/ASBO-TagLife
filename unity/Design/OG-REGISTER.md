@@ -13,7 +13,8 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - Old game: [DRIVE_CARS](og/modules/DRIVE_CARS.md), [CARJACK_NAMES](og/modules/CARJACK_NAMES.md) (0 behaviours, 8 lines said or shown, 5 tuning numbers)
 - [x] **No real brand names or logos**: Every shop, car and product name is made up.
   - You asked: No real brands or logos anywhere in the game.
-- [x] **Touch controls customisable like the old game**: Drag, resize, hide; separate on-foot and vehicle layouts; presets; reset.
+- [x] **Touch controls customisable like the old game**: Drag, resize, hide; separate on-foot and vehicle layouts; presets; reset. v20: no RUN button; the left stick appears wherever your thumb goes down and pushing it further turns the walk into a run.
+  - You asked: No run button: a left stick that turns a walk into a run when pushed further, and isn't fixed in one place.
   - Old game: [TOUCH_PRESETS](og/modules/TOUCH_PRESETS.md), [UI:controls](og/modules/UI-controls.md) (29 behaviours, 33 lines said or shown, 3 tuning numbers)
 - [x] **Smooth frame rate checked on every change**: Frame-time readout in test builds; phones lower render scale and shadows themselves when they can't keep up.
   - You asked: Heavy optimisation pass, kept up for every change from now on.
@@ -36,8 +37,9 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 - [ ] **Intro: released from Marshfield Secure Unit, tag fitted**: "Eighteen months. You'd think they'd do a cake." The bag of belongings, licence conditions, the walk home.
   - You asked: Released from a detention centre but put on an ankle tag; the tag limits the player to the playable map.
   - Old game: [Release](og/modules/Release.md), [Intro](og/modules/Intro.md), [Intro4](og/modules/Intro4.md), [Intro5](og/modules/Intro5.md), [IntroSets](og/modules/IntroSets.md), [IntroLook](og/modules/IntroLook.md), [IntroHand](og/modules/IntroHand.md), [IntroAudio](og/modules/IntroAudio.md), [Cine](og/modules/Cine.md) (152 behaviours, 78 lines said or shown, 156 tuning numbers)
-- [~] **Electronic tag and zone**: v10: the zone round the estate; the phone buzzes near the edge with the distance; outside is a violation with a countdown before it phones it in; lingering at the edge gets reported too. Still to come: what the police do about it.
+- [~] **Electronic tag and zone**: v10: the zone round the estate; the phone buzzes near the edge with the distance; outside is a violation with a countdown before it phones it in; lingering at the edge gets reported too. Still to come: what the police do about it. v20: switched off for now, as you asked (it all stays in, ready to switch back on).
   - You asked: Tag limits extended to cover the long road out of the estate.
+  - You asked: Disable the tag zone for now.
   - Old game: [Tag](og/modules/Tag.md), [BUZZ](og/modules/BUZZ.md) (22 behaviours, 12 lines said or shown, 18 tuning numbers)
 - [ ] **Home: the flat over the Golden Dragon, with Mum**: One bedroom, you sleep on the sofa; Mum's day, tea, meals, rent, notes.
   - You asked: Lives with his mum in the flat above the Chinese takeaway (one bedroom, sleeps on the sofa).
@@ -66,8 +68,9 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 
 ## The town
 
-- [~] **Roads, pavements, zebra crossing, traffic**: Main road, zebra and traffic in; the wider town road network isn't yet.
+- [~] **Roads, pavements, zebra crossing, traffic**: Main road, zebra and traffic in; the wider town road network isn't yet. v20: people step round cars and walls instead of through them, and parked cars are cut out of the walking routes.
   - You asked: Pavements fixed so people walk on them.
+  - You asked: People walked through cars: collision checks.
   - Old game: [Traffic](og/modules/Traffic.md), [TRAFFIC](og/modules/TRAFFIC.md), [TownTraffic](og/modules/TownTraffic.md), [TownRoads](og/modules/TownRoads.md), [RoadNet](og/modules/RoadNet.md), [RN](og/modules/RN.md), [Town](og/modules/Town.md), [TOWN](og/modules/TOWN.md), [TownCorners](og/modules/TownCorners.md), [CORNER](og/modules/CORNER.md), [PedPaths](og/modules/PedPaths.md), [ROAD](og/modules/ROAD.md), [Land](og/modules/Land.md) (111 behaviours, 14 lines said or shown, 103 tuning numbers)
 - [ ] **The long road out: underpass, forest, valley, hills**: Fast road from the underpass outside the Eggy Duck round to the other side.
   - You asked: Partly underground, forest, valley and steep hills; tag limits extended to cover it.
@@ -75,12 +78,16 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 - [~] **Abbots Wend: gated thatched-cottage community**: Cottages built; the hostile country folk, the gatehouse and alarms aren't yet.
   - You asked: Hostile country folk.
   - Old game: [POSH](og/modules/POSH.md), [POSH_LINES](og/modules/POSH_LINES.md), [POSH_ALARM](og/modules/POSH_ALARM.md), [Cot](og/modules/Cot.md), [PoshKit](og/modules/PoshKit.md) (116 behaviours, 60 lines said or shown, 107 tuning numbers)
-- [ ] **The estate: flats, Hawthorn Court tower, garages, courtyard**
+- [~] **The estate: flats, Hawthorn Court tower, garages, courtyard**: Terraces, Hawthorn Court tower, lock-ups, parade and green built. v20: the playground moved out onto the open green on its own, with a path to it (it was up against the parade); back gardens kitted out (sheds, rotary washing lines with washing, patio chairs, hedges, kids' slides and paddling pools); paths worn across the green where people really walk. Still stiff in places: more trees, verges and odd corners to come; no flats or houses to go into yet.
   - You asked: A block of flats.
   - You asked: A community playground area.
   - You asked: Built like the council estate photos: three-storey yellow-brick maisonettes, flat roofs, white window bands, garages with coloured doors, grass greens with trees, low walls, fences, bins.
+  - You asked: The playground shouldn't be attached to a row of houses or shops.
+  - You asked: Some houses need back gardens.
+  - You asked: Less stuck together, more natural.
   - Old game: [ASH](og/modules/ASH.md), [HC](og/modules/HC.md), [FL](og/modules/FL.md), [FlatsDoors](og/modules/FlatsDoors.md), [Dwell](og/modules/Dwell.md), [Blind](og/modules/Blind.md), [EST](og/modules/EST.md) (154 behaviours, 52 lines said or shown, 94 tuning numbers)
-- [ ] **The Eggy Duck pub**: Bar, carpet, garden, benches, toilets, fruit machine, pool room, hidden areas.
+- [~] **The Eggy Duck pub**: v20: a grand Tudor manor on its own grounds at the east end of Abbots Wend (no longer squeezed into the parade): black oak framing, gabled cross-wings, tall chimneys, leaded windows. Inside, old, worn and comfortable: the great-hall bar (counter, pumps, shelves of bottles, inglenook fire, tables, settles, a threadbare carpet), snug, games room, lounge, kitchen, toilets, the old dairy, a cellar under the bar, and upstairs the long room, the landlord's rooms, two letting rooms, a bathroom and a windowless priest hole. Car park, sign, beer garden with benches. Not yet: fruit machine, pool table, urinals, bar staff and drinkers, chatter, the hiding-place gameplay.
+  - You asked: A grand Tudor manor: worn inside, old but comfortable, big enough for everything that goes in.
   - You asked: Bigger pub with a complex layout and hidden stealth areas.
   - You asked: Wider walkways, no blocked areas.
   - You asked: Carpeted section in front of the bar.
@@ -150,9 +157,11 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 
 ## Your body
 
-- [x] **Walk, run, sprint, jump, landing**: Faster running in v8.
+- [x] **Walk, run, sprint, jump, landing**: Faster running in v8. v20: running is back on the pack's motion-capture run (the Mixamo runs from v19 twisted a foot out, pulled the arms into the body and pushed the chest out). Planted feet are pinned to the floor so they don't skate (a kick's standing foot, shuffling in a fight); checked on the run, not yet move by move.
   - You asked: Movement must look human: a massive overhaul of running, jumping, throwing and walking with motion capture.
   - You asked: Legs not so bent when walking, for you and everyone else (v10: bodies stand on the real ground, legs straighter).
+  - You asked: Running looked wrong: a foot at a crazy angle, arms in the body, chest puffed out. Use the motion assets.
+  - You asked: Feet stay planted on the floor (no sliding), in every move now and later.
   - Old game: [Player](og/modules/Player.md), [Gait](og/modules/Gait.md), [Moves](og/modules/Moves.md), [Mocap](og/modules/Mocap.md), [MocapData](og/modules/MocapData.md), [Anim](og/modules/Anim.md), [Anim2](og/modules/Anim2.md), [Input](og/modules/Input.md) (91 behaviours, 16 lines said or shown, 122 tuning numbers)
 - [ ] **Sit on chairs, stools and benches**
   - You asked: Player can sit on upright chairs (old game).
@@ -185,7 +194,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 - [~] **Gore, injuries and blood**: Car-hit gore, pools; blood squares fixed in v8. Injuries that last, dismemberment not yet.
   - You asked: Injury, death, gore, ambulances and car-hit ragdoll.
   - Old game: [Gore](og/modules/Gore.md), [Injury](og/modules/Injury.md), [Ragdoll](og/modules/Ragdoll.md), [RagCar](og/modules/RagCar.md), [Rip](og/modules/Rip.md), [BURNS](og/modules/BURNS.md) (82 behaviours, 28 lines said or shown, 147 tuning numbers)
-- [~] **Ambulance and paramedics**: v10: parks up with blues on, crew in green and hi-vis take bags, defib and oxygen from the back, kneel and treat (hands on, oxygen mask), fetch the stretcher and wheel it over, lift the casualty onto it under a blanket, push it to the van; doors open, it goes in, they drive off. AMBULANCE on the bodywork, chevrons, beacons. Solid: cars wait, people walk round. Still to come: the hospital.
+- [~] **Ambulance and paramedics**: v10: parks up with blues on, crew in green and hi-vis take bags, defib and oxygen from the back, kneel and treat (hands on, oxygen mask), fetch the stretcher and wheel it over, lift the casualty onto it under a blanket, push it to the van; doors open, it goes in, they drive off. AMBULANCE on the bodywork, chevrons, beacons. Solid: cars wait, people walk round. v20: it brakes for anything in front and pulls out round anything blocking the lane; the crew and the stretcher take the walking routes round houses and walls instead of straight through. Still to come: the hospital, and driving into the estate.
   - You asked: Ambulances match the new car style.
   - You asked: A more detailed ambulance; lettering on the bodywork, not flat 2D text.
   - You asked: Paramedics dressed like paramedics.
@@ -193,6 +202,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - You asked: The body goes on the stretcher; the medics move the stretcher (it doesn't move on its own).
   - You asked: The ambulance doors open and the stretcher goes in.
   - You asked: Cars and people don't go through ambulances.
+  - You asked: Ambulances went through things.
   - Old game: [Amb](og/modules/Amb.md), [AmbKit](og/modules/AmbKit.md), [HV](og/modules/HV.md) (74 behaviours, 25 lines said or shown, 88 tuning numbers)
 - [ ] **Searching people who've been knocked out**: "Still warm. Not your size, probably."
   - Old game: [Loot](og/modules/Loot.md) (38 behaviours, 38 lines said or shown, 19 tuning numbers)
@@ -295,24 +305,31 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 
 ## Driving
 
-- [x] **Car controls: brake into reverse, handbrake skids, fast**: v10: FORWARD (drag up to boost), BRAKE slows you then reverses once stopped, HANDBRAKE locks the back so it skids round, LEFT and RIGHT. About 70 mph flat out (90 with the boost), quick reverse, tight turning circle, tyre squeal.
+- [x] **Car controls: brake into reverse, handbrake skids, fast**: v10: FORWARD (drag up to boost), BRAKE slows you then reverses once stopped, HANDBRAKE locks the back so it skids round, LEFT and RIGHT. About 70 mph flat out (90 with the boost), quick reverse, tight turning circle, tyre squeal. v20: real car physics (Realistic Car Controller) under the same buttons: suspension, grip, weight and gears, no more back end in the air or sticking on walls, and the touch buttons can't stick on. Each kind of car drives its own way: supermini 148 km/h and nippy, 70s hatch loose and tail-happy, everyday hatch, saloon 192 quick and steady, estate heavy and wide-turning, 80s saloon a slow tank, coupe 204 and drifty, rally car 228 and grippy, jeep 136 and heavy.
   - You asked: Car controls replicate the old game's.
   - You asked: Reverse is the brake.
   - You asked: A handbrake button to skid.
   - You asked: Cars a lot faster, forward and reverse.
   - You asked: Turning circle much tighter.
+  - You asked: Driving as good as the old game: no sticking on accelerate, no back end in the air, a better handbrake.
+  - You asked: Each type of car handles differently, with its own top speed (using the car physics assets).
   - Old game: [Driving](og/modules/Driving.md), [Vehicles](og/modules/Vehicles.md), [DRIVE3](og/modules/DRIVE3.md), [STEER_DMG](og/modules/STEER_DMG.md), [VBTN](og/modules/VBTN.md) (26 behaviours, 7 lines said or shown, 93 tuning numbers)
-- [~] **Getting in and out, horn, lights**: In; the old game's door and exit routing not yet.
+- [~] **Getting in and out, horn, lights**: v20: the driver's door swings open to get in and out and shuts behind you; get out while it's moving and you're thrown out: a stumble at a crawl, a tumble at town speeds, a proper splat going fast, hurt to match, and the car rolls on. Any parked car (not the wrecks) can be got into and driven. Horn in; lights not yet.
+  - You asked: Open the door to get out, not just appear outside.
+  - You asked: Bail out of a moving car and tumble or splat on the floor, worse the faster you're going.
   - Old game: [Cars](og/modules/Cars.md), [CarExit](og/modules/CarExit.md), [World:cars](og/modules/World-cars.md) (139 behaviours, 55 lines said or shown, 104 tuning numbers)
 - [x] **Traffic that stops at the zebra**
-- [~] **Crashes and damage**: Sounds in; dents, cracked glass, tyres going, fire not yet.
+- [~] **Crashes and damage**: Sounds in. v20: the bodywork dents in where it's hit, deeper the harder the hit, on every car (Realistic Mesh Deformation), with sparks off the impact. Cracked glass, tyres going and fire not yet.
+  - You asked: Use the dent asset for crash effects.
   - Old game: [CarDmg](og/modules/CarDmg.md), [CarBump](og/modules/CarBump.md), [CARBUMP](og/modules/CARBUMP.md), [SkidMarks](og/modules/SkidMarks.md), [Glass](og/modules/Glass.md) (89 behaviours, 16 lines said or shown, 66 tuning numbers)
 - [ ] **You visible in the driver's seat**
   - Old game: [Drivers](og/modules/Drivers.md) (8 behaviours, 0 lines said or shown, 5 tuning numbers)
-- [~] **Car models built from your photos**: v12: nine cars modelled in Blender from your photos and real measurements: 90s five-door hatch, 90s saloon, boxy 80s saloon, small city car, 70s chrome-bumper hatch, rally saloon with wing and flares, 80s wedge coupé, square 90s estate with roof rails, small three-door 4x4 with a spare on the back. Each comes clean, tired and faded, filthy, rusty and dented with a mismatched panel, or a smashed-up wreck; burnt-out shells and wrecks dumped round the estate. UK plates, no badges. Still to come: flat tyres, the van, more photo detail where you want it.
+- [~] **Car models built from your photos**: v12: nine cars modelled in Blender from your photos and real measurements: 90s five-door hatch, 90s saloon, boxy 80s saloon, small city car, 70s chrome-bumper hatch, rally saloon with wing and flares, 80s wedge coupé, square 90s estate with roof rails, small three-door 4x4 with a spare on the back. Each comes clean, tired and faded, filthy, rusty and dented with a mismatched panel, or a smashed-up wreck; burnt-out shells and wrecks dumped round the estate. UK plates, no badges. Still to come: flat tyres, the van, more photo detail where you want it. v20: the hatch and the saloon are now the detailed models from the Hatchback and Sedan pack you added (any colour, faded or grimy, the driver's door cut out so it still swings open, our own low model far off); the other seven are still ours and still plain next to them. The low-poly car pack is plainer than ours and the rusty wrecks pack is too heavy for phones, so those two aren't used.
   - You asked: Cars should look like the photos sent (they don't yet).
   - You asked: Crappy cars mixed in with the modern clean ones.
   - You asked: Look up real cars to get them right.
+  - You asked: Cars still look basic.
+  - You asked: Use the hatchback and sedan asset.
   - Old game: [World:cars](og/modules/World-cars.md) (33 behaviours, 7 lines said or shown, 32 tuning numbers)
 
 ## Sound and music

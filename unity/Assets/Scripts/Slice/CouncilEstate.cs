@@ -548,7 +548,110 @@ namespace ASBO.Slice
                     if (car != null) { car.name = "Parked " + id; cars++; }
                 }
             }
-            Debug.Log($"[ASBO] estate dressed: {bins} wheelie bins, {cars} cars on drives");
+            int gardens = Gardens(root, rng);
+            Desire(root);
+            Debug.Log($"[ASBO] estate dressed: {bins} wheelie bins, {cars} cars on drives, {gardens} back gardens kitted out");
+        }
+
+        /// <summary>
+        /// Back gardens that look lived in: a shed in the bottom corner of some, a rotary washing line with the odd bit of
+        /// washing on it, plastic chairs on the patio, a hedge grown up along the back fence here and there, a kids' slide
+        /// or a paddling pool. One mesh for the lot.
+        /// </summary>
+        static int Gardens(Transform root, System.Random rng)
+        {
+            if (M == null && !LoadMats()) return 0; // baked scene: the materials weren't loaded at start
+            CotMats.Init();
+            var k = new MeshKit(); int n = 0;
+            float R(float a, float b) => a + (float)rng.NextDouble() * (b - a);
+            var hedge = CotMats.hedge != null ? CotMats.hedge : M.fence;
+            var washing = new[] { M.white, M.playBlue, M.playRed, M.cream, M.playYellow };
+            foreach (var b in Blocks)
+            {
+                var m = Matrix4x4.TRS(b.origin, Quaternion.Euler(0, b.yaw, 0), Vector3.one);
+                for (int i = 0; i < b.n; i++)
+                {
+                    float x0 = i * W, x1 = x0 + W; bool mirror = (i % 2) == 1;
+                    float zBack = -D - Garden, zPatio = -D - 2.6f;
+                    k.Push(m); n++;
+                    // shed in a back corner (felt pent roof, a door, a little window)
+                    if (rng.NextDouble() < 0.5)
+                    {
+                        float sx0 = mirror ? x1 - 2.25f : x0 + 0.25f, sx1 = sx0 + 2.0f, sz0 = zBack + 0.25f, sz1 = sz0 + 1.5f;
+                        k.Box(M.fence, new Vector3(sx0, 0f, sz0), new Vector3(sx1, 1.95f, sz1));
+                        k.Push(Matrix4x4.TRS(new Vector3((sx0 + sx1) * 0.5f, 2.0f, (sz0 + sz1) * 0.5f), Quaternion.Euler(-6f, 0f, 0f), Vector3.one));
+                        k.Box(M.felt, new Vector3(-1.12f, -0.04f, -0.88f), new Vector3(1.12f, 0.04f, 0.88f)); k.Pop();
+                        k.Box(M.black, new Vector3(sx0 + 0.35f, 0f, sz1), new Vector3(sx0 + 1.05f, 1.75f, sz1 + 0.02f));
+                        k.Box(M.windows, new Vector3(sx1 - 0.75f, 1.0f, sz1), new Vector3(sx1 - 0.25f, 1.45f, sz1 + 0.02f));
+                    }
+                    // rotary washing line out on the grass, sometimes with washing on
+                    if (rng.NextDouble() < 0.45)
+                    {
+                        Vector3 c = new Vector3((x0 + x1) * 0.5f + R(-0.6f, 0.6f), 0f, zPatio - R(2.4f, 3.4f));
+                        k.Box(M.post, c + new Vector3(-0.025f, 0f, -0.025f), c + new Vector3(0.025f, 1.85f, 0.025f));
+                        float rot = R(0f, 90f);
+                        for (int a = 0; a < 4; a++)
+                        {
+                            k.Push(Matrix4x4.TRS(c + Vector3.up * 1.8f, Quaternion.Euler(0f, rot + a * 90f, 0f), Vector3.one));
+                            k.Box(M.post, new Vector3(-0.012f, -0.012f, 0f), new Vector3(0.012f, 0.012f, 1.25f)); k.Pop();
+                        }
+                        if (rng.NextDouble() < 0.6)
+                            for (int w = 0; w < 3 + rng.Next(3); w++)
+                            {
+                                var mat = washing[rng.Next(washing.Length)]; float a = rot + rng.Next(4) * 90f + 45f, r0 = R(0.45f, 0.95f);
+                                Vector3 at = c + Quaternion.Euler(0f, a, 0f) * Vector3.forward * r0 + Vector3.up * 1.78f;
+                                k.Push(Matrix4x4.TRS(at, Quaternion.Euler(0f, a + 90f, 0f), Vector3.one));
+                                k.Box(mat, new Vector3(-0.3f, -0.55f, -0.005f), new Vector3(0.3f, 0f, 0.005f)); k.Pop();
+                            }
+                    }
+                    // a couple of white plastic chairs on the patio
+                    if (rng.NextDouble() < 0.35)
+                        for (int ch = 0; ch < 2; ch++)
+                        {
+                            Vector3 c = new Vector3(x0 + 1.2f + ch * 1.1f + R(-0.2f, 0.2f), 0.05f, -D - R(1.0f, 2.0f));
+                            k.Push(Matrix4x4.TRS(c, Quaternion.Euler(0f, R(150f, 210f), 0f), Vector3.one));
+                            k.Box(M.white, new Vector3(-0.24f, 0.4f, -0.24f), new Vector3(0.24f, 0.45f, 0.24f));
+                            k.Box(M.white, new Vector3(-0.24f, 0.45f, 0.2f), new Vector3(0.24f, 0.88f, 0.24f));
+                            foreach (var (lx, lz) in new[] { (-0.2f, -0.2f), (0.2f, -0.2f), (-0.2f, 0.2f), (0.2f, 0.2f) }) k.Box(M.white, new Vector3(lx - 0.02f, 0f, lz - 0.02f), new Vector3(lx + 0.02f, 0.4f, lz + 0.02f));
+                            k.Pop();
+                        }
+                    // hedge grown up along the back fence
+                    if (rng.NextDouble() < 0.35) k.Box(hedge, new Vector3(x0 + 0.15f, 0f, zBack + 0.1f), new Vector3(x1 - 0.15f, R(1.6f, 2.3f), zBack + R(0.6f, 0.9f)));
+                    // kids' things: a little slide or a paddling pool
+                    double t = rng.NextDouble();
+                    if (t < 0.12) { Vector3 c = new Vector3((x0 + x1) * 0.5f + R(-1f, 1f), 0f, zBack + R(2.5f, 3.5f)); k.Push(Matrix4x4.TRS(c, Quaternion.Euler(0, R(0, 360), 0), Vector3.one)); k.Box(M.playYellow, new Vector3(-0.25f, 0f, -0.25f), new Vector3(0.25f, 0.9f, 0.25f)); k.Push(Matrix4x4.TRS(new Vector3(0, 0.45f, 0.75f), Quaternion.Euler(35f, 0, 0), Vector3.one)); k.Box(M.playRed, new Vector3(-0.22f, -0.02f, -0.6f), new Vector3(0.22f, 0.02f, 0.6f)); k.Pop(); k.Pop(); }
+                    else if (t < 0.2) { Vector3 c = new Vector3((x0 + x1) * 0.5f + R(-1f, 1f), 0.02f, zBack + R(2.5f, 3.5f)); k.Cyl(M.playBlue, c, 0.8f, 0.22f, 16); }
+                    k.Pop();
+                }
+            }
+            var g = k.Build("BackGardens", root, false);
+            if (g != null) g.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            return n;
+        }
+
+        /// <summary>
+        /// Paths worn into the green where people actually walk, not where the council put the tarmac: the parade's corner
+        /// to the footpath, the footpath to the tower door and on to the playground, and a short cut to the lock-ups.
+        /// </summary>
+        static void Desire(Transform root)
+        {
+            var m = CotMats.gravel != null ? CotMats.gravel : M.slabs; var k = new MeshKit();
+            void Worn(params Vector3[] pts)
+            {
+                for (int i = 0; i < pts.Length - 1; i++)
+                {
+                    Vector3 a = pts[i], b = pts[i + 1], d = b - a; float len = d.magnitude; if (len < 0.1f) continue;
+                    Vector3 sd = Vector3.Cross(Vector3.up, d / len) * 0.55f;
+                    k.QuadUV(m, a - sd + Vector3.up * 0.03f, b - sd + Vector3.up * 0.03f, b + sd + Vector3.up * 0.03f, a + sd + Vector3.up * 0.03f, Vector3.up,
+                        new Vector2(0, 0), new Vector2(len / 2f, 0), new Vector2(len / 2f, 0.55f), new Vector2(0, 0.55f));
+                }
+            }
+            Worn(new Vector3(-23f, 0, -60f), new Vector3(-16f, 0, -63.5f), new Vector3(-8f, 0, -65f), new Vector3(-1.2f, 0, -67f));
+            Worn(new Vector3(1.2f, 0, -60f), new Vector3(6f, 0, -57.5f), new Vector3(10f, 0, -55f), new Vector3(14f, 0, -53.5f));
+            Worn(new Vector3(-1.2f, 0, -80f), new Vector3(-6f, 0, -83f), new Vector3(-10f, 0, -86.5f));
+            Worn(new Vector3(1.2f, 0, -88f), new Vector3(8f, 0, -85f), new Vector3(14f, 0, -82.5f));
+            var g = k.Build("WornPaths", root, false);
+            if (g != null) g.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
         /// <summary>A few locals out and about on the estate: walking the pavements, crossing the green, two lads by the sign.</summary>

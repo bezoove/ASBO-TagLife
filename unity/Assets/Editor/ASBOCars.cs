@@ -66,7 +66,7 @@ namespace ASBO.EditorTools
                 var mi = (ModelImporter)AssetImporter.GetAtPath(path);
                 mi.importCameras = false; mi.importLights = false; mi.importAnimation = false; mi.animationType = ModelImporterAnimationType.None;
                 mi.importBlendShapes = false; mi.importNormals = ModelImporterNormals.Import; mi.importTangents = ModelImporterTangents.None;
-                mi.meshCompression = ModelImporterMeshCompression.Off; mi.isReadable = false;
+                mi.meshCompression = ModelImporterMeshCompression.Off; mi.isReadable = true; // readable: the bodywork dents in crashes
                 mi.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
                 void Map(string n, Material m) { if (m != null) mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), n), m); }
                 Map("X_paint", paint); Map("X_dark", dark); Map("X_chrome", chrome); Map("X_glass", glass); Map("X_lamps", lamps); Map("X_plate", plate); Map("X_wheel", wheel);

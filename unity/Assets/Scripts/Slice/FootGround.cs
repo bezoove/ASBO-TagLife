@@ -6,6 +6,9 @@ namespace ASBO.Slice
     /// Ground-aware feet (Animator IK pass): each foot is raycast onto whatever is underneath — kerbs, steps, slopes —
     /// keeping the animation's own lift, the sole is turned to the surface, and the pelvis drops so the lower foot
     /// can reach. Sits on the Animator's GameObject (OnAnimatorIK is only sent there).
+    /// Feet also stay planted: while the animation has a foot down (low, and not moving, in the clip or in the world),
+    /// it is pinned to the spot it landed on, so a kick's standing foot or a fighter shuffling into range doesn't skate
+    /// along the floor. It lets go when the foot lifts, or if the body has been carried too far from it to reach.
     /// </summary>
     public class FootGround : MonoBehaviour
     {
@@ -14,6 +17,26 @@ namespace ASBO.Slice
         float rootFix;
         const int Mask = ~((1 << 2) | (1 << 31) | (1 << 28) | (1 << 29)); // not cars or ragdolls
         Animator anim; float pelvis, lOff, rOff, lW, rW;
+        struct Pin { public bool on, seen; public Vector3 at, lastLocal, lastWorld; public float w; }
+        Pin lPin, rPin;
+        const float PinReach = 0.28f; // how far the body can move off a planted foot before it has to step
+
+        /// <summary>The foot target with the pin applied: held where it landed while the animation has it planted.</summary>
+        Vector3 Pinned(ref Pin k, Vector3 raw, Vector3 target, float bottom, float dt)
+        {
+            var root = anim.transform; Vector3 up = root.up;
+            Vector3 local = root.InverseTransformPoint(raw);
+            float h = Vector3.Dot(raw - root.position, up) - bottom;
+            float vLocal = k.seen ? (local - k.lastLocal).WithY(0).magnitude / dt : 9f, vWorld = k.seen ? (raw - k.lastWorld).WithY(0).magnitude / dt : 9f;
+            k.lastLocal = local; k.lastWorld = raw; k.seen = true;
+            bool down = h < 0.045f && (vLocal < 0.4f || vWorld < 0.4f);
+            if (down && !k.on) { k.on = true; k.at = target; }
+            if (k.on && (!down || (k.at - target).WithY(0).magnitude > PinReach)) k.on = false;
+            k.w = Mathf.MoveTowards(k.w, k.on ? 1f : 0f, dt / 0.1f);
+            if (k.w <= 0f) return target;
+            Vector3 at = k.at; at.y = target.y; // keep the ground fit's height
+            return Vector3.Lerp(target, at, k.w);
+        }
 
         public void Bind(Animator a) { anim = a; }
         public float Pelvis => pelvis; public float LeftOff => lOff; public float RightOff => rOff;
@@ -60,9 +83,11 @@ namespace ASBO.Slice
             anim.bodyPosition += up * (pelvis + lift * Mathf.Min(lW, rW));
             // feet go to the surface; the hip drop is already in the IK goals' frame, so add it back
             anim.SetIKPositionWeight(AvatarIKGoal.LeftFoot, lW); anim.SetIKRotationWeight(AvatarIKGoal.LeftFoot, lW * 0.7f);
-            anim.SetIKPosition(AvatarIKGoal.LeftFoot, lp + up * lOff); anim.SetIKRotation(AvatarIKGoal.LeftFoot, lr);
+            float dt = Mathf.Max(Time.deltaTime, 1e-4f);
+            Vector3 lt = Pinned(ref lPin, lp, lp + up * lOff, anim.leftFeetBottomHeight, dt), rt = Pinned(ref rPin, rp, rp + up * rOff, anim.rightFeetBottomHeight, dt);
+            anim.SetIKPosition(AvatarIKGoal.LeftFoot, lt); anim.SetIKRotation(AvatarIKGoal.LeftFoot, lr);
             anim.SetIKPositionWeight(AvatarIKGoal.RightFoot, rW); anim.SetIKRotationWeight(AvatarIKGoal.RightFoot, rW * 0.7f);
-            anim.SetIKPosition(AvatarIKGoal.RightFoot, rp + up * rOff); anim.SetIKRotation(AvatarIKGoal.RightFoot, rr);
+            anim.SetIKPosition(AvatarIKGoal.RightFoot, rt); anim.SetIKRotation(AvatarIKGoal.RightFoot, rr);
         }
     }
 }

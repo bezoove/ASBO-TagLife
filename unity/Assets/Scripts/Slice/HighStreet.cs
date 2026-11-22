@@ -25,10 +25,10 @@ namespace ASBO.Slice
         // shopfront atlas cells that are empty units (to let): whitewashed, boarded, shuttered, the old business's faded board left up, closed down, available
         public static readonly HashSet<int> EmptyCells = new HashSet<int> { 6, 15, 16, 17, 18, 19, 22, 23 };
 
-        /// <summary>North side, from the pub on the corner going west. Four units to let.</summary>
+        /// <summary>North side, from the corner going west (the Eggy Duck has moved out to its own manor house: TudorManor). Six units to let.</summary>
         public static readonly Unit[] North =
         {
-            U(14, 16f, Era.Pub, 2), U(-1, 3f, Era.Gap, 0), U(0, 6.5f, Era.Victorian, 3), U(1, 6f, Era.Victorian, 3), U(2, 6f, Era.Victorian, 2),
+            U(22, 6.5f, Era.Victorian, 3), U(19, 6f, Era.Victorian, 2), U(-1, 6.5f, Era.Gap, 0), U(0, 6.5f, Era.Victorian, 3), U(1, 6f, Era.Victorian, 3), U(2, 6f, Era.Victorian, 2),
             U(15, 5.5f, Era.Victorian, 2), U(3, 5.8f, Era.Thirties, 2), U(4, 5.8f, Era.Thirties, 2), U(5, 5f, Era.Victorian, 2), U(6, 5.5f, Era.Victorian, 3),
             U(17, 6f, Era.Victorian, 3), U(7, 6f, Era.Victorian, 3), U(16, 5.5f, Era.Victorian, 2),
         };

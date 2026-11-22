@@ -185,6 +185,27 @@ namespace ASBO.Slice
                             else { Place(rm, runs, Order(R, null), 0.4f, 0.4f, 1.6f, false, Lamp); Pictures(rm, runs, 3); }
                             break;
                         }
+                    case "bar":
+                        {
+                            // the bar along the back wall: counter with pumps, shelves of bottles and glasses behind, stools in front
+                            float bw = Mathf.Min(4.2f, Mathf.Max(rw, rd) * 0.4f);
+                            if (!Place(rm, runs, Order(R, "B"), bw, 1.75f, 2.0f, true, () => BarCounter(bw))) Place(rm, runs, Order(R, "B"), 3.2f, 1.75f, 2.0f, false, () => BarCounter(3.2f));
+                            // old oak tables and chairs dotted about the floor, a threadbare carpet down the middle
+                            var trng = new System.Random(rm.key.GetHashCode());
+                            for (float tx = R.x0 + 2.0f; tx < R.x1 - 1.6f; tx += 2.9f)
+                                for (float td = R.d0 + 1.7f; td < R.d1 - 3.3f; td += 2.6f)
+                                {
+                                    var tp = new Vector3(tx + (float)trng.NextDouble() * 0.5f, rm.y + (rm.lv == 0 ? 0.04f : 0f), td + (float)trng.NextDouble() * 0.4f);
+                                    if (FireNear(rm, tp, 1.4f)) continue;
+                                    float yaw = (float)trng.NextDouble() * 20f - 10f;
+                                    furn.Push(tp, yaw); deco.Push(tp, yaw); PubTable(trng.Next(3)); furn.Pop(); deco.Pop();
+                                }
+                            Rug(rm, R, rw * 0.5f, rd * 0.35f, CotMats.rug2);
+                            // settles along the front wall under the windows
+                            for (int q = 0; q < 3; q++) Place(rm, runs, "FLR", 1.7f, 0.55f, 1.2f, false, Settle);
+                            Pictures(rm, runs, 5);
+                            break;
+                        }
                     case "study":
                         Place(rm, runs, Order(R, null), 1.4f, 1.4f, 1.0f, false, Desk);
                         Place(rm, runs, Order(R, null), 1.0f, 0.36f, 2.0f, true, Bookcase);
@@ -419,6 +440,83 @@ namespace ASBO.Slice
             if (chairs >= 6) for (int s = -1; s <= 1; s += 2) { furn.Push(new Vector3(s * (L / 2 + 0.3f), 0, 0), s > 0 ? -90f : 90f); deco.Push(new Vector3(s * (L / 2 + 0.3f), 0, 0), s > 0 ? -90f : 90f); Windsor(); furn.Pop(); deco.Pop(); }
             if (candles) for (int q = -1; q <= 1; q += 2) { deco.Cyl(CotMats.brass, new Vector3(q * L / 5, 0.77f, 0), 0.05f, 0.25f, 8, true, 0.02f); deco.Cyl(CotMats.linen, new Vector3(q * L / 5, 1.02f, 0), 0.015f, 0.15f, 6); }
             else { deco.Cyl(CotMats.ceramic, new Vector3(0.1f, 0.77f, 0), 0.12f, 0.1f, 12, true, 0.15f); deco.Sphere(CotMats.flowers[1], new Vector3(0.1f, 0.88f, 0), new Vector3(0.1f, 0.05f, 0.1f), 8, 4); }
+        }
+
+        /// <summary>The bar: shelves of bottles and glasses against the wall, the serving gap, the counter with its pumps, stools out front (back at -z).</summary>
+        void BarCounter(float w)
+        {
+            const float back = -0.875f;
+            // back shelves
+            furn.Box(CotMats.oak, new Vector3(-w / 2, 0f, back), new Vector3(w / 2, 0.9f, back + 0.45f));
+            for (int sh = 0; sh < 3; sh++)
+            {
+                float y = 1.15f + sh * 0.32f;
+                deco.Box(CotMats.oak, new Vector3(-w / 2, y - 0.03f, back), new Vector3(w / 2, y, back + 0.25f));
+                for (float x = -w / 2 + 0.12f; x < w / 2 - 0.1f; x += 0.14f)
+                {
+                    var gm = ((int)(x * 7f + sh) % 3) switch { 0 => CotMats.glassClear, 1 => CotMats.lead, _ => CotMats.pewter };
+                    deco.Cyl(gm, new Vector3(x, y, back + 0.12f), 0.035f, 0.24f + (sh == 0 ? 0.04f : 0f), 6, true, 0.012f);
+                }
+            }
+            deco.Box(CotMats.glassFrost, new Vector3(-w / 2 + 0.1f, 0.95f, back), new Vector3(w / 2 - 0.1f, 2.05f, back + 0.02f)); // the old mirror behind the bottles
+            // the counter: panelled front, dark top, brass rail
+            float cz = 0.35f;
+            furn.Box(CotMats.oak, new Vector3(-w / 2, 0f, cz), new Vector3(w / 2, 1.02f, cz + 0.5f));
+            deco.Box(CotMats.boards, new Vector3(-w / 2 - 0.05f, 1.02f, cz - 0.05f), new Vector3(w / 2 + 0.05f, 1.08f, cz + 0.6f));
+            for (float x = -w / 2 + 0.3f; x < w / 2 - 0.2f; x += 0.6f) deco.Box(CotMats.boards, new Vector3(x, 0.15f, cz + 0.5f), new Vector3(x + 0.45f, 0.9f, cz + 0.52f));
+            deco.CylX(CotMats.brass, new Vector3(0f, 0.18f, cz + 0.68f), 0.025f, w, 6);
+            // beer pumps
+            for (int q = 0; q < 4; q++)
+            {
+                float x = -0.6f + q * 0.4f;
+                deco.Cyl(CotMats.brass, new Vector3(x, 1.08f, cz + 0.2f), 0.04f, 0.12f, 8);
+                deco.Box(CotMats.soot, new Vector3(x - 0.02f, 1.2f, cz + 0.18f), new Vector3(x + 0.02f, 1.5f, cz + 0.22f));
+                deco.Box(CotMats.fabrics[q % CotMats.fabrics.Length], new Vector3(x - 0.035f, 1.32f, cz + 0.225f), new Vector3(x + 0.035f, 1.42f, cz + 0.235f));
+            }
+            // stools
+            for (float x = -w / 2 + 0.5f; x < w / 2 - 0.3f; x += 0.85f)
+            {
+                deco.Cyl(CotMats.oak, new Vector3(x, 0f, cz + 0.95f), 0.025f, 0.72f, 6);
+                furn.Cyl(CotMats.oak, new Vector3(x, 0.72f, cz + 0.95f), 0.18f, 0.05f, 10);
+            }
+        }
+
+        /// <summary>A pub table: round or square, two to four chairs or stools round it, a glass or two and a beer mat.</summary>
+        void PubTable(int kind)
+        {
+            if (kind == 0) { furn.Cyl(CotMats.oak, new Vector3(0, 0.7f, 0), 0.45f, 0.05f, 14); deco.Cyl(CotMats.oak, Vector3.zero, 0.05f, 0.7f, 8); deco.Cyl(CotMats.soot, new Vector3(0, 0f, 0), 0.25f, 0.03f, 10); }
+            else { furn.Box(CotMats.oak, new Vector3(-0.42f, 0.7f, -0.38f), new Vector3(0.42f, 0.75f, 0.38f)); foreach (float x in new[] { -0.36f, 0.36f }) foreach (float z in new[] { -0.32f, 0.32f }) deco.BoxB(CotMats.oak, new Vector3(x, 0, z), new Vector3(0.06f, 0.7f, 0.06f)); }
+            int seats = kind == 2 ? 4 : 3;
+            for (int q = 0; q < seats; q++)
+            {
+                float a = q * 360f / seats + 20f; var dir = Quaternion.Euler(0, a, 0) * Vector3.forward;
+                var p = dir * 0.78f;
+                furn.Push(p, a + 180f); deco.Push(p, a + 180f); Windsor(); furn.Pop(); deco.Pop();
+            }
+            deco.Cyl(CotMats.glassClear, new Vector3(0.12f, 0.75f, 0.05f), 0.04f, 0.15f, 8, true, 0.035f);
+            deco.Cyl(CotMats.brass, new Vector3(0.12f, 0.75f, 0.05f), 0.036f, 0.11f, 8, true, 0.032f);
+            deco.Box(CotMats.linen, new Vector3(-0.2f, 0.75f, -0.15f), new Vector3(-0.1f, 0.752f, -0.05f));
+        }
+
+        /// <summary>An old high-backed oak settle (back at -z).</summary>
+        void Settle()
+        {
+            furn.Box(CotMats.oak, new Vector3(-0.85f, 0.42f, -0.25f), new Vector3(0.85f, 0.47f, 0.25f));
+            furn.Box(CotMats.oak, new Vector3(-0.85f, 0f, -0.27f), new Vector3(0.85f, 1.25f, -0.2f));
+            foreach (float x in new[] { -0.85f, 0.81f }) furn.Box(CotMats.oak, new Vector3(x, 0f, -0.27f), new Vector3(x + 0.04f, 0.75f, 0.25f));
+            deco.Box(CotMats.cushion, new Vector3(-0.8f, 0.47f, -0.2f), new Vector3(0.8f, 0.53f, 0.22f));
+        }
+
+        bool FireNear(CRoom rm, Vector3 p, float r)
+        {
+            foreach (var h in P.hearths)
+            {
+                if (h.room != rm.key) continue;
+                var R = rm.Main; float m = (h.a + h.b) * 0.5f;
+                Vector3 c = h.side == "F" ? new Vector3(m, 0, R.d0) : h.side == "B" ? new Vector3(m, 0, R.d1) : h.side == "L" ? new Vector3(R.x0, 0, m) : new Vector3(R.x1, 0, m);
+                if (new Vector2(p.x - c.x, p.z - c.z).magnitude < r + 1.2f) return true;
+            }
+            return false;
         }
 
         void Windsor()

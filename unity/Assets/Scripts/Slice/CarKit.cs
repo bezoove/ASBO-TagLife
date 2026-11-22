@@ -45,6 +45,7 @@ namespace ASBO.Slice
         /// <summary>Builds the car under parent (origin on the ground at its middle, front = +z). Returns the wheels FL, FR, RL, RR.</summary>
         public static Transform[] Build(Transform parent, string id, Color paint, Wear wear, bool castShadow, System.Random rng)
         {
+            if (wear <= Wear.Dirty && Pack(id) != null) return BuildPack(parent, id, paint, wear, castShadow, rng);
             var root = Object.Instantiate(Prefab(id), parent, false).transform;
             root.name = "Body"; root.localPosition = Vector3.zero; root.localRotation = Quaternion.identity;
             bool dented = wear >= Wear.Rusty || wear == Wear.Dirty && rng.NextDouble() < 0.35;
@@ -72,6 +73,25 @@ namespace ASBO.Slice
             if (r1 != null) r1.sharedMaterials = mats;
             var sh = castShadow ? ShadowCastingMode.On : ShadowCastingMode.Off;
             r0.shadowCastingMode = sh; if (r1 != null) r1.shadowCastingMode = sh;
+            // the driver's door is its own part: hung on a hinge at its front edge so it can swing open
+            Transform dr0 = root.Find("door_LOD0"), dr1 = root.Find("dentdoor_LOD0"), door = dented && dr1 != null ? dr1 : dr0;
+            foreach (var t in new[] { dr0, dr1 }) if (t != null) t.gameObject.SetActive(t == door);
+            MeshRenderer doorR = null;
+            if (door != null && door.GetComponent<MeshFilter>() is MeshFilter dmf && dmf.sharedMesh != null)
+            {
+                doorR = door.GetComponent<MeshRenderer>(); doorR.sharedMaterials = mats; doorR.shadowCastingMode = sh;
+                var b = dmf.sharedMesh.bounds; Vector3 mn = Vector3.one * 1e9f, mx = -Vector3.one * 1e9f;
+                for (int k = 0; k < 8; k++)
+                {
+                    var corner = new Vector3((k & 1) == 0 ? b.min.x : b.max.x, (k & 2) == 0 ? b.min.y : b.max.y, (k & 4) == 0 ? b.min.z : b.max.z);
+                    var q = root.InverseTransformPoint(door.TransformPoint(corner)); mn = Vector3.Min(mn, q); mx = Vector3.Max(mx, q);
+                }
+                float side = Mathf.Sign(mn.x + mx.x);
+                var hinge = new GameObject("DoorHinge").transform; hinge.SetParent(root, false);
+                hinge.localPosition = new Vector3(side > 0 ? mx.x : mn.x, (mn.y + mx.y) * 0.5f, mx.z);
+                door.SetParent(hinge, true);
+                hinge.name = "DoorHinge|" + (mx.z - mn.z).ToString("F2", System.Globalization.CultureInfo.InvariantCulture); // its length, for whoever opens it
+            }
 
             // wheels: wrapped so the vehicle code can steer and spin them the way it always has
             var wheels = new Transform[4]; var wheelRs = new List<Renderer>();
@@ -107,10 +127,78 @@ namespace ASBO.Slice
             }
 
             var lg = root.GetComponent<LODGroup>(); if (lg == null) lg = root.gameObject.AddComponent<LODGroup>();
-            var l0 = new List<Renderer>(wheelRs) { r0 }; var l1 = new List<Renderer>(wheelRs); if (r1 != null) l1.Add(r1);
+            var l0 = new List<Renderer>(wheelRs) { r0 }; if (doorR != null) l0.Add(doorR); var l1 = new List<Renderer>(wheelRs); if (r1 != null) l1.Add(r1);
             lg.SetLODs(new[] { new LOD(0.035f, l0.ToArray()), new LOD(0.006f, l1.ToArray()) }); // the detailed car right out to the distance; the low one only far off
             lg.RecalculateBounds();
             return wheels;
+        }
+
+        // ------------------------------------------------------------------------------------------- pack models
+        static readonly Dictionary<string, GameObject> packs = new Dictionary<string, GameObject>();
+        /// <summary>The Asset Store model standing in for this kind of car, if it's in the build (ASBO/Cars/Use Pack Cars).</summary>
+        static GameObject Pack(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            if (!packs.TryGetValue(id, out var p)) { p = Resources.Load<GameObject>("CarsPack/" + id); packs[id] = p; }
+            return p;
+        }
+
+        /// <summary>
+        /// The pack's detailed model for this car (the hatch and the saloon): its own paint colour (faded if tired, grimy
+        /// if dirty), its door on a hinge, its wheels wrapped for the driving code. Far off it swaps to our own low model.
+        /// </summary>
+        static Transform[] BuildPack(Transform parent, string id, Color paint, Wear wear, bool castShadow, System.Random rng)
+        {
+            var root = Object.Instantiate(Pack(id), parent, false).transform;
+            root.name = "Body"; root.localPosition = Vector3.zero; root.localRotation = Quaternion.identity;
+            float fade = wear == Wear.Tired ? 0.15f + (float)rng.NextDouble() * 0.2f : wear == Wear.Dirty ? 0.25f : (float)rng.NextDouble() * 0.06f;
+            Color col = Color.Lerp(paint, new Color(0.62f, 0.62f, 0.6f), fade);
+            if (wear == Wear.Dirty) col = Color.Lerp(col, new Color(0.33f, 0.29f, 0.22f), 0.3f);
+            var sh = castShadow ? ShadowCastingMode.On : ShadowCastingMode.Off;
+            Material paintM = null;
+            var near = new List<Renderer>();
+            foreach (var r in root.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                    if (mats[i] != null && mats[i].name.EndsWith("_Paint"))
+                    {
+                        if (paintM == null) { paintM = new Material(mats[i]) { name = id + " paint" }; paintM.SetColor("_BaseColor", col); paintM.SetFloat("_Smoothness", wear == Wear.Clean ? 0.66f : wear == Wear.Tired ? 0.45f : 0.28f); }
+                        mats[i] = paintM;
+                    }
+                r.sharedMaterials = mats; r.shadowCastingMode = sh; near.Add(r);
+            }
+            var wheels = new Transform[4]; string[] names = { "wheel_FL", "wheel_FR", "wheel_RL", "wheel_RR" };
+            for (int i = 0; i < 4; i++) { var w = root.Find(names[i]); if (w == null) { w = new GameObject(names[i]).transform; w.SetParent(root, false); } wheels[i] = w; }
+            // far off: our own low model in the same colour (no wheels to draw, a fraction of the triangles)
+            Renderer far = null; var ours = Prefab(id);
+            var low = ours != null ? ours.transform.Find("car_LOD1") : null;
+            if (low != null)
+            {
+                var lg0 = Object.Instantiate(low.gameObject, root, false); lg0.name = "far_LOD1"; lg0.SetActive(true);
+                far = lg0.GetComponent<MeshRenderer>();
+                if (far != null) { var m = far.sharedMaterials; if (m.Length > 0) m[0] = Paint(id, col, Wear.Clean, -1, col, 0f, false); far.sharedMaterials = m; far.shadowCastingMode = ShadowCastingMode.Off; }
+            }
+            var lg = root.gameObject.AddComponent<LODGroup>();
+            lg.SetLODs(far != null ? new[] { new LOD(0.07f, near.ToArray()), new LOD(0.006f, new[] { far }) } : new[] { new LOD(0.006f, near.ToArray()) });
+            lg.RecalculateBounds();
+            ContactShadow(parent, id);
+            return wheels;
+        }
+
+        static void ContactShadow(Transform parent, string id)
+        {
+            var shadowM = Resources.Load<Material>("CarMats/Shadow"); if (shadowM == null) return;
+            var spec = CarBody.Get(id).m;
+            var blob = new GameObject("ContactShadow"); blob.transform.SetParent(parent, false); blob.transform.localPosition = new Vector3(0, 0.025f, 0);
+            float hw2 = spec.W * 0.5f + 0.18f, hl = spec.L * 0.5f + 0.22f;
+            var shm = new Mesh { name = "CarShadow" };
+            shm.vertices = new[] { new Vector3(-hw2, 0, -hl), new Vector3(hw2, 0, -hl), new Vector3(hw2, 0, hl), new Vector3(-hw2, 0, hl) };
+            shm.uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
+            shm.normals = new[] { Vector3.up, Vector3.up, Vector3.up, Vector3.up }; shm.triangles = new[] { 0, 2, 1, 0, 3, 2 };
+            blob.AddComponent<MeshFilter>().sharedMesh = shm;
+            var shr = blob.AddComponent<MeshRenderer>(); shr.sharedMaterial = shadowM; shr.shadowCastingMode = ShadowCastingMode.Off; shr.receiveShadows = false;
+            shr.lightProbeUsage = LightProbeUsage.Off; shr.reflectionProbeUsage = ReflectionProbeUsage.Off;
         }
 
         // ------------------------------------------------------------------------------------------- paint
@@ -233,13 +321,45 @@ namespace ASBO.Slice
         public static GameObject Scenery(Transform parent, string id, Wear wear, Vector3 pos, float yaw, int seed)
         {
             if (!Has(id)) return null;
-            var g = new GameObject("Wreck " + id); g.transform.SetParent(parent, false);
+            bool drivable = wear < Wear.Wreck;
+            var g = new GameObject((drivable ? "Parked " : "Wreck ") + id); g.transform.SetParent(parent, false);
             g.transform.SetPositionAndRotation(pos, Quaternion.Euler(0f, yaw, 0f));
-            var rng = new System.Random(seed);
-            Build(g.transform, id, CarBody.RandomPaint(rng), wear, true, rng);
+            Color paint = CarBody.RandomPaint(new System.Random(seed ^ 0x5bd1e995)); // its own stream, so the car rebuilds the same when someone gets in
+            Build(g.transform, id, paint, wear, true, new System.Random(seed));
             var spec = CarBody.Get(id).m;
             var bc = g.AddComponent<BoxCollider>(); bc.size = new Vector3(spec.W, 1.3f, spec.L); bc.center = new Vector3(0f, 0.7f, 0f);
+            Dents.Add(g, g.transform, 1200f);
+            var ob = g.AddComponent<UnityEngine.AI.NavMeshObstacle>(); ob.shape = UnityEngine.AI.NavMeshObstacleShape.Box; // people walk round it
+            ob.center = bc.center; ob.size = bc.size + new Vector3(0.4f, 0f, 0.4f); ob.carving = true; ob.carveOnlyStationary = true;
+            if (drivable) { var pc = g.AddComponent<ParkedCar>(); pc.id = id; pc.wear = wear; pc.paint = paint; pc.seed = seed; }
             return g;
+        }
+    }
+
+    /// <summary>
+    /// A parked car you can get into (anything short of a wreck). Get in and it becomes a proper drivable car of the
+    /// same kind, paint and condition, dents and all, handling like that kind of car does.
+    /// </summary>
+    public class ParkedCar : MonoBehaviour
+    {
+        public string id; public CarKit.Wear wear; public Color paint; public int seed;
+        public static readonly List<ParkedCar> All = new List<ParkedCar>();
+        void OnEnable() => All.Add(this);
+        void OnDisable() => All.Remove(this);
+
+        public static ParkedCar Nearest(Vector3 p, float reach)
+        {
+            ParkedCar best = null; float bd = reach * reach;
+            foreach (var c in All) { if (c == null) continue; var d = c.transform.position - p; d.y = 0f; if (d.sqrMagnitude < bd) { bd = d.sqrMagnitude; best = c; } }
+            return best;
+        }
+
+        /// <summary>Swap this parked car for a drivable one in the same spot.</summary>
+        public PlayerCar TakeOver()
+        {
+            var c = PlayerCar.Create(transform.position + Vector3.up * 0.12f, transform.eulerAngles.y, paint, id, wear, seed, transform.parent);
+            gameObject.SetActive(false); Destroy(gameObject);
+            return c;
         }
     }
 }

@@ -358,10 +358,11 @@ namespace ASBO.EditorTools
                     }
                 }
                 tree.children = kids;
-                // the Mixamo walks and runs (your X Bot downloads) take over going forward; each person has their own way of
-                // walking and running ("Gait", set once), lined up in step with the pack's sideways and diagonal cycles
+                // the Mixamo walks (your X Bot downloads) take over walking forward; each person has their own way of walking
+                // ("Gait", set once), lined up in step with the pack's sideways and diagonal cycles. Running stays on the pack's
+                // own motion-capture run: the Mixamo runs retargeted badly onto our bodies (a foot twisted out, arms into the
+                // sides, chest pushed out), so they're left out.
                 GaitSlot(ac, tree, 0.5f, 2.6f, ("Walking", "MX_Walk", 1.71f), ("Walking (1)", "MX_Walk1", 1.75f));
-                GaitSlot(ac, tree, 3.4f, 6.6f, ("Running", "MX_Run", 4.62f), ("Running (1)", "MX_Run1", 0f));
             }
             sm.defaultState = move;
 
