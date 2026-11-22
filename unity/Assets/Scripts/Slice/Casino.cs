@@ -75,7 +75,9 @@ namespace ASBO.Slice
             { k.Quad(m, new Vector3(a.x, y0, a.z), new Vector3(b.x, y0, b.z), new Vector3(b.x, y1, b.z), new Vector3(a.x, y1, a.z), n); }
             void Wall(Vector3 a, Vector3 b, Vector3 n, bool front)
             {
-                Outer(a, b, n, 0f, plinth, M.black); Outer(a, b, n, plinth, front ? 4.4f : H, M.clad);
+                Outer(a, b, n, 0f, plinth, M.black); Outer(a, b, n, plinth, front ? 4.4f : H, front ? M.glass : M.clad);
+                if (front) { k.Quad(M.black, new Vector3(a.x, plinth, a.z + 0.04f), new Vector3(b.x, plinth, b.z + 0.04f), new Vector3(b.x, 4.4f, b.z + 0.04f), new Vector3(a.x, 4.4f, a.z + 0.04f), n); // dark glazing over a black backing
+                    for (float fx = Mathf.Ceil(Mathf.Min(a.x, b.x) / 2.5f) * 2.5f; fx < Mathf.Max(a.x, b.x); fx += 2.5f) k.Box(M.gold, new Vector3(fx - 0.06f, plinth, a.z - 0.16f), new Vector3(fx + 0.06f, 4.35f, a.z)); }
                 if (front) Outer(a, b, n, 4.4f, H, M.navy);
             }
             // front, in two runs either side of the doors, and over the door
@@ -103,19 +105,15 @@ namespace ASBO.Slice
             k.Quad(M.gold, new Vector3(DoorX1, 0, -t), new Vector3(DoorX1, DoorH, -t), new Vector3(DoorX1, DoorH, 0), new Vector3(DoorX1, 0, 0), Vector3.left);
             k.Quad(M.gold, new Vector3(DoorX0, DoorH, -t), new Vector3(DoorX1, DoorH, -t), new Vector3(DoorX1, DoorH, 0), new Vector3(DoorX0, DoorH, 0), Vector3.down);
             foreach (float gx in new[] { DoorX0 - 1.0f, DoorX1 + 0.05f }) { k.Box(M.glass, new Vector3(gx, 0.02f, -t - 0.06f), new Vector3(gx + 0.95f, DoorH - 0.05f, -t - 0.02f)); k.Box(M.gold, new Vector3(gx, 0f, -t - 0.08f), new Vector3(gx + 0.95f, 0.08f, -t)); }
-            k.Box(M.navy, new Vector3(DoorX0 - 3f, 3.25f, -3.6f), new Vector3(DoorX1 + 3f, 3.6f, -t));
-            k.Box(M.gold, new Vector3(DoorX0 - 3.05f, 3.2f, -3.65f), new Vector3(DoorX1 + 3.05f, 3.3f, -t));
-            foreach (float cx in new[] { DoorX0 - 2.7f, DoorX1 + 2.7f }) k.Cyl(M.gold, new Vector3(cx, 0f, -3.3f), 0.14f, 3.25f, 12);
-            for (float x = DoorX0 - 2f; x <= DoorX1 + 2.01f; x += 2f) k.Cyl(M.light, new Vector3(x, 3.19f, -2f), 0.15f, 0.02f, 10);
-            k.Box(M.cab, new Vector3(DoorX0 + 0.6f, 0.0f, -6f), new Vector3(DoorX1 - 0.6f, 0.025f, 1.2f)); // red carpet runner, out to the car park and into the lobby
-            foreach (float px in new[] { DoorX0 - 1.6f, DoorX1 + 1.6f }) { k.Box(M.gold, new Vector3(px - 0.35f, 0f, -1.5f), new Vector3(px + 0.35f, 0.6f, -0.8f)); k.Cyl(M.felt, new Vector3(px, 0.6f, -1.15f), 0.3f, 1.3f, 8, true, 0.05f); } // planters with clipped conifers
+            Grand(k);
             var g = k.Build("Shell", root, false);
             // solid walls (boxes: the player's capsule never slips through a one-sided face), with the doorway open
             void Solid(Vector3 mn, Vector3 mx) { var bc = g.AddComponent<BoxCollider>(); bc.center = (mn + mx) * 0.5f; bc.size = mx - mn; }
             Solid(new Vector3(-t, 0, -t), new Vector3(DoorX0, H, 0)); Solid(new Vector3(DoorX1, 0, -t), new Vector3(W + t, H, 0)); Solid(new Vector3(DoorX0, DoorH, -t), new Vector3(DoorX1, H, 0));
             Solid(new Vector3(-t, 0, D), new Vector3(W + t, H, D + t)); Solid(new Vector3(-t, 0, 0), new Vector3(0, H, D)); Solid(new Vector3(W, 0, 0), new Vector3(W + t, H, D));
             Solid(new Vector3(-t, H, -t), new Vector3(W + t, H + 0.5f, D + t)); // the roof
-            foreach (float cx in new[] { DoorX0 - 2.7f, DoorX1 + 2.7f }) Solid(new Vector3(cx - 0.15f, 0, -3.45f), new Vector3(cx + 0.15f, 3.25f, -3.15f));
+            foreach (float cx in new[] { CanX0 + 0.5f, CanX1 - 0.5f }) Solid(new Vector3(cx - 0.4f, 0, CanZ0 + 0.1f), new Vector3(cx + 0.4f, CanY, CanZ0 + 0.9f));
+            foreach (float px in new[] { DoorX0 - 1.7f, DoorX1 + 1.7f }) Solid(new Vector3(px - 0.4f, 0f, -1.6f), new Vector3(px + 0.4f, 1.2f, -0.8f)); // the bay trees' pots
             // inside faces: wallpaper to the ceiling, the ceiling, the carpet
             var ki = new MeshKit();
             void Inner(Vector3 a, Vector3 b, Vector3 n) { ki.Quad(M.wall, new Vector3(a.x, 0, a.z), new Vector3(b.x, 0, b.z), new Vector3(b.x, CeilY, b.z), new Vector3(a.x, CeilY, a.z), n); ki.Box(M.wood, new Vector3(Mathf.Min(a.x, b.x) - (n.x > 0 ? 0 : 0), 0f, Mathf.Min(a.z, b.z)), new Vector3(Mathf.Max(a.x, b.x), 0.15f, Mathf.Max(a.z, b.z)) + n * 0.03f); }
@@ -131,6 +129,71 @@ namespace ASBO.Slice
             for (float x = 4f; x < W - 1f; x += 6f) for (float z = 4f; z < D - 1f; z += 5f) { ki.Box(M.gold, new Vector3(x - 1.05f, CeilY - 0.06f, z - 1.05f), new Vector3(x + 1.05f, CeilY, z + 1.05f)); ki.Box(M.light, new Vector3(x - 0.9f, CeilY - 0.08f, z - 0.9f), new Vector3(x + 0.9f, CeilY - 0.05f, z + 0.9f)); }
             ki.Build("Interior", root, false);
             GameAudio.RegisterZone(root, new List<CRect> { new CRect(0f, W, 0f, D) }, CeilY + 0.3f);
+        }
+
+        const float CanX0 = DoorX0 - 5f, CanX1 = DoorX1 + 5f, CanZ0 = -9f, CanY = 4.6f;
+        /// <summary>
+        /// The grand way in: a deep canopy (a porte-cochere you can pull up under) on two white columns, its soffit full of
+        /// downlights and its fascia lit with the name; a marble apron, the red carpet between brass posts and velvet ropes,
+        /// clipped bay trees in gold pots either side of the doors.
+        /// </summary>
+        static void Grand(MeshKit k)
+        {
+            const float t = 0.3f;
+            k.Box(M.navy, new Vector3(CanX0, CanY, CanZ0), new Vector3(CanX1, CanY + 0.75f, -t));                 // the canopy
+            k.Box(M.gold, new Vector3(CanX0 - 0.05f, CanY - 0.06f, CanZ0 - 0.05f), new Vector3(CanX1 + 0.05f, CanY + 0.02f, -t)); // gold soffit edge
+            k.Box(M.gold, new Vector3(CanX0 - 0.06f, CanY + 0.75f, CanZ0 - 0.06f), new Vector3(CanX1 + 0.06f, CanY + 0.85f, -t)); // and top
+            k.Box(M.light, new Vector3(CanX0 + 0.2f, CanY - 0.09f, CanZ0 + 0.2f), new Vector3(CanX1 - 0.2f, CanY - 0.06f, CanZ0 + 0.35f)); // a lit strip along the front edge
+            for (float x = CanX0 + 1.2f; x < CanX1 - 0.5f; x += 1.6f) for (float z = CanZ0 + 1.2f; z < -1f; z += 1.8f) k.Cyl(M.light, new Vector3(x, CanY - 0.07f, z), 0.12f, 0.02f, 10);
+            // the name on the canopy's front, lit
+            k.QuadUV(M.sign, new Vector3(CanX0 + 1f, CanY + 0.08f, CanZ0 - 0.07f), new Vector3(CanX1 - 1f, CanY + 0.08f, CanZ0 - 0.07f), new Vector3(CanX1 - 1f, CanY + 0.72f, CanZ0 - 0.07f), new Vector3(CanX0 + 1f, CanY + 0.72f, CanZ0 - 0.07f), Vector3.back,
+                new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1));
+            // two fluted white columns with gold bases and capitals at the outer corners
+            foreach (float cx in new[] { CanX0 + 0.5f, CanX1 - 0.5f })
+            {
+                var c = new Vector3(cx, 0f, CanZ0 + 0.5f);
+                k.Box(M.gold, c + new Vector3(-0.38f, 0f, -0.38f), c + new Vector3(0.38f, 0.3f, 0.38f)); k.Cyl(M.white, c + Vector3.up * 0.3f, 0.26f, CanY - 0.75f, 16);
+                for (int f = 0; f < 12; f++) { float a = f * Mathf.PI / 6f; var fp = c + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 0.265f; k.Box(M.chrome, fp + new Vector3(-0.012f, 0.4f, -0.012f), fp + new Vector3(0.012f, CanY - 0.55f, 0.012f)); } // the flutes
+                k.Cyl(M.gold, c + Vector3.up * (CanY - 0.45f), 0.3f, 0.12f, 16, true, 0.36f); k.Box(M.gold, c + new Vector3(-0.4f, CanY - 0.33f, -0.4f), c + new Vector3(0.4f, CanY, 0.4f));
+            }
+            // marble apron, the red carpet, brass posts and velvet ropes along it
+            k.Box(M.white, new Vector3(DoorX0 - 4f, 0f, -4.2f), new Vector3(DoorX1 + 4f, 0.07f, -t));
+            k.Box(M.cab, new Vector3(DoorX0 + 0.4f, 0.07f, -8.6f), new Vector3(DoorX1 - 0.4f, 0.09f, 1.6f));
+            for (int i = 0; i < 6; i++)
+                foreach (float x in new[] { DoorX0 + 0.1f, DoorX1 - 0.1f })
+                {
+                    var p = new Vector3(x, 0.07f, -7.8f + i * 1.25f);
+                    k.Cyl(M.gold, p, 0.16f, 0.05f, 10); k.Cyl(M.gold, p, 0.03f, 0.95f, 8); k.Sphere(M.gold, p + Vector3.up * 1f, Vector3.one * 0.06f, 8, 4);
+                    if (i < 5) { var q = p + new Vector3(0, 0.85f, 0.62f); k.Box(M.cab, q + new Vector3(-0.025f, -0.07f, -0.58f), q + new Vector3(0.025f, 0.0f, 0.58f)); } // the rope, sagging
+                }
+            // bay trees: gold pots, a stem, two clipped balls
+            foreach (float px in new[] { DoorX0 - 1.7f, DoorX1 + 1.7f })
+            {
+                var p = new Vector3(px, 0.07f, -1.2f);
+                k.Cyl(M.gold, p, 0.38f, 0.6f, 12, true, 0.3f); k.Cyl(M.wood, p + Vector3.up * 0.6f, 0.04f, 1.2f, 6);
+                k.Sphere(M.felt, p + Vector3.up * 1.9f, Vector3.one * 0.45f, 10, 6); k.Sphere(M.felt, p + Vector3.up * 1.2f, Vector3.one * 0.3f, 10, 6);
+            }
+            // uplighters along the foot of the front
+            for (float x = 1.25f; x < W; x += 2.5f) if (x < CanX0 || x > CanX1) k.Box(M.light, new Vector3(x - 0.15f, 0f, -t - 0.35f), new Vector3(x + 0.15f, 0.08f, -t - 0.05f));
+        }
+
+        /// <summary>A crystal chandelier hanging from the ceiling at c (on the ceiling): gold rings and tiers of glass drops.</summary>
+        static void Chandelier(MeshKit k, Vector3 c)
+        {
+            k.Cyl(M.gold, c + Vector3.down * 0.7f, 0.02f, 0.7f, 6);
+            float[] r = { 0.95f, 0.7f, 0.45f }; float[] y = { -1.25f, -1.0f, -0.8f };
+            for (int tier = 0; tier < 3; tier++)
+            {
+                var cc = c + Vector3.up * y[tier]; int n = 10 + tier * -2 + 4;
+                k.Cyl(M.gold, cc, r[tier], 0.05f, 16, false, r[tier]);
+                for (int i = 0; i < n; i++)
+                {
+                    float a = i * Mathf.PI * 2f / n; var p = cc + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * r[tier];
+                    k.Box(M.light, p + new Vector3(-0.025f, -0.22f, -0.025f), p + new Vector3(0.025f, 0f, 0.025f));     // a drop
+                    k.Box(M.light, p + new Vector3(-0.04f, 0.05f, -0.04f), p + new Vector3(0.04f, 0.13f, 0.04f));      // a candle bulb
+                }
+            }
+            k.Sphere(M.light, c + Vector3.down * 1.45f, new Vector3(0.12f, 0.2f, 0.12f), 8, 5); // the drop at the bottom
         }
 
         // ------------------------------------------------------------------------------------------ outside
@@ -203,6 +266,29 @@ namespace ASBO.Slice
             foreach (var s in SlotSpots()) { Slot(k, new Vector3(s.x, 0f, s.z), s.w); Solid(new Vector3(s.x - 0.4f, 0f, s.z - 0.4f), new Vector3(s.x + 0.4f, 1.9f, s.z + 0.4f)); }
             // mirrored gold pillars
             foreach (var p in new[] { new Vector3(11f, 0, 6.5f), new Vector3(29f, 0, 6.5f), new Vector3(11f, 0, 17.5f), new Vector3(29f, 0, 17.5f) }) { k.Box(M.gold, p + new Vector3(-0.35f, 0, -0.35f), p + new Vector3(0.35f, CeilY, 0.35f)); Solid(p + new Vector3(-0.35f, 0, -0.35f), p + new Vector3(0.35f, CeilY, 0.35f)); }
+            // walnut panelling round the walls to dado height under a gold rail (not across the doorway)
+            void Panel(Vector3 a, Vector3 b, Vector3 n) { Vector3 o = n * 0.04f; k.Box(M.wood, Vector3.Min(a, b + o), Vector3.Max(a, b + o) + Vector3.up * 1.15f); k.Box(M.gold, Vector3.Min(a, b + o * 1.4f) + Vector3.up * 1.15f, Vector3.Max(a, b + o * 1.4f) + Vector3.up * 1.21f); for (float s2 = 0.8f; s2 < (b - a).magnitude; s2 += 1.2f) { var pp = a + (b - a).normalized * s2 + o * 1.2f; k.Box(M.gold, Vector3.Min(pp, pp + (b - a).normalized * 0.02f) + Vector3.up * 0.2f, Vector3.Max(pp, pp + (b - a).normalized * 0.02f) + Vector3.up * 1.0f + o * 0.2f); } }
+            Panel(new Vector3(3.9f, 0, 0.02f), new Vector3(DoorX0, 0, 0.02f), Vector3.forward); Panel(new Vector3(DoorX1, 0, 0.02f), new Vector3(30.9f, 0, 0.02f), Vector3.forward);
+            Panel(new Vector3(0.02f, 0, 7.8f), new Vector3(0.02f, 0, D - 0.02f), Vector3.right); Panel(new Vector3(W - 0.02f, 0, 5f), new Vector3(W - 0.02f, 0, D - 0.02f), Vector3.left);
+            Panel(new Vector3(0.02f, 0, D - 0.02f), new Vector3(W - 0.02f, 0, D - 0.02f), Vector3.back);
+            // three crystal chandeliers over the tables
+            foreach (var cp in new[] { new Vector3(16.5f, CeilY, 12f), new Vector3(24f, CeilY, 12.4f), new Vector3(8f, CeilY, 12f) }) Chandelier(k, cp);
+            // the bar made modern: a lit onyx front, glow under every shelf, a mirror behind, pendant lights over it
+            k.Box(M.light, new Vector3(31.05f, 0.15f, 4.82f), new Vector3(W - 0.35f, 1.0f, 4.86f));
+            for (int sh = 0; sh < 3; sh++) k.Box(M.light, new Vector3(31.1f, 0.88f + sh * 0.55f, 0.46f), new Vector3(W - 0.1f, 0.9f + sh * 0.55f, 0.5f));
+            k.Box(M.glass, new Vector3(31.1f, 2.55f, 0.44f), new Vector3(W - 0.1f, 3.6f, 0.46f));
+            for (float x = 32.5f; x < W - 1f; x += 2.2f) { k.Cyl(M.black, new Vector3(x, CeilY - 1.3f, 4.4f), 0.01f, 1.3f, 4); k.Cyl(M.light, new Vector3(x, CeilY - 1.55f, 4.4f), 0.13f, 0.25f, 10, true, 0.06f); }
+            // the security desk inside the doors: a lectern with the camera screens, and a rope line in
+            var sd = new Vector3(DoorX1 + 2.6f, 0f, 1.8f);
+            k.Box(M.wood, sd + new Vector3(-0.9f, 0f, -0.4f), sd + new Vector3(0.9f, 1.1f, 0.4f)); k.Box(M.gold, sd + new Vector3(-0.92f, 1.1f, -0.42f), sd + new Vector3(0.92f, 1.14f, 0.42f));
+            for (int i = 0; i < 2; i++) { var mp = sd + new Vector3(-0.45f + i * 0.9f, 1.14f, 0.2f); k.Box(M.black, mp + new Vector3(-0.3f, 0f, -0.04f), mp + new Vector3(0.3f, 0.42f, 0.04f)); k.Box(M.light, mp + new Vector3(-0.27f, 0.03f, -0.045f), mp + new Vector3(0.27f, 0.39f, -0.04f)); }
+            Solid(sd + new Vector3(-0.9f, 0f, -0.4f), sd + new Vector3(0.9f, 1.1f, 0.4f));
+            for (int i = 0; i < 5; i++)
+                foreach (float x in new[] { DoorX0 + 0.2f, DoorX1 - 0.2f })
+                {
+                    var p = new Vector3(x, 0.01f, 0.6f + i * 1.1f); k.Cyl(M.gold, p, 0.14f, 0.04f, 10); k.Cyl(M.gold, p, 0.03f, 0.95f, 8);
+                    if (i < 4) k.Box(M.cab, p + new Vector3(-0.025f, 0.8f, 0.05f), p + new Vector3(0.025f, 0.86f, 1.05f));
+                }
             var body = k.Build("Tables", g, false);
             foreach (var (c, s) in cols) { var bc = body.AddComponent<BoxCollider>(); bc.center = c; bc.size = s; }
         }
@@ -272,7 +358,7 @@ namespace ASBO.Slice
         static void Lights(Transform root)
         {
             // four warm lights over the floor (no shadows: cheap), and one over the door outside
-            foreach (var p in new[] { new Vector3(9f, 3.7f, 11f), new Vector3(20f, 3.7f, 11f), new Vector3(31f, 3.7f, 11f), new Vector3(20f, 3.7f, 18.5f), new Vector3(20f, 3f, -2f) })
+            foreach (var p in new[] { new Vector3(8f, 2.9f, 12f), new Vector3(16.5f, 2.9f, 12f), new Vector3(24f, 2.9f, 12.4f), new Vector3(34f, 3.4f, 3.5f), new Vector3(20f, 3.7f, 18.5f), new Vector3(16f, 4.2f, -4.5f), new Vector3(24f, 4.2f, -4.5f) })
             {
                 var g = new GameObject("Light"); g.transform.SetParent(root, false); g.transform.localPosition = p;
                 var l = g.AddComponent<Light>(); l.type = LightType.Point; l.range = p.z < 0 ? 8f : 13f; l.intensity = p.z < 0 ? 2.2f : 1.6f; l.color = new Color(1f, 0.86f, 0.66f); l.shadows = LightShadows.None;
@@ -290,6 +376,8 @@ namespace ASBO.Slice
             if (GameObject.Find(RootName) == null) return;
             var staff = new (Vector3 at, float yaw)[] { (new Vector3(DoorX0 - 1.2f, 0f, -2.4f), 180f), (new Vector3(1.8f, 0f, 4.5f), 90f), (new Vector3(13.6f, 0f, 12f), 90f), (new Vector3(24f, 0f, 10.6f), 180f), (new Vector3(24f, 0f, 16.1f), 180f), (new Vector3(33f, 0f, 16.2f), 180f), (new Vector3(35f, 0f, 2.4f), 0f) };
             foreach (var (at, yaw) in staff) { var p = World.MakePerson(Origin + at, Color.black, Color.black, "Staff"); p.transform.rotation = Quaternion.Euler(0, yaw, 0); }
+            // security: a second doorman on the other side of the carpet, and a guard at the desk inside watching the screens
+            foreach (var (at, yaw) in new[] { (new Vector3(DoorX1 + 1.2f, 0f, -2.4f), 180f), (new Vector3(DoorX1 + 2.6f, 0f, 2.7f), 180f) }) { var p = World.MakePerson(Origin + at, Color.black, Color.black, "Staff"); p.transform.rotation = Quaternion.Euler(0, yaw, 0); }
             var regs = new (Vector3 at, float yaw)[] { (new Vector3(5.3f, 0f, 21.0f - 1f), 0f), (new Vector3(1.75f, 0f, 12.75f), 270f), (new Vector3(31.6f, 0f, 14.2f), 45f), (new Vector3(34.4f, 0f, 14.2f), -45f), (new Vector3(17.6f, 0f, 10.6f), 0f), (new Vector3(33.3f, 0f, 5.6f), 180f) };
             foreach (var (at, yaw) in regs) { var p = World.MakePerson(Origin + at, new Color(0.3f, 0.3f, 0.35f), new Color(0.2f, 0.2f, 0.22f), "Punter"); p.transform.rotation = Quaternion.Euler(0, yaw, 0); }
             new GameObject("CasinoFloor").AddComponent<CasinoFloor>();

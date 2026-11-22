@@ -182,6 +182,8 @@ namespace ASBO.Slice
         /// Shots/views/prev_N.png. The ground's already levelled for every TownPlan area.
         /// </summary>
         public static void Preview(string which) { var r = new GameObject("Preview").AddComponent<PreviewRun>(); r.which = string.IsNullOrEmpty(which) ? "estates" : which; }
+        /// <summary>The ambulance model parked up: side, front three-quarter, and looking in through its open back doors.</summary>
+        public static void AmbLook() { new GameObject("AmbLook").AddComponent<AmbLookRun>(); }
         public static void RigInfo() { Debug.Log($"[ASBO] rig ready={CarRig.Ready} styles=[{CarRig.Styles()}] fixedDt={Time.fixedDeltaTime} cars={PlayerCar.All.Count} parked={ParkedCar.All.Count}"); }
         public static void HardHit() { var v = Object.FindObjectsByType<Resident>(FindObjectsSortMode.None).Select(r => r.GetComponent<Person>()).FirstOrDefault(p => p != null && p.Ready && p.state == Person.State.Walking); var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (v != null && pc != null) { v.GetComponent<Resident>().HoldAt(pc.transform.position + pc.transform.forward * 3f, 0f, 30f); v.Hit(pc.transform.forward * 9f, v.transform.position + Vector3.up, 9f); } }
         public static void AmbTest() { new GameObject("AmbTest").AddComponent<AmbTestRun>(); }
@@ -790,9 +792,38 @@ namespace ASBO.Slice
                 new[] { 210f, 40f, -40f, 200f, 0f, -100f }, new[] { 196f, 1.7f, -60f, 180f, 3f, -66f }, new[] { 182f, 1.6f, -60f, 170f, 1.5f, -62f },
                 new[] { 196f, 1.7f, -86f, 182f, 2f, -88f }, new[] { 196f, 6f, -120f, 175f, 1f, -140f }, new[] { 204f, 1.7f, -52f, 214f, 2.5f, -55f },
                 new[] { 205f, 1.7f, -90f, 260f, 4f, -80f }, new[] { 175f, 1.6f, -66f, 177f, 2f, -60f }, new[] { 216f, 1.6f, -58f, 225f, 1.4f, -55f },
+            } : which == "casino" ? new[]
+            {
+                new[] { 188f, 6f, -26f, 188f, 3f, -2f }, new[] { 181f, 1.7f, -16f, 188f, 3f, -4f }, new[] { 188f, 1.7f, -9f, 188f, 2f, 0f },
+                new[] { 186f, 1.7f, 1f, 176f, 2f, 12f }, new[] { 172f, 1.7f, 2f, 190f, 2.5f, 12f }, new[] { 198f, 1.7f, 8f, 205f, 1.5f, 2f },
+                new[] { 205f, 1.7f, 16f, 190f, 2f, 8f }, new[] { 175f, 2.5f, 18f, 188f, 2.6f, 9f }, new[] { 160f, 20f, -40f, 188f, 0f, 0f },
             } : new float[0][];
             for (int i = 0; i < views.Length; i++) { var v = views[i]; DebugCmd.ShotAt(v[0], v[1], v[2], v[3], v[4], v[5], "prev_" + i); yield return null; }
             Debug.Log("[ASBO] preview " + which + ": " + views.Length + " views");
+            Destroy(gameObject);
+        }
+    }
+
+    public class AmbLookRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            var pf = Resources.Load<GameObject>("Cars/ambulance"); if (pf == null) { Debug.Log("[ASBO] amblook: no ambulance prefab"); Destroy(gameObject); yield break; }
+            foreach (var tc in Object.FindObjectsByType<TrafficCar>(FindObjectsSortMode.None)) tc.gameObject.SetActive(false);
+            var a = Instantiate(pf, new Vector3(-120f, 0.05f, World.RoadZ - 2.1f), Quaternion.Euler(0, 90f, 0));
+            var dl = a.transform.Find("door_L"); var dr = a.transform.Find("door_R");
+            yield return null;
+            Vector3 c = a.transform.position;
+            DebugCmd.ShotAt(c.x, 1.6f, c.z - 8f, c.x, 1.4f, c.z, "amb_side");
+            DebugCmd.ShotAt(c.x + 7f, 1.8f, c.z - 5f, c.x, 1.3f, c.z, "amb_front");
+            DebugCmd.ShotAt(c.x - 1f, 1.8f, c.z + 7f, c.x, 1.4f, c.z, "amb_near");
+            if (dl != null) dl.localRotation = Quaternion.AngleAxis(-100f, Vector3.up) * dl.localRotation;
+            if (dr != null) dr.localRotation = Quaternion.AngleAxis(100f, Vector3.up) * dr.localRotation;
+            yield return null;
+            DebugCmd.ShotAt(c.x - 6.5f, 1.7f, c.z - 0.3f, c.x, 1.5f, c.z, "amb_back");
+            DebugCmd.ShotAt(c.x - 4.6f, 1.7f, c.z + 1.6f, c.x, 1.4f, c.z - 0.4f, "amb_backL");
+            DebugCmd.ShotAt(c.x - 4.6f, 1.7f, c.z - 1.6f, c.x, 1.4f, c.z + 0.4f, "amb_backR");
+            Destroy(a); foreach (var tc in TrafficCar.All) if (tc != null) tc.gameObject.SetActive(true);
             Destroy(gameObject);
         }
     }

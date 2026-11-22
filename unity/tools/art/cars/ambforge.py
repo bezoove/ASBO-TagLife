@@ -166,6 +166,11 @@ def build():
     cv = [k.bm.verts.new(p) for p in c]; shell = []
     for q, mname in [((0, 1, 2, 3), 'floor'), ((4, 7, 6, 5), 'white'), ((1, 5, 6, 2), 'white'), ((0, 3, 7, 4), 'white'), ((3, 2, 6, 7), 'white')]:
         f = k.bm.faces.new([cv[i] for i in q]); f.material_index = k.mi(M[mname]); shell.append(f)
+        # and the same face turned round, set in a hair: the room is solid from inside whichever way it was wound
+        # (one side of the room was see-through when you looked in through the open back doors)
+        ctr = Vector((sum(c[i][0] for i in q) / 4, sum(c[i][1] for i in q) / 4, sum(c[i][2] for i in q) / 4))
+        inset = [k.bm.verts.new(Vector(c[i]) + (Vector(((xr + xf) / 2, 0, (zf + zc) / 2)) - ctr).normalized() * 0.004) for i in reversed(q)]
+        f2 = k.bm.faces.new(inset); f2.material_index = k.mi(M[mname]); shell.append(f2)
     # (the back of the room stays open: it's the door opening)
     # cabinets down the right-hand wall, a bench on the left, the attendant's seat against the bulkhead, lights in the ceiling
     for i in range(4):
@@ -185,12 +190,38 @@ def build():
     # the frame round the door opening and the rear step
     k.box((-L / 2 + 0.02, 0, 0.48), (0.06, hw * 1.9, 0.04), M['chrome'])
     k.box((-L / 2 - 0.12, 0, 0.42), (0.24, hw * 1.5, 0.05), M['chrome'])
-    # side windows: dark glass on the cab doors and up on the box
+    # side windows: the cab door glass follows the screen pillar (its front edge raked back, the corners rounded, a
+    # quarter-light at the front); the box has no big square windows, just a small frosted one in the nearside door
+    def rounded(pts, r, n=4):
+        out = []
+        for i in range(len(pts)):
+            p0, p1, p2 = Vector(pts[i - 1]), Vector(pts[i]), Vector(pts[(i + 1) % len(pts)])
+            a = (p0 - p1).normalized(); b = (p2 - p1).normalized(); rr = min(r, (p0 - p1).length * 0.45, (p2 - p1).length * 0.45)
+            s0, s1 = p1 + a * rr, p1 + b * rr
+            for j in range(n + 1):
+                t = j / n; q = s0 * (1 - t) ** 2 + p1 * 2 * t * (1 - t) + s1 * t * t; out.append(tuple(q))
+        return out
     for s in (-1, 1):
-        for (u0, u1, z0, z1) in ((1.2, 1.82, 1.4, 2.12), (2.7, 3.5, 1.72, 2.3)):
-            hwx = car.half((u0 + u1) / 2) + 0.004
-            k.face([(L / 2 - u0, s * hwx, z0), (L / 2 - u1, s * hwx, z0), (L / 2 - u1, s * hwx, z1), (L / 2 - u0, s * hwx, z1)], M['glass'], flip=s < 0)
-            k.face([(L / 2 - u0 + 0.02, s * (hwx - 0.001), z0 - 0.02), (L / 2 - u1 - 0.02, s * (hwx - 0.001), z0 - 0.02), (L / 2 - u1 - 0.02, s * (hwx - 0.001), z1 + 0.02), (L / 2 - u0 + 0.02, s * (hwx - 0.001), z1 + 0.02)], M['trim'], flip=s < 0)
+        hwx = car.half(1.5) + 0.004
+        # (u along from the front, z up): bottom front, bottom back, top back, top front (raked)
+        win = [(1.08, 1.4), (1.84, 1.4), (1.84, 2.14), (1.42, 2.14)]
+        pts = rounded([(L / 2 - u, s * hwx, z) for (u, z) in win], 0.07)
+        k.face(pts, M['glass'], flip=s < 0)
+        k.face([(x + (0.0), y - s * 0.001, z) for (x, y, z) in rounded([(L / 2 - u, s * hwx, z) for (u, z) in [(1.05, 1.37), (1.87, 1.37), (1.87, 2.17), (1.4, 2.17)]], 0.09)], M['trim'], flip=s < 0)
+        k.box((L / 2 - 1.3, s * (hwx + 0.002), 1.77), (0.02, 0.01, 0.74), M['trim'])  # the quarter-light divider
+        if s > 0:  # nearside sliding door: its outline, a frosted window, the handle, a step and a grab rail
+            hb = car.half(3.0) + 0.006; ud0, ud1 = 2.55, 3.55
+            for (u, z, du, dz) in ((ud0, 1.55, 0.012, 2.05), (ud1, 1.55, 0.012, 2.05), ((ud0 + ud1) / 2, 2.58, ud1 - ud0, 0.012), ((ud0 + ud1) / 2, 0.52, ud1 - ud0, 0.012)):
+                k.box((L / 2 - u, s * hb, z), (du, 0.01, dz), M['trim'])
+            k.face(rounded([(L / 2 - u, s * (hb + 0.002), z) for (u, z) in [(2.75, 1.85), (3.35, 1.85), (3.35, 2.35), (2.75, 2.35)]], 0.06), M['white'], flip=s < 0)
+            k.box((L / 2 - 3.42, s * (hb + 0.02), 1.3), (0.04, 0.03, 0.2), M['trim'])
+            k.box((L / 2 - 3.05, s * (hb + 0.12), 0.42), (1.0, 0.24, 0.04), M['chrome'])  # the step
+            k.box((L / 2 - 2.5, s * (hb + 0.05), 1.6), (0.03, 0.03, 0.9), M['chrome'])   # a grab rail by the door
+        # a black rubbing strip along the box, amber marker lamps along the top edge, mud flaps behind the wheels
+        hb2 = car.half(4.5) + 0.008
+        k.box((-0.3, s * hb2, 0.98), (L - 2.9, 0.02, 0.07), M['trim'])
+        for u in (2.6, 3.8, 5.0, 6.2): k.box((L / 2 - u, s * (hb2 + 0.004), 2.9), (0.07, 0.01, 0.035), M['amber'])
+        for u in (car.uF + 0.5, car.uR + 0.5): k.box((L / 2 - u, s * (car.half(u) - 0.12), 0.3), (0.02, 0.24, 0.32), M['trim'])
         # big van mirrors on arms
         u = 0.95; x = L / 2 - u
         k.box((x - 0.05, s * (hw + 0.22), 1.75), (0.08, 0.2, 0.32), M['trim'])
@@ -203,6 +234,10 @@ def build():
         k.box((L / 2 - 2.6, s * (hw + 0.012), 2.82), (0.32, 0.02, 0.08), M['lens'])
         # tall red tail lamps on the back corners
         k.box((-L / 2 + 0.01, s * (hw - 0.03), 1.25), (0.04, 0.1, 0.6), M['red'])
+    # on the roof: the air-con pod over the treatment room, two aerials and the GPS puck
+    k.box((-L / 2 + 1.9, 0, 3.02), (1.1, 0.8, 0.16), M['white']); k.box((-L / 2 + 1.9, 0, 3.11), (0.9, 0.6, 0.03), M['trim'])
+    for (u, y) in ((2.6, 0.5), (2.9, -0.5)): k.box((L / 2 - u, y, 3.2), (0.015, 0.015, 0.45), M['trim'])
+    k.box((L / 2 - 3.3, 0, 2.99), (0.12, 0.12, 0.04), M['trim'])
     # black lower panels on the cab
     for s in (-1, 1):
         k.box((L / 2 - 0.55, s * (car.half(0.55) + 0.002), 0.55), (0.9, 0.012, 0.22), M['trim'])

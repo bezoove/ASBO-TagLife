@@ -56,7 +56,7 @@ namespace ASBO.Slice
 
             // materials: paint made for this car, glass and lamps by condition, its own plates
             var r0 = b0.GetComponent<MeshRenderer>(); var r1 = b1 != null ? b1.GetComponent<MeshRenderer>() : null;
-            var mats = r0.sharedMaterials;
+            var mats = r0.sharedMaterials; var orig = (Material[])mats.Clone(); // the prefab's own materials, to match the door's slots by
             int mismatch = wear >= Wear.Rusty && rng.NextDouble() < 0.6 ? 4 + rng.Next(8) : wear == Wear.Tired && rng.NextDouble() < 0.12 ? 4 + rng.Next(8) : -1;
             Color panelCol = CarBody.RandomPaint(rng);
             float fade = wear == Wear.Tired ? 0.15f + (float)rng.NextDouble() * 0.2f : wear >= Wear.Dirty ? 0.25f : (float)rng.NextDouble() * 0.06f;
@@ -79,7 +79,11 @@ namespace ASBO.Slice
             MeshRenderer doorR = null;
             if (door != null && door.GetComponent<MeshFilter>() is MeshFilter dmf && dmf.sharedMesh != null)
             {
-                doorR = door.GetComponent<MeshRenderer>(); doorR.sharedMaterials = mats; doorR.shadowCastingMode = sh;
+                // the door's mesh has its own slot order (the importer keeps only the materials it uses): map each slot
+                // to this car's version of the same material, not by position (its inside skin came out white)
+                doorR = door.GetComponent<MeshRenderer>(); var dm = doorR.sharedMaterials;
+                for (int i = 0; i < dm.Length; i++) { int j = System.Array.IndexOf(orig, dm[i]); if (j >= 0) dm[i] = mats[j]; }
+                doorR.sharedMaterials = dm; doorR.shadowCastingMode = sh;
                 var b = dmf.sharedMesh.bounds; Vector3 mn = Vector3.one * 1e9f, mx = -Vector3.one * 1e9f;
                 for (int k = 0; k < 8; k++)
                 {
