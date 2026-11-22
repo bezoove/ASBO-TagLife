@@ -67,7 +67,7 @@ namespace ASBO.Slice
             if (mats.Length > 5)
             {
                 if (wear == Wear.Burnt) mats[5] = mats[1];
-                else { var pm = new Material(mats[5]) { name = "Plates" }; pm.SetTexture("_BaseMap", CarBody.PlateAtlas(rng)); pm.mainTexture = pm.GetTexture("_BaseMap"); mats[5] = pm; }
+                else mats[5] = PlateMat(mats[5], rng);
             }
             r0.sharedMaterials = mats;
             if (r1 != null) r1.sharedMaterials = mats;
@@ -133,6 +133,29 @@ namespace ASBO.Slice
             return wheels;
         }
 
+        // number plates come from a pool of registrations: cars that share one share a material (fewer draws, less memory)
+        static readonly Dictionary<(Material, int), Material> platePool = new Dictionary<(Material, int), Material>();
+        const int PlatePoolSize = 14;
+        static Material PlateMat(Material tpl, System.Random rng)
+        {
+            int k = rng.Next(PlatePoolSize);
+            if (platePool.TryGetValue((tpl, k), out var m) && m != null) return m;
+            m = new Material(tpl) { name = "Plates " + k }; var pt = CarBody.PlateAtlas(new System.Random(7919 * (k + 1))); m.SetTexture("_BaseMap", pt); m.mainTexture = pt;
+            platePool[(tpl, k)] = m; return m;
+        }
+
+        /// <summary>
+        /// A parked car is looked at from further off than one you're chasing: its detailed model gives way to the low one
+        /// sooner, and far off the low one goes without its wheels (a dozen draws a car down to a few).
+        /// </summary>
+        public static void SceneryLod(Transform car)
+        {
+            var lg = car.GetComponentInChildren<LODGroup>(); if (lg == null) return;
+            var lods = lg.GetLODs(); if (lods.Length < 2) return;
+            var body = new List<Renderer>(); foreach (var r in lods[1].renderers) if (r != null && !r.name.StartsWith("wheel")) body.Add(r);
+            lg.SetLODs(new[] { new LOD(0.12f, lods[0].renderers), new LOD(0.035f, lods[1].renderers), new LOD(0.008f, body.ToArray()) });
+        }
+
         // ------------------------------------------------------------------------------------------- pack models
         static readonly Dictionary<string, GameObject> packs = new Dictionary<string, GameObject>();
         /// <summary>The Asset Store model standing in for this kind of car, if it's in the build (ASBO/Cars/Use Pack Cars).</summary>
@@ -171,7 +194,7 @@ namespace ASBO.Slice
                     else if (mats[i].name.EndsWith("_Plates"))
                     {
                         // its own registration (the pack's plates said "SEDAN" and "1988")
-                        if (plateM == null) { plateM = new Material(mats[i]) { name = "Plates" }; var pt = CarBody.PlateAtlas(rng); plateM.SetTexture("_BaseMap", pt); plateM.mainTexture = pt; if (wear == Wear.Dirty) plateM.SetColor("_BaseColor", new Color(0.82f, 0.78f, 0.7f)); }
+                        if (plateM == null) plateM = PlateMat(mats[i], rng);
                         mats[i] = plateM;
                     }
                 }
@@ -337,6 +360,7 @@ namespace ASBO.Slice
             g.transform.SetPositionAndRotation(pos, Quaternion.Euler(0f, yaw, 0f));
             Color paint = CarBody.RandomPaint(new System.Random(seed ^ 0x5bd1e995)); // its own stream, so the car rebuilds the same when someone gets in
             Build(g.transform, id, paint, wear, true, new System.Random(seed));
+            SceneryLod(g.transform);
             var spec = CarBody.Get(id).m;
             var bc = g.AddComponent<BoxCollider>(); bc.size = new Vector3(spec.W, 1.3f, spec.L); bc.center = new Vector3(0f, 0.7f, 0f);
             Dents.Add(g, g.transform, 1200f);

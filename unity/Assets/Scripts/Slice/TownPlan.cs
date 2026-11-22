@@ -48,6 +48,16 @@ namespace ASBO.Slice
         {
             new Access { road = "Kestrel Road", name = "Kestrel Close", side = 1, at = 68f, w = 7.2f },
             new Access { road = "Thornbury Road", name = "Thornbury Way", side = -1, at = 30f, w = 7.2f },
+            new Access { road = "Long Road", name = "Police yard", side = 1, at = -181f, w = 7.2f },
+            new Access { road = "Long Road", name = "Fire station apron", side = 1, at = 239f, w = 22f },
+            new Access { road = "Northway", name = "Hospital car park", side = 1, at = -52f, w = 7.2f },
+            new Access { road = "Northway", name = "A&E", side = 1, at = 52f, w = 7.2f },
+            new Access { road = "Mill Lane", name = "Wend Motors", side = -1, at = -66f, w = 14f },
+            new Access { road = "Mill Lane", name = "A1 Taxis", side = -1, at = -89f, w = 12f },
+            new Access { road = "Mill Lane", name = "Lock-ups", side = -1, at = -104f, w = 8f },
+            new Access { road = "Mill Lane", name = "Scrapyard gate", side = -1, at = -134f, w = 8f },
+            new Access { road = "Mill Lane", name = "Swap Shop", side = 1, at = -55f, w = 12f },
+            new Access { road = "Mill Lane", name = "Mill Lane East", side = 1, at = -90f, w = 7.2f },
         };
 
         public enum JKind { Cross, Tee, Pelican }

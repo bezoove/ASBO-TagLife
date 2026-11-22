@@ -32,8 +32,8 @@ namespace ASBO.EditorTools
                     imp.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
                     imp.sRGBTexture = !normal; imp.mipmapEnabled = true; imp.filterMode = FilterMode.Trilinear; imp.anisoLevel = n.Contains("brick") || n.Contains("pebble") ? 4 : 2;
                     imp.alphaSource = alpha ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None; imp.alphaIsTransparency = alpha && n != "tower_windows";
-                    imp.wrapMode = n == "town_signs" || n == "signal_lamps" || n == "tower_windows" || n == "graffiti" || n == "notice" ? TextureWrapMode.Clamp : TextureWrapMode.Repeat;
-                    int max = n == "town_signs" || n == "tower_windows" || n == "graffiti" ? 1024 : n.Contains("water") ? 512 : 1024;
+                    imp.wrapMode = n == "town_signs" || n == "signal_lamps" || n == "tower_windows" || n == "graffiti" || n == "notice" || n == "precinct_shops" || n == "service_signs" ? TextureWrapMode.Clamp : TextureWrapMode.Repeat;
+                    int max = n == "precinct_shops" || n == "service_signs" ? 2048 : n == "town_signs" || n == "tower_windows" || n == "graffiti" ? 1024 : n.Contains("water") ? 512 : 1024;
                     imp.SetPlatformTextureSettings(new TextureImporterPlatformSettings { name = "Android", overridden = true, maxTextureSize = max, format = TextureImporterFormat.ASTC_6x6 });
                     imp.SaveAndReimport();
                 }
@@ -108,7 +108,11 @@ namespace ASBO.EditorTools
             Cut("TownGraffiti", T("graffiti"), Color.white, 0.25f, false);
             Cut("TownChainlink", T("chainlink"), Color.white, 0.4f, true);
             Plain("TownNotice", Color.white, 0.2f, 0f, T("notice"));
-            Surf("TownMetalSheet", "metal_plate", new Color(0.85f, 0.86f, 0.88f));
+            Plain("TownShopfronts", Color.white, 0.35f, 0f, T("precinct_shops"));
+            Plain("TownServiceSigns", Color.white, 0.3f, 0f, T("service_signs"));
+            Textured("TownPaviors", "paviors", "paviors_normal", Color.white, 0.15f, 0.8f);
+            Plain("TownRollerDoor", Color.white, 0.35f, 0.4f, T("roller_door"));
+            Textured("TownMetalSheet", "cladding", "cladding_normal", Color.white, 0.35f, 1f); // profiled steel cladding (the sheds)
             Plain("TownRust", new Color(0.42f, 0.2f, 0.09f), 0.25f, 0.3f);
             Plain("TownTarmacRed", new Color(0.6f, 0.18f, 0.14f), 0.2f);
             Surf("TownLobbyFloor", "hangar_concrete_floor", new Color(0.8f, 0.8f, 0.78f));

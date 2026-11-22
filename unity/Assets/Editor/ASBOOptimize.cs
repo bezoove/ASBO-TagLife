@@ -25,6 +25,15 @@ namespace ASBO.EditorTools
 
         public static void Run(bool bakeOcclusion)
         {
+            // small details on the Detail layer: the camera stops drawing them beyond 55 m on phones (Perf.DetailCull)
+            int det = 0;
+            foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                string n = r.gameObject.name;
+                // only compact ones (a building's or a house's furniture): a mesh spread over a whole estate would vanish as a whole
+                if (n == "Furniture" && r.gameObject.layer == 0 && r.bounds.size.magnitude < 40f) { r.gameObject.layer = ASBO.Slice.Bld.DetailLayer; det++; }
+            }
+            Debug.Log($"[ASBO] optimise: {det} detail meshes put on the far-cull layer");
             var world = Object.FindFirstObjectByType<BakedWorld>();
             if (world == null) { Debug.LogWarning("[ASBO] optimise: no baked world in the open scene"); return; }
             int noShadow = 0, lodded = 0; long trisBefore = 0;

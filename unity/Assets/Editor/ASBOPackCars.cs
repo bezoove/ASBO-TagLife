@@ -155,6 +155,12 @@ namespace ASBO.EditorTools
                 }
                 // number plates: the pack's say "SEDAN" and "1988"; ours go over them (white front, yellow back, a made-up reg per car)
                 int plates = Plates(root.transform, rends, b, id);
+                // fewer draws: the shell's parts into one mesh (a submesh per material), the door's into one, each wheel's into one
+                int partsBefore = root.GetComponentsInChildren<MeshRenderer>(true).Length;
+                Merge(root.transform, root.transform, id + "_body", t => !t.GetComponentsInParent<Transform>(true).Any(q => q.name.StartsWith("wheel_") || q.name.StartsWith("DoorHinge")));
+                Merge(hinge, hinge, id + "_door", t => true);
+                foreach (var wn in new[] { "wheel_FL", "wheel_FR", "wheel_RL", "wheel_RR" }) { var w = root.transform.Find(wn + "/spin"); if (w != null) Merge(w, w, id + "_" + wn, t => true); }
+                Debug.Log($"[ASBO] pack cars: {id} {partsBefore} parts merged to {root.GetComponentsInChildren<MeshRenderer>(true).Length}");
                 Debug.Log($"[ASBO] pack cars: {id} door z {z0:F2}..{z1:F2}, sill {y0:F2}, belt {belt:F2}; {plates} plates");
                 var prefabPath = $"{Out}/{id}.prefab";
                 PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
@@ -162,6 +168,41 @@ namespace ASBO.EditorTools
                 Debug.Log($"[ASBO] pack cars: {id} made from {Path.GetFileName(path)}: scale {s:F2}, {wheelR.Count} wheel pieces, door {doorLen} m cut ({cutTris} triangles), {rends.Count} parts");
             }
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// Every mesh under 'from' that 'take' accepts, combined into one mesh under 'into' (one submesh per material, in
+        /// the space of 'into'), the originals removed. Saved as an asset so the prefab keeps it (and it stays readable for dents).
+        /// </summary>
+        static void Merge(Transform from, Transform into, string name, System.Func<Transform, bool> take)
+        {
+            var rs = from.GetComponentsInChildren<MeshRenderer>(true).Where(r => r.GetComponent<MeshFilter>()?.sharedMesh != null && take(r.transform)).ToList();
+            if (rs.Count < 2) return;
+            var byMat = new Dictionary<Material, List<CombineInstance>>(); var order = new List<Material>();
+            var toLocal = into.worldToLocalMatrix;
+            foreach (var r in rs)
+            {
+                var mesh = r.GetComponent<MeshFilter>().sharedMesh; var mats = r.sharedMaterials;
+                for (int sm = 0; sm < mesh.subMeshCount; sm++)
+                {
+                    var m = sm < mats.Length ? mats[sm] : mats[mats.Length - 1]; if (m == null) continue;
+                    if (!byMat.TryGetValue(m, out var l)) { l = new List<CombineInstance>(); byMat[m] = l; order.Add(m); }
+                    l.Add(new CombineInstance { mesh = mesh, subMeshIndex = sm, transform = toLocal * r.transform.localToWorldMatrix });
+                }
+            }
+            var parts = new List<CombineInstance>();
+            foreach (var m in order)
+            {
+                var pm = new Mesh { indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 }; pm.CombineMeshes(byMat[m].ToArray(), true, true);
+                parts.Add(new CombineInstance { mesh = pm, transform = Matrix4x4.identity });
+            }
+            var all = new Mesh { name = name, indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 }; all.CombineMeshes(parts.ToArray(), false, false);
+            all.RecalculateBounds(); Save(all, name);
+            var go = new GameObject(name.EndsWith("_body") ? "body" : name.Contains("_door") ? "door_merged" : "tyre"); go.transform.SetParent(into, false);
+            go.AddComponent<MeshFilter>().sharedMesh = all; var mr = go.AddComponent<MeshRenderer>(); mr.sharedMaterials = order.ToArray();
+            mr.receiveGI = ReceiveGI.LightProbes; mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.BlendProbes;
+            foreach (var r in rs) { if (r == null) continue; var t = r.transform; Object.DestroyImmediate(r.GetComponent<MeshFilter>()); Object.DestroyImmediate(r); }
+            foreach (var p in parts) Object.DestroyImmediate(p.mesh);
         }
 
         static bool IsGlass(Renderer r) { string n = r.name.ToLowerInvariant(); return (n.Contains("glass") && !n.Contains("lamp")) || n == "windows"; }

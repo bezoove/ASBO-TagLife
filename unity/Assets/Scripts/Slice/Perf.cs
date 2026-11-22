@@ -50,8 +50,17 @@ namespace ASBO.Slice
             QualitySettings.lodBias = 0.7f;
         }
 
+        /// <summary>Furniture, road markings, lamp columns and the like stop being drawn this far off (they're too small to see).</summary>
+        public static void DetailCull(Camera cam)
+        {
+            if (cam == null) return;
+            var d = new float[32]; d[Bld.DetailLayer] = Application.isMobilePlatform ? 55f : 90f;
+            cam.layerCullDistances = d; cam.layerCullSpherical = true;
+        }
+        Camera culled;
         void Update()
         {
+            if (Camera.main != culled) { culled = Camera.main; DetailCull(culled); }
             float ms = Time.unscaledDeltaTime * 1000f;
             acc += ms; frames++; if (ms > worst) worst = ms;
             windowT += Time.unscaledDeltaTime; gcT += Time.unscaledDeltaTime;

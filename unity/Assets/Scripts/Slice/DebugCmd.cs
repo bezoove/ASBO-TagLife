@@ -763,13 +763,11 @@ namespace ASBO.Slice
         System.Collections.IEnumerator Start()
         {
             var root = World.Root != null ? World.Root : null;
-            if (which == "estates")
-            {
-                var old = root != null ? root.Find(Estates.RootName) : null; if (old != null) Destroy(old.gameObject);
-                yield return null;
-                Estates.Build(root);
-                Estates.Dress(root);
-            }
+            void Fresh(string n) { var o = root != null ? root.Find(n) : null; if (o != null) Destroy(o.gameObject); }
+            if (which == "estates") { Fresh(Estates.RootName); Fresh("Estate Cars"); yield return null; Estates.Build(root); Estates.Dress(root); }
+            if (which == "services") { Fresh(Services.RootName); yield return null; Services.Build(root); }
+            if (which == "precinct") { Fresh(Precinct.RootName); yield return null; Precinct.Build(root); }
+            if (which == "industrial") { Fresh(Industrial.RootName); yield return null; Industrial.Build(root); }
             yield return new WaitForSeconds(0.5f);
             // (eye x, y, z, look-at x, y, z)
             var views = which == "estates" ? new[]
@@ -777,6 +775,21 @@ namespace ASBO.Slice
                 new[] { -150f, 60f, 20f, -232f, 10f, 75f }, new[] { -168f, 1.7f, 64f, -230f, 8f, 75f }, new[] { -200f, 1.7f, 70f, -223f, 20f, 100f },
                 new[] { -230f, 45f, 190f, -230f, 5f, 140f }, new[] { 125f, 60f, 10f, 205f, 10f, 75f }, new[] { 134f, 1.7f, 26f, 180f, 10f, 70f },
                 new[] { 136f, 1.7f, 80f, 150f, 14f, 80f }, new[] { 225f, 1.7f, 40f, 200f, 20f, 75f }, new[] { 0f, 55f, -110f, -5f, 5f, -170f },
+            } : which == "services" ? new[]
+            {
+                new[] { -195f, 18f, -48f, -210f, 3f, -10f }, new[] { -210f, 1.7f, -24f, -210f, 2.5f, -10f }, new[] { -212f, 1.6f, -14.5f, -205f, 1.2f, -3f },
+                new[] { 239f, 14f, -50f, 245f, 3f, 0f }, new[] { 239f, 1.7f, -12f, 236f, 1.6f, 2f }, new[] { 0f, 30f, 100f, 10f, 8f, 160f },
+                new[] { 52f, 1.7f, 132f, 50f, 2.5f, 148f }, new[] { 52f, 1.6f, 150f, 45f, 1.2f, 166f }, new[] { 0f, 1.6f, 147f, 0f, 1.6f, 158f },
+            } : which == "precinct" ? new[]
+            {
+                new[] { 40f, 40f, 40f, 40f, 0f, 93f }, new[] { 20f, 1.7f, 120f, 30f, 3f, 93f }, new[] { 40f, 1.7f, 86f, 50f, 4f, 104f },
+                new[] { 0f, 1.7f, 95f, -20f, 3f, 82f }, new[] { -26f, 1.7f, 93f, -40f, 2.5f, 93f }, new[] { 8f, 1.6f, 107f, 8f, 1.4f, 112f },
+                new[] { 30f, 1.6f, 103f, 30f, 1.4f, 112f }, new[] { 70f, 1.7f, 95f, 100f, 3f, 92f }, new[] { 40f, 20f, 140f, 40f, 0f, 93f },
+            } : which == "industrial" ? new[]
+            {
+                new[] { 210f, 40f, -40f, 200f, 0f, -100f }, new[] { 196f, 1.7f, -60f, 180f, 3f, -66f }, new[] { 182f, 1.6f, -60f, 170f, 1.5f, -62f },
+                new[] { 196f, 1.7f, -86f, 182f, 2f, -88f }, new[] { 196f, 6f, -120f, 175f, 1f, -140f }, new[] { 204f, 1.7f, -52f, 214f, 2.5f, -55f },
+                new[] { 205f, 1.7f, -90f, 260f, 4f, -80f }, new[] { 175f, 1.6f, -66f, 177f, 2f, -60f }, new[] { 216f, 1.6f, -58f, 225f, 1.4f, -55f },
             } : new float[0][];
             for (int i = 0; i < views.Length; i++) { var v = views[i]; DebugCmd.ShotAt(v[0], v[1], v[2], v[3], v[4], v[5], "prev_" + i); yield return null; }
             Debug.Log("[ASBO] preview " + which + ": " + views.Length + " views");
@@ -1380,7 +1393,9 @@ namespace ASBO.Slice
                 int mobile = System.Array.IndexOf(QualitySettings.names, "Mobile"); int was = QualitySettings.GetQualityLevel();
                 if (mobile >= 0) QualitySettings.SetQualityLevel(mobile, true);
                 var views = new (string n, Vector3 p, float yaw)[] { ("estate", new Vector3(5f, 0.15f, -48f), 180f), ("high street", new Vector3(-50f, 0.15f, -30f), 270f), ("cottages", new Vector3(0f, 0.15f, -18f), 0f),
-                    ("road east", new Vector3(40f, 0.15f, -33f), 90f), ("site", new Vector3(106f, 0.15f, -36f), 180f), ("castle lane", new Vector3(-140f, 0.15f, -60f), 225f) };
+                    ("road east", new Vector3(40f, 0.15f, -33f), 90f), ("site", new Vector3(106f, 0.15f, -36f), 180f), ("castle lane", new Vector3(-140f, 0.15f, -60f), 225f),
+                    ("kestrel", new Vector3(-175f, 0.15f, 66f), 270f), ("thornbury", new Vector3(140f, 0.15f, 28f), 60f), ("precinct", new Vector3(20f, 0.2f, 86f), 0f),
+                    ("northway", new Vector3(20f, 0.15f, 122f), 90f), ("hospital", new Vector3(10f, 0.15f, 134f), 0f), ("mill lane", new Vector3(200f, 0.15f, -50f), 180f) };
                 var names = new[] { "Batches Count", "SetPass Calls Count", "Draw Calls Count", "Triangles Count", "Shadow Casters Count", "Visible Skinned Meshes Count" };
                 var rows = new System.Collections.Generic.List<string>();
                 foreach (var v in views)
@@ -1490,6 +1505,67 @@ namespace ASBO.Slice
                     Destroy(c.gameObject); yield return new WaitForSeconds(1f);
                 }
                 yield return Measure("nothing again", 2.5f);
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            if (id == "body")
+            {
+                // what one person is made of: renderers, submeshes, materials, vertices
+                Person best = null; float bd = 1e9f;
+                foreach (var q in Person.All) { if (q == null || q.isPlayer) continue; float d = (q.transform.position - pc.transform.position).sqrMagnitude; if (d < bd) { bd = d; best = q; } }
+                if (best != null)
+                    foreach (var r in best.GetComponentsInChildren<Renderer>(true))
+                    {
+                        Mesh m = r is SkinnedMeshRenderer sk ? sk.sharedMesh : r.TryGetComponent<MeshFilter>(out var mf) ? mf.sharedMesh : null;
+                        Debug.Log($"[ASBO] body {best.name}: {r.GetType().Name} '{r.name}' on={r.enabled} {(m != null ? m.vertexCount + " verts, " + m.subMeshCount + " submeshes" : "no mesh")}, mats [{string.Join(", ", r.sharedMaterials.Select(x => x != null ? x.name + "/" + x.shader.name : "null"))}] shadows {r.shadowCastingMode}");
+                    }
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            if (id == "drop")
+            {
+                // the real cost of each part of town at the busiest views: draw calls with it, and with it switched off
+                var dc = Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Render, "Draw Calls Count");
+                var sc = Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Render, "Shadow Casters Count");
+                foreach (var (n, p, yaw) in new[] { ("road east", new Vector3(40f, 0.15f, -33f), 90f), ("thornbury", new Vector3(140f, 0.15f, 28f), 60f), ("cottages", new Vector3(0f, 0.15f, -18f), 0f) })
+                {
+                    pc.Teleport(p, yaw, 8f); yield return new WaitForSeconds(2f);
+                    long Avg(Unity.Profiling.ProfilerRecorder r) => r.Valid ? r.LastValue : -1;
+                    long all = Avg(dc), allS = Avg(sc); var rows = new System.Collections.Generic.List<string>();
+                    var world = World.Root; if (world == null) break;
+                    var kids = new System.Collections.Generic.List<Transform>(); foreach (Transform k in world) if (k.gameObject.activeSelf) kids.Add(k);
+                    var extra = new System.Collections.Generic.List<GameObject>(); foreach (var tc in TrafficCar.All) if (tc != null) extra.Add(tc.gameObject);
+                    foreach (var k in kids)
+                    {
+                        k.gameObject.SetActive(false); yield return null; yield return null; yield return null;
+                        long d = Avg(dc), s2 = Avg(sc); k.gameObject.SetActive(true);
+                        if (all - d > 8) rows.Add($"{k.name} {all - d} ({allS - s2} casters)");
+                    }
+                    foreach (var go in extra) go.SetActive(false); yield return null; yield return null; yield return null; long dt = Avg(dc); foreach (var go in extra) if (go != null) go.SetActive(true);
+                    rows.Add($"(traffic) {all - dt}");
+                    Debug.Log($"[ASBO] drop at {n}: {all} draws, {allS} casters; parts: " + string.Join(" | ", rows.OrderByDescending(x => x)));
+                    yield return null;
+                }
+                dc.Dispose(); sc.Dispose();
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            if (id == "who")
+            {
+                // what's being drawn at the busiest views: visible renderers grouped by what they belong to (submeshes = draws before batching)
+                foreach (var (n, p, yaw) in new[] { ("road east", new Vector3(40f, 0.15f, -33f), 90f), ("thornbury", new Vector3(140f, 0.15f, 28f), 60f), ("cottages", new Vector3(0f, 0.15f, -18f), 0f) })
+                {
+                    pc.Teleport(p, yaw, 8f); yield return new WaitForSeconds(2f);
+                    var groups = new System.Collections.Generic.Dictionary<string, (int draws, int casters, long tris)>();
+                    foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+                    {
+                        if (!r.enabled || !r.isVisible || r is ParticleSystemRenderer) continue;
+                        var t = r.transform; string key = t.name;
+                        while (t.parent != null && t.parent.parent != null && t.parent.name != "World") { t = t.parent; key = t.name; }
+                        if (r.GetComponentInParent<TrafficCar>() != null) key = "(traffic cars)"; else if (r.GetComponentInParent<Person>() != null) key = "(people)"; else if (r.GetComponentInParent<ParkedCar>() != null || key.StartsWith("Parked") || key.StartsWith("Wreck")) key = "(parked cars)";
+                        Mesh mesh = r is SkinnedMeshRenderer smr ? smr.sharedMesh : r.TryGetComponent<MeshFilter>(out var mf) ? mf.sharedMesh : null;
+                        int sm = mesh != null ? mesh.subMeshCount : 1; long tri = 0; if (mesh != null) for (int q = 0; q < mesh.subMeshCount; q++) tri += mesh.GetIndexCount(q) / 3;
+                        groups.TryGetValue(key, out var g); groups[key] = (g.draws + sm, g.casters + (r.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off ? sm : 0), g.tris + tri);
+                    }
+                    Debug.Log($"[ASBO] who draws at {n}: " + string.Join(" | ", groups.OrderByDescending(kv => kv.Value.draws).Take(14).Select(kv => $"{kv.Key} {kv.Value.draws} ({kv.Value.casters} cast, {kv.Value.tris / 1000}k)")));
+                }
                 Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
             }
             if (id.StartsWith("top"))

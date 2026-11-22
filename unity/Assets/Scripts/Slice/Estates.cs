@@ -347,6 +347,7 @@ namespace ASBO.Slice
             void Row(Vector3 s, Vector3 along, Vector3 inward, int n, int gang) { along = along.normalized; inward = inward.normalized; for (int i = 0; i < n; i++) Bays.Add((s + along * ((i + 0.5f) * 2.5f) + inward * 2.4f, Quaternion.LookRotation(inward).eulerAngles.y, gang)); }
             Row(new Vector3(-235f, 0, 68f + 5.6f), Vector3.right, Vector3.forward, 17, 1); Row(new Vector3(-235f, 0, 68f + 21.8f), Vector3.right, Vector3.back, 17, 1);
             Row(new Vector3(171f, 0, 30f + 5.6f), Vector3.right, Vector3.forward, 25, 2); Row(new Vector3(171f, 0, 30f + 21.8f), Vector3.right, Vector3.back, 25, 2);
+            for (int i = 0; i < 20; i++) { float z = 137f + i * 2.5f + 1.25f; Bays.Add((new Vector3(-59.6f, 0, z), 90f, -1)); Bays.Add((new Vector3(-44.4f, 0, z), -90f, -1)); } // the hospital car park
         }
     }
 }

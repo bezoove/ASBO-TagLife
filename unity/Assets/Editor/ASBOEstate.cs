@@ -43,7 +43,7 @@ namespace ASBO.EditorTools
             var oldHigh = world.transform.Find(HighStreet.RootName); if (oldHigh != null) Object.DestroyImmediate(oldHigh.gameObject);
             var oldCasino = world.transform.Find(CasinoHall.RootName); if (oldCasino != null) Object.DestroyImmediate(oldCasino.gameObject);
             var oldManor = world.transform.Find(TudorManor.RootName); if (oldManor != null) Object.DestroyImmediate(oldManor.gameObject);
-            foreach (var n in new[] { Roads.RootName, River.RootName, Estates.RootName }) { var o = world.transform.Find(n); if (o != null) Object.DestroyImmediate(o.gameObject); }
+            foreach (var n in new[] { Roads.RootName, River.RootName, Estates.RootName, Services.RootName, Precinct.RootName, Industrial.RootName }) { var o = world.transform.Find(n); if (o != null) Object.DestroyImmediate(o.gameObject); }
             CasinoMaterials();
             var terrain = Object.FindFirstObjectByType<Terrain>();
             if (terrain != null) { ASBOTown.Deepen(terrain); Ground(terrain); ASBOTown.Ground(terrain); }
@@ -58,6 +58,12 @@ namespace ASBO.EditorTools
             var river = River.Build(world.transform); ASBOTown.RiverNav(river);
             var estates = Estates.Build(world.transform);
             if (estates != null) SaveMeshes(estates, "Assets/Art/Generated/Estates");
+            var services = Services.Build(world.transform);
+            if (services != null) SaveMeshes(services, "Assets/Art/Generated/Services");
+            var precinct = Precinct.Build(world.transform);
+            if (precinct != null) SaveMeshes(precinct, "Assets/Art/Generated/Precinct");
+            var industrial = Industrial.Build(world.transform);
+            if (industrial != null) SaveMeshes(industrial, "Assets/Art/Generated/Industrial");
             if (roads != null) SaveMeshes(roads, "Assets/Art/Generated/Roads");
             if (river != null) SaveMeshes(river, "Assets/Art/Generated/River");
             SaveMeshes(root, MeshDir);
@@ -66,7 +72,7 @@ namespace ASBO.EditorTools
             if (castle != null) SaveMeshes(castle, "Assets/Art/Generated/Castle");
             if (high != null) SaveMeshes(high, "Assets/Art/Generated/HighStreet");
             if (casino != null) SaveMeshes(casino, "Assets/Art/Generated/Casino");
-            var built = new List<Transform> { root }; if (roads != null) built.Add(roads); if (river != null) built.Add(river); if (estates != null) built.Add(estates); if (site != null) built.Add(site); if (castle != null) built.Add(castle); if (high != null) built.Add(high); if (casino != null) built.Add(casino); if (manor != null) built.Add(manor);
+            var built = new List<Transform> { root }; if (roads != null) built.Add(roads); if (river != null) built.Add(river); if (estates != null) built.Add(estates); if (services != null) built.Add(services); if (precinct != null) built.Add(precinct); if (industrial != null) built.Add(industrial); if (site != null) built.Add(site); if (castle != null) built.Add(castle); if (high != null) built.Add(high); if (casino != null) built.Add(casino); if (manor != null) built.Add(manor);
             foreach (var t in built)
                 foreach (var r in t.GetComponentsInChildren<MeshRenderer>(true))
                 {

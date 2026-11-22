@@ -31,6 +31,13 @@ namespace ASBO.Slice
                 var blk = new Vector2(D.a - 0.3f, D.b + 0.75f);
                 if (D.line == "X") { if (Mathf.Abs(D.at - R.x0) < 0.45f) runs["L"].blocked.Add(blk); if (Mathf.Abs(D.at - R.x1) < 0.45f) runs["R"].blocked.Add(blk); }
                 else { if (Mathf.Abs(D.at - R.d0) < 0.45f) runs["F"].blocked.Add(blk); if (Mathf.Abs(D.at - R.d1) < 0.45f) runs["B"].blocked.Add(blk); }
+                // a door near a corner: nothing deep on the wall round the corner either (a bar counter there stood in the way in)
+                const float reach = 2.0f;
+                bool onX = D.line == "X" && (Mathf.Abs(D.at - R.x0) < 0.45f || Mathf.Abs(D.at - R.x1) < 0.45f);
+                bool onD = D.line != "X" && (Mathf.Abs(D.at - R.d0) < 0.45f || Mathf.Abs(D.at - R.d1) < 0.45f);
+                var near = new Vector2(D.at - reach, D.at + reach);
+                if (onD) { if (Mathf.Min(D.a, D.b) - R.x0 < reach) runs["L"].blocked.Add(near); if (R.x1 - Mathf.Max(D.a, D.b) < reach) runs["R"].blocked.Add(near); }
+                if (onX) { if (Mathf.Min(D.a, D.b) - R.d0 < reach) runs["F"].blocked.Add(near); if (R.d1 - Mathf.Max(D.a, D.b) < reach) runs["B"].blocked.Add(near); }
             }
             foreach (var E in P.ext) if (E.room == rm.key && runs.ContainsKey(E.side)) runs[E.side].blocked.Add(new Vector2(E.a - 0.4f, E.b + 0.9f));
             foreach (var W in P.wins) if (W.room == rm.key && runs.ContainsKey(W.side)) { runs[W.side].windows.Add(new Vector2(W.a - 0.05f, W.b + 0.05f)); if (W.y0 < 0.5f) runs[W.side].blocked.Add(new Vector2(W.a, W.b)); }
@@ -293,6 +300,8 @@ namespace ASBO.Slice
                 target = new Vector3(R.Cx, y, R.Cd);
                 p = target + new Vector3(q == 0 ? -1f : 1f, 0, 0.9f);
             }
+            if (DoorNear(rm, p, 1.2f)) p = target + new Vector3(q == 0 ? -1f : 1f, 0, -0.9f); // not in the way through a door: the other side of the room
+            if (DoorNear(rm, p, 1.2f)) return;
             if (!R.In(p.x, p.z, -0.45f)) return;
             Vector3 dir = target - p; dir.y = 0;
             float yaw = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
@@ -515,6 +524,9 @@ namespace ASBO.Slice
                 if (D.lv != rm.lv) continue;
                 Vector3 c = D.line == "X" ? new Vector3(D.at, 0, (D.a + D.b) * 0.5f) : new Vector3((D.a + D.b) * 0.5f, 0, D.at);
                 if (new Vector2(p.x - c.x, p.z - c.z).sqrMagnitude < r * r) return true;
+                // and a clear lane straight through the doorway, three metres each side (a table and its chairs reach about a metre)
+                float lo = Mathf.Min(D.a, D.b) - 1.1f, hi = Mathf.Max(D.a, D.b) + 1.1f;
+                if (D.line == "X" ? Mathf.Abs(p.x - D.at) < 3.2f && p.z > lo && p.z < hi : Mathf.Abs(p.z - D.at) < 3.2f && p.x > lo && p.x < hi) return true;
             }
             return false;
         }

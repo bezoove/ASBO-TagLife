@@ -33,6 +33,7 @@ namespace ASBO.Slice
             Debug.Log($"[ASBO] dressing: {root.childCount} pieces placed");
             CouncilEstate.Dress(parent);
             Estates.Dress(parent); // cars in the new estates' car parks
+            Industrial.Dress(parent); // wrecks in the scrapyard
             CraneSlew.Attach();
             Crows.Attach();
         }

@@ -274,6 +274,170 @@ def notice():
         d.text((x + 75, y + 85), b, font=ImageFont.truetype(REG, 12), fill=(40, 40, 40), anchor='mm')
     save(img, 'notice.png')
 
+# ---------------------------------------------------------------------------------------------------- precinct and services
+def _fit_font(d, text, path, size, maxw):
+    while size > 8:
+        f = ImageFont.truetype(path, size)
+        if d.textlength(text, font=f) <= maxw: return f
+        size -= 2
+    return ImageFont.truetype(path, size)
+
+PRECINCT_SHOPS = [  # (name, sub line, fascia colour, text colour, what's in the window)
+    ("BOOZE & FAGS", "OFF LICENCE  OPEN TIL 11", (20, 60, 30), (250, 220, 60), "bottles"),
+    ("KEBAB KINGDOM", "PIZZA  BURGERS  KEBABS", (170, 20, 20), (255, 230, 80), "menu"),
+    ("WOK THIS WAY", "CHINESE TAKEAWAY", (190, 30, 25), (255, 215, 90), "menu"),
+    ("POUND MANIA", "EVERYTHING A POUND", (240, 200, 20), (200, 20, 30), "stock"),
+    ("PRECINCT CHEMIST", "PRESCRIPTIONS", (20, 120, 70), (255, 255, 255), "shelves"),
+    ("BET BROS", "BOOKMAKERS", (15, 40, 90), (255, 200, 30), "frosted"),
+    ("NAILS & BROWS BY JADE", "WALK INS WELCOME", (230, 150, 190), (60, 20, 50), "salon"),
+    ("CASH 4 GOLD", "PHONES  GAMES  JEWELLERY", (200, 160, 30), (30, 30, 30), "stock"),
+    ("SUN KISSED", "TANNING STUDIO", (250, 140, 20), (255, 255, 255), "frosted"),
+    ("VAPE CAVE", "E-LIQUIDS  KITS", (40, 20, 70), (120, 250, 220), "shelves"),
+    ("SUE'S CAFE", "ALL DAY BREAKFAST", (240, 235, 220), (150, 30, 30), "cafe"),
+    ("FONE FIX", "SCREENS FIXED WHILE U WAIT", (30, 30, 30), (90, 200, 255), "stock"),
+    ("WEND CREDIT UNION", "SAVE  BORROW", (40, 90, 150), (255, 255, 255), "office"),
+    ("HOUSING OFFICE", "WEND BOROUGH COUNCIL", (230, 230, 225), (20, 60, 120), "office"),
+    ("JOB SHOP", "VACANCIES INSIDE", (90, 40, 120), (255, 255, 255), "office"),
+    ("GOLDEN FRY", "FISH & CHIPS", (20, 70, 140), (255, 220, 60), "cafe"),
+    ("BARGAIN BASEMENT", "CLEARANCE", (200, 30, 30), (255, 255, 255), "stock"),
+    ("FADES", "BARBER  NO APPOINTMENT", (25, 25, 25), (230, 230, 230), "salon"),
+    ("HEARTS & HOMES", "CHARITY SHOP", (180, 30, 60), (255, 255, 255), "stock"),
+    ("FREEZER WORLD", "FROZEN FOOD", (30, 110, 200), (255, 255, 255), "shelves"),
+    ("TO LET", "01632 960 114", (235, 235, 230), (200, 30, 30), "boarded"),
+    ("", "", (60, 60, 62), (0, 0, 0), "shutter"),
+    ("WEND NEWS", "NEWSAGENT  LOTTERY", (200, 20, 30), (255, 255, 255), "shelves"),
+    ("PARCEL POINT", "POST  PARCELS  BILLS", (220, 30, 30), (255, 230, 60), "office"),
+]
+
+def precinct_shops():
+    """4 x 6 cells of 512 x 340: a fascia board (72 px) over the shop window and door (the rest), like the high street's."""
+    W, CH = 512, 340; img = Image.new('RGB', (W * 4, 2048), (40, 40, 40)); d = ImageDraw.Draw(img); r = random.Random(7)
+    for i, (name, sub, bg, fg, kind) in enumerate(PRECINCT_SHOPS):
+        x, y = (i % 4) * W, (i // 4) * CH
+        # fascia
+        d.rectangle([x, y, x + W - 1, y + 71], fill=bg)
+        d.rectangle([x, y + 66, x + W - 1, y + 71], fill=tuple(int(c * 0.6) for c in bg))
+        if name:
+            f = _fit_font(d, name, BOLD, 40, W - 40); d.text((x + W // 2, y + 26), name, font=f, fill=fg, anchor='mm')
+            f2 = _fit_font(d, sub, REG, 16, W - 60); d.text((x + W // 2, y + 55), sub, font=f2, fill=fg, anchor='mm')
+        # the front: aluminium frame, a window and a glazed door at the right
+        fy0, fy1 = y + 72, y + CH - 1
+        d.rectangle([x, fy0, x + W - 1, fy1], fill=(70, 72, 74))
+        wx0, wx1, dx0 = x + 10, x + W - 150, x + W - 130
+        def glass(a, b, c, e, dark=0.0):
+            for yy in range(b, e):
+                t = (yy - b) / max(1, e - b); g = int((90 - 50 * t) * (1 - dark)); d.line([a, yy, c, yy], fill=(g // 2 + 10, g // 2 + 18, g // 2 + 26))
+        glass(wx0, fy0 + 10, wx1, fy1 - 30); glass(dx0, fy0 + 10, x + W - 12, fy1 - 4, 0.2)
+        d.rectangle([wx0, fy1 - 30, wx1, fy1 - 4], fill=(110, 110, 112))  # stall riser
+        d.rectangle([dx0 + 8, fy0 + 120, dx0 + 12, fy0 + 170], fill=(200, 200, 200))  # door handle
+        ix0, iy0, ix1, iy1 = wx0 + 6, fy0 + 16, wx1 - 6, fy1 - 36
+        if kind == "bottles":
+            for row in range(4):
+                yy = iy0 + 20 + row * 52; d.rectangle([ix0, yy + 40, ix1, yy + 44], fill=(150, 120, 80))
+                for bx in range(ix0 + 4, ix1 - 10, 14): c = r.choice([(40, 90, 40), (120, 60, 20), (200, 200, 190), (90, 20, 30)]); d.rectangle([bx, yy + 8, bx + 8, yy + 40], fill=c); d.rectangle([bx + 2, yy, bx + 6, yy + 8], fill=c)
+            d.rectangle([ix0 + 40, iy0 + 4, ix0 + 200, iy0 + 30], fill=(250, 230, 40)); d.text((ix0 + 120, iy0 + 17), "3 FOR £10", font=ImageFont.truetype(BOLD, 18), fill=(200, 20, 20), anchor='mm')
+        elif kind == "menu":
+            d.rectangle([ix0 + 20, iy0 + 10, ix0 + 170, iy0 + 210], fill=(250, 240, 200))
+            for k in range(9): d.rectangle([ix0 + 30, iy0 + 30 + k * 19, ix0 + 30 + r.randint(60, 120), iy0 + 36 + k * 19], fill=(60, 30, 30))
+            d.rectangle([ix0 + 190, iy0 + 120, ix1 - 10, iy1], fill=(160, 160, 160)); d.rectangle([ix0 + 200, iy0 + 100, ix0 + 250, iy0 + 120], fill=(220, 120, 40))
+        elif kind == "stock":
+            for row in range(5):
+                yy = iy0 + 6 + row * 42
+                for bx in range(ix0, ix1 - 20, r.randint(22, 34)): d.rectangle([bx, yy, bx + r.randint(14, 26), yy + r.randint(20, 34)], fill=(r.randint(60, 240), r.randint(60, 240), r.randint(60, 240)))
+            d.rectangle([ix0 + 60, iy0 + 60, ix0 + 230, iy0 + 100], fill=(255, 255, 255)); d.text((ix0 + 145, iy0 + 80), "SALE", font=ImageFont.truetype(BOLD, 28), fill=(220, 20, 20), anchor='mm')
+        elif kind == "shelves":
+            for row in range(5):
+                yy = iy0 + 10 + row * 42; d.rectangle([ix0, yy + 32, ix1, yy + 35], fill=(200, 200, 200))
+                for bx in range(ix0 + 2, ix1 - 8, 10): d.rectangle([bx, yy + 12 + r.randint(0, 10), bx + 7, yy + 32], fill=(r.randint(80, 250), r.randint(80, 250), r.randint(80, 250)))
+        elif kind == "frosted":
+            d.rectangle([ix0, iy0, ix1, iy1], fill=(185, 195, 200)); d.text(((ix0 + ix1) // 2, (iy0 + iy1) // 2), name.split()[0] if name else "", font=ImageFont.truetype(BOLD, 34), fill=(140, 150, 160), anchor='mm')
+        elif kind == "salon":
+            for k in range(3): cx = ix0 + 40 + k * 100; d.ellipse([cx, iy0 + 60, cx + 50, iy0 + 110], fill=(30, 30, 30)); d.rectangle([cx - 5, iy0 + 30, cx + 55, iy0 + 60], fill=(220, 220, 225))
+            d.rectangle([ix0, iy1 - 20, ix1, iy1], fill=(240, 240, 240))
+        elif kind == "cafe":
+            for k in range(3): cx = ix0 + 40 + k * 110; d.rectangle([cx, iy0 + 140, cx + 70, iy0 + 146], fill=(150, 90, 50)); d.rectangle([cx + 30, iy0 + 146, cx + 36, iy1], fill=(80, 60, 40))
+            d.rectangle([ix0 + 10, iy0 + 10, ix0 + 140, iy0 + 40], fill=(255, 255, 255)); d.text((ix0 + 75, iy0 + 25), "OPEN", font=ImageFont.truetype(BOLD, 20), fill=(200, 30, 30), anchor='mm')
+        elif kind == "office":
+            d.rectangle([ix0, iy0 + 100, ix1, iy0 + 108], fill=(200, 200, 200))
+            for k in range(4): cx = ix0 + 20 + k * 80; d.rectangle([cx, iy0 + 20, cx + 60, iy0 + 90], fill=(230, 230, 230)); d.rectangle([cx + 5, iy0 + 25, cx + 55, iy0 + 40], fill=bg)
+        elif kind == "boarded":
+            d.rectangle([wx0, fy0 + 10, x + W - 12, fy1 - 4], fill=(160, 130, 90))
+            for yy in range(fy0 + 10, fy1, 30): d.line([wx0, yy, x + W - 12, yy], fill=(120, 95, 60), width=2)
+            d.rectangle([wx0 + 60, fy0 + 60, wx0 + 300, fy0 + 140], fill=(240, 240, 235)); d.text((wx0 + 180, fy0 + 90), "TO LET", font=ImageFont.truetype(BOLD, 34), fill=(200, 30, 30), anchor='mm'); d.text((wx0 + 180, fy0 + 124), "01632 960 114", font=ImageFont.truetype(REG, 16), fill=(30, 30, 30), anchor='mm')
+        elif kind == "shutter":
+            d.rectangle([x, y, x + W - 1, fy1], fill=(95, 98, 100))
+            for yy in range(y, fy1, 9): d.line([x, yy, x + W, yy], fill=(70, 72, 74), width=2)
+            for k in range(3):
+                tx, ty = x + r.randint(20, 300), y + r.randint(40, 220); col = r.choice([(30, 120, 220), (230, 200, 30), (220, 40, 40), (250, 250, 250)])
+                d.text((tx, ty), r.choice(["KCR", "TBL", "HWY", "WEND", "RIP"]), font=ImageFont.truetype(BOLD, r.randint(40, 70)), fill=col)
+        # posters and a door sign
+        if kind not in ("boarded", "shutter"):
+            d.rectangle([dx0 + 30, fy0 + 40, dx0 + 100, fy0 + 70], fill=(255, 255, 255)); d.text((dx0 + 65, fy0 + 55), "OPEN", font=ImageFont.truetype(BOLD, 16), fill=(20, 140, 40), anchor='mm')
+    save(img, 'precinct_shops.png')
+
+SERVICE_SIGNS = [  # long boards: (text, small text, background, text colour)
+    ("POLICE", "", (20, 50, 130), (255, 255, 255)), ("WEND POLICE STATION", "FRONT COUNTER OPEN 8AM - 8PM", (240, 240, 240), (20, 50, 130)),
+    ("FIRE STATION", "", (200, 20, 20), (255, 255, 255)), ("KEEP CLEAR", "FIRE ENGINES TURNING", (250, 220, 30), (20, 20, 20)),
+    ("WEND GENERAL HOSPITAL", "", (30, 90, 180), (255, 255, 255)), ("ACCIDENT & EMERGENCY", "A&E  OPEN 24 HOURS", (220, 30, 30), (255, 255, 255)),
+    ("MAIN ENTRANCE", "OUTPATIENTS  WARDS  PHARMACY", (30, 90, 180), (255, 255, 255)), ("AMBULANCES ONLY", "NO PARKING AT ANY TIME", (250, 220, 30), (20, 20, 20)),
+    ("WEND PRECINCT", "", (40, 40, 45), (240, 200, 60)), ("COMMUNITY HUB", "DROP IN  ADVICE  FOOD BANK", (60, 130, 70), (255, 255, 255)),
+    ("KESTREL FIELDS", "WEND BOROUGH COUNCIL", (240, 240, 235), (20, 60, 120)), ("THORNBURY ESTATE", "WEND BOROUGH COUNCIL", (240, 240, 235), (20, 60, 120)),
+    ("HAWTHORN HEIGHTS", "WEND BOROUGH COUNCIL", (240, 240, 235), (20, 60, 120)), ("MILL LANE INDUSTRIAL ESTATE", "UNITS 1 - 14", (40, 60, 90), (255, 255, 255)),
+    ("WEND MOTORS", "MOT  SERVICING  REPAIRS  TYRES", (30, 30, 30), (255, 200, 0)), ("A1 TAXIS", "01632 960 111  24 HRS", (250, 220, 0), (20, 20, 20)),
+    ("SWAP SHOP PAWNBROKERS", "WE BUY  WE SELL  CASH LOANS", (120, 20, 40), (255, 215, 80)), ("BRIGGS SCRAP METAL", "CARS WANTED  CASH PAID", (60, 60, 60), (255, 120, 0)),
+    ("UNIT TO LET", "01632 960 222", (230, 230, 225), (200, 30, 30)), ("CARPET KING", "WAREHOUSE CLEARANCE", (40, 40, 120), (255, 255, 255)),
+    ("NO BALL GAMES", "", (240, 240, 235), (200, 30, 30)), ("PAY & DISPLAY", "CAR PARK", (30, 90, 180), (255, 255, 255)),
+    ("CUSTODY", "AUTHORISED PERSONNEL ONLY", (20, 50, 130), (255, 255, 255)), ("STAFF ONLY", "", (240, 240, 240), (30, 30, 30)),
+]
+
+def service_signs():
+    """2 x 12 cells of 1024 x 170: fascia boards and signs for the services, the precinct, the estates and the industrial estate."""
+    W, H = 1024, 170; img = Image.new('RGB', (W * 2, 2048), (230, 230, 230)); d = ImageDraw.Draw(img)
+    for i, (t, sub, bg, fg) in enumerate(SERVICE_SIGNS):
+        x, y = (i % 2) * W, (i // 2) * H
+        d.rectangle([x, y, x + W - 1, y + H - 1], fill=bg); d.rectangle([x + 6, y + 6, x + W - 7, y + H - 7], outline=fg, width=3)
+        f = _fit_font(d, t, BOLD, 96 if not sub else 80, W - 80); d.text((x + W // 2, y + (H // 2 if not sub else 66)), t, font=f, fill=fg, anchor='mm')
+        if sub: f2 = _fit_font(d, sub, REG, 34, W - 100); d.text((x + W // 2, y + 132), sub, font=f2, fill=fg, anchor='mm')
+    save(img, 'service_signs.png')
+
+def paviors():
+    """Red-brown concrete block paving, herringbone (albedo, normal): the precinct and the forecourts."""
+    N = 512; b = 32; h = np.zeros((N, N), np.float32); col = np.zeros((N, N, 3), np.float32); r = np.random.default_rng(11)
+    pal = np.array([[150, 82, 62], [138, 74, 56], [160, 92, 70], [128, 70, 54], [146, 88, 72]], np.float32) / 255
+    for gy in range(-2, N // b + 2):
+        for gx in range(-2, N // b + 2):
+            for o in range(2):
+                x0 = gx * 2 * b + gy * b + o * b; y0 = gy * b - (o * b)
+                w, hh = (2 * b, b) if o == 0 else (b, 2 * b)
+                c = pal[r.integers(len(pal))] * (0.9 + 0.2 * r.random())
+                for yy in range(y0 + 2, y0 + hh - 2):
+                    for xx in range(x0 + 2, x0 + w - 2):
+                        col[yy % N, xx % N] = c; h[yy % N, xx % N] = 1
+    n = tile_noise(N, 40, 3)[..., None]
+    col = col * (0.85 + 0.3 * n) + (1 - h[..., None]) * np.array([0.32, 0.3, 0.28])
+    save(Image.fromarray((np.clip(col, 0, 1) * 255).astype(np.uint8)), 'paviors.png')
+    save(Image.fromarray(normal_from_height(gaussian_filter(h, 1.2), 2.5)), 'paviors_normal.png')
+
+def roller_door():
+    """A steel roller shutter (horizontal slats, a bit grubby)."""
+    N = 256; a = np.zeros((N, N, 3), np.float32) + np.array([0.62, 0.63, 0.64])
+    for y in range(0, N, 12): a[y:y + 2] *= 0.72; a[y + 2:y + 4] *= 1.08
+    a *= (0.88 + 0.2 * tile_noise(N, 30, 9))[..., None]
+    a[-40:] *= np.linspace(1, 0.8, 40)[:, None, None]
+    save(Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8)), 'roller_door.png')
+
+def cladding():
+    """Profiled steel cladding (trapezoidal ribs every 25 cm on a 1 m tile), goosewing grey, a bit weathered; with normal."""
+    N = 512; x = np.arange(N)[None, :] / N * 4.0          # four ribs across the tile
+    f = x % 1.0; rib = np.clip(1 - np.abs(f - 0.5) * 6, 0, 1)                      # the raised trapezoid
+    h = np.repeat(np.clip(rib * 1.4, 0, 1), N, 0).astype(np.float32)
+    base = np.array([0.62, 0.65, 0.64]) * (0.92 + 0.12 * tile_noise(N, 50, 21))[..., None]
+    streak = np.clip(tile_noise(N, 8, 22) - 0.55, 0, 1)[..., None] * np.linspace(0.0, 0.35, N)[:, None, None]
+    col = base * (0.86 + 0.18 * h[..., None]) - streak * np.array([0.2, 0.22, 0.24])
+    save(Image.fromarray((np.clip(col, 0, 1) * 255).astype(np.uint8)), 'cladding.png')
+    save(Image.fromarray(normal_from_height(gaussian_filter(h, 1.5), 3.0)), 'cladding_normal.png')
+
 signal_lamps(); signs(); tower_windows()
+precinct_shops(); service_signs(); paviors(); roller_door(); cladding()
 brick('brown_brick', [[112, 62, 44], [98, 54, 38], [124, 70, 48], [88, 50, 36], [132, 80, 56], [104, 60, 46], [80, 46, 34]], [150, 140, 125])
 pebbledash(); water(); reeds(); graffiti(); chainlink(); notice()
