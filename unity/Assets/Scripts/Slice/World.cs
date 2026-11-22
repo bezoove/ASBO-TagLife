@@ -126,6 +126,7 @@ namespace ASBO.Slice
             r.route.AddRange(new[] { new Vector3(30f, 0, Estate.LaneZ), new Vector3(0f, 0, Estate.LaneZ), new Vector3(0f, 0, 5f), new Vector3(0f, 0, Estate.LaneZ), new Vector3(-30f, 0, Estate.LaneZ) });
             r.speed = 1.0f;
             CouncilEstate.Locals(); // people out on Hawthorn Way, if the scene has it
+            ConstructionSite.Builders();
         }
 
         void Walker(Vector3 a, Vector3 b, Color shirt, bool important)

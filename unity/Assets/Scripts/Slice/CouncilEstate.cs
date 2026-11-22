@@ -476,9 +476,10 @@ namespace ASBO.Slice
             k.Push(at, yaw);
             foreach (float x in new[] { -0.62f, 0.62f }) k.Box(M.post, new Vector3(x - 0.035f, 0f, -0.035f), new Vector3(x + 0.035f, 1.05f, 0.035f));
             Vector3 a = new Vector3(-0.68f, 0.62f, 0.04f), b = new Vector3(0.68f, 0.62f, 0.04f), c = new Vector3(0.68f, 0.96f, 0.04f), d = new Vector3(-0.68f, 0.96f, 0.04f);
-            k.QuadUV(M.sign, a, b, c, d, Vector3.forward, new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1));
+            // seen from the front (looking -z) the left end is +x; from the back the left end is -x
+            k.QuadUV(M.sign, a, b, c, d, Vector3.forward, new Vector2(1, 0), new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 1));
             Vector3 o = new Vector3(0, 0, -0.08f);
-            k.QuadUV(M.sign, b + o, a + o, d + o, c + o, Vector3.back, new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1));
+            k.QuadUV(M.sign, b + o, a + o, d + o, c + o, Vector3.back, new Vector2(1, 0), new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 1));
             k.Box(M.post, new Vector3(-0.7f, 0.6f, -0.04f), new Vector3(0.7f, 0.62f, 0.04f));
             k.Box(M.post, new Vector3(-0.7f, 0.96f, -0.04f), new Vector3(0.7f, 0.98f, 0.04f));
             k.Pop();

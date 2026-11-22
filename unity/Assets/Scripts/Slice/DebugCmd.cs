@@ -725,7 +725,9 @@ namespace ASBO.Slice
                 (new Vector3(-3f, 1.7f, -66f), new Vector3(-15f, 0.6f, -56f)),
                 (new Vector3(-14f, 1.7f, -82f), new Vector3(-15f, 1.2f, -95f)),
                 (new Vector3(-1.5f, 1.7f, -67f), new Vector3(6f, 2.6f, -72.5f)),
-                (new Vector3(-37f, 1.7f, -36.5f), new Vector3(-47f, 4f, -66f)),
+                (new Vector3(96f, 1.7f, -32f), new Vector3(124f, 7f, -68f)),
+                (new Vector3(124f, 42f, -28f), new Vector3(124f, 0f, -72f)),
+                (new Vector3(106f, 1.7f, -48f), new Vector3(130f, 5f, -74f)),
             };
             for (int i = 0; i < views.Length; i++)
             {

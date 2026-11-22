@@ -19,6 +19,9 @@ namespace ASBO.EditorTools
     public static class ASBOEstate
     {
         const string TestScene = "Assets/Scenes/AbbotsWend_Test.unity", Tex = "Assets/Art/Estate", MatDir = "Assets/Resources/Estate", MeshDir = "Assets/Art/Generated/Estate";
+        const string SiteTex = "Assets/Art/Site", SiteMats = "Assets/Resources/Site", SiteMeshes = "Assets/Art/Generated/Site";
+        /// <summary>Ground levelled for the building site (x, z), a little bigger than its fence.</summary>
+        static readonly Rect SiteGround = new Rect(90f, -102f, 66f, 64f);
 
         [MenuItem("ASBO/Art/Build Council Estate")]
         public static void Build()
@@ -30,16 +33,21 @@ namespace ASBO.EditorTools
             var world = Object.FindFirstObjectByType<BakedWorld>();
             if (world == null) { Debug.LogError("[ASBO] estate: no baked World in " + TestScene); return; }
             var old = world.transform.Find(CouncilEstate.RootName); if (old != null) Object.DestroyImmediate(old.gameObject);
+            var oldSite = world.transform.Find(ConstructionSite.RootName); if (oldSite != null) Object.DestroyImmediate(oldSite.gameObject);
             var terrain = Object.FindFirstObjectByType<Terrain>();
             if (terrain != null) Ground(terrain);
             var root = CouncilEstate.Build(world.transform);
             if (root == null) return;
-            SaveMeshes(root);
-            foreach (var r in root.GetComponentsInChildren<MeshRenderer>(true))
-            {
-                GameObjectUtility.SetStaticEditorFlags(r.gameObject, StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic | StaticEditorFlags.ReflectionProbeStatic);
-                r.receiveGI = ReceiveGI.LightProbes; r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.BlendProbes;
-            }
+            var site = ConstructionSite.Build(world.transform);
+            SaveMeshes(root, MeshDir);
+            if (site != null) SaveMeshes(site, SiteMeshes);
+            foreach (var t in site != null ? new[] { root, site } : new[] { root })
+                foreach (var r in t.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    bool moves = r.GetComponentInParent<Transform>() != null && r.transform.parent != null && r.transform.parent.name == "CraneTop";
+                    GameObjectUtility.SetStaticEditorFlags(r.gameObject, moves ? 0 : StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic | StaticEditorFlags.ReflectionProbeStatic);
+                    r.receiveGI = ReceiveGI.LightProbes; r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.BlendProbes;
+                }
             if (terrain != null) Trees(terrain);
             Probes(world.transform);
             // NavMesh with the estate in it (its own asset, so the original Abbots Wend scene keeps its own)
@@ -113,6 +121,7 @@ namespace ASBO.EditorTools
                 var t = T("railing"); m.SetTexture("_BaseMap", t); m.mainTexture = t; m.SetColor("_BaseColor", Color.white); m.SetFloat("_Smoothness", 0.4f); m.SetFloat("_Metallic", 0.3f);
                 m.SetFloat("_AlphaClip", 1f); m.SetFloat("_Cutoff", 0.5f); m.EnableKeyword("_ALPHATEST_ON"); m.SetFloat("_Cull", 0f); m.renderQueue = 2450; m.SetOverrideTag("RenderType", "TransparentCutout");
             });
+            SiteMaterials();
             Mat("EstateWindows", null, m =>
             {
                 var t = T("estate_windows"); m.SetTexture("_BaseMap", t); m.mainTexture = t; m.SetColor("_BaseColor", Color.white);
@@ -126,9 +135,53 @@ namespace ASBO.EditorTools
             AssetDatabase.SaveAssets();
         }
 
-        static Material Mat(string name, Material from, System.Action<Material> set)
+        /// <summary>The building site's materials (Resources/Site), from tools/art/site textures and the scanned surfaces.</summary>
+        static void SiteMaterials()
         {
-            string path = $"{MatDir}/{name}.mat";
+            Directory.CreateDirectory(SiteMats);
+            if (Directory.Exists(SiteTex))
+                foreach (var f in Directory.GetFiles(SiteTex, "*.png"))
+                {
+                    var imp = (TextureImporter)AssetImporter.GetAtPath(f.Replace('\\', '/')); if (imp == null) continue;
+                    bool cut = f.Contains("heras") || f.Contains("lattice");
+                    imp.textureType = TextureImporterType.Default; imp.sRGBTexture = true; imp.mipmapEnabled = true; imp.filterMode = FilterMode.Trilinear; imp.anisoLevel = 4;
+                    imp.alphaSource = cut ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None; imp.alphaIsTransparency = cut;
+                    imp.wrapMode = TextureWrapMode.Repeat;
+                    imp.SetPlatformTextureSettings(new TextureImporterPlatformSettings { name = "Android", overridden = true, maxTextureSize = 512, format = TextureImporterFormat.ASTC_6x6 });
+                    imp.SaveAndReimport();
+                }
+            Texture2D T(string n) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{SiteTex}/{n}.png");
+            Material S(string n, Material from, System.Action<Material> set) => Mat(n, from, set, SiteMats);
+            void Plain(string n, Color c, float smooth, float metal = 0f, Texture2D tex = null) => S(n, null, m => { m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", smooth); m.SetFloat("_Metallic", metal); if (tex != null) { m.SetTexture("_BaseMap", tex); m.mainTexture = tex; } });
+            void Cut(string n, Texture2D tex, float smooth, float metal)
+            {
+                S(n, null, m =>
+                {
+                    m.SetTexture("_BaseMap", tex); m.mainTexture = tex; m.SetColor("_BaseColor", Color.white); m.SetFloat("_Smoothness", smooth); m.SetFloat("_Metallic", metal);
+                    m.SetFloat("_AlphaClip", 1f); m.SetFloat("_Cutoff", 0.5f); m.EnableKeyword("_ALPHATEST_ON"); m.SetFloat("_Cull", 0f); m.renderQueue = 2450; m.SetOverrideTag("RenderType", "TransparentCutout");
+                });
+            }
+            S("SiteMud", Surfaces.Source("rocky_trail"), m => m.SetColor("_BaseColor", new Color(0.66f, 0.54f, 0.42f)));
+            S("SiteHardcore", Surfaces.Source("dry_riverbed_rock"), m => m.SetColor("_BaseColor", new Color(0.86f, 0.85f, 0.82f)));
+            S("SiteBlocks", Surfaces.Source("stone_tile_wall"), m => m.SetColor("_BaseColor", new Color(0.92f, 0.92f, 0.9f)));
+            Plain("SiteRebar", new Color(0.28f, 0.14f, 0.07f), 0.3f, 0.5f);
+            Plain("SiteBoards", Color.white, 0.15f, 0f, T("boards"));
+            Plain("SiteHoarding", Color.white, 0.3f, 0f, T("hoarding"));
+            Plain("SiteSafety", Color.white, 0.35f, 0f, T("safety"));
+            Cut("SiteHeras", T("heras"), 0.5f, 0.6f);
+            Cut("SiteLattice", T("lattice"), 0.5f, 0.2f);
+            Plain("SiteYellow", new Color(0.95f, 0.7f, 0.06f), 0.5f, 0.1f);
+            Plain("SiteCabin", new Color(0.24f, 0.34f, 0.46f), 0.35f, 0.2f);
+            Plain("SiteCabinTrim", new Color(0.86f, 0.86f, 0.84f), 0.35f);
+            Plain("SiteBlue", new Color(0.1f, 0.32f, 0.72f), 0.45f);
+            Plain("SiteSand", new Color(0.8f, 0.68f, 0.46f), 0.05f);
+            Plain("SitePuddle", new Color(0.16f, 0.13f, 0.1f), 0.88f);
+        }
+
+        static Material Mat(string name, Material from, System.Action<Material> set) => Mat(name, from, set, MatDir);
+        static Material Mat(string name, Material from, System.Action<Material> set, string dir)
+        {
+            string path = $"{dir}/{name}.mat";
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (m != null && from != null) { m.CopyPropertiesFromMaterial(from); m.shaderKeywords = from.shaderKeywords; }
             if (m == null) { m = from != null ? new Material(from) { name = name } : new Material(Gfx.Lit) { name = name }; AssetDatabase.CreateAsset(m, path); }
@@ -137,15 +190,15 @@ namespace ASBO.EditorTools
         }
 
         // ------------------------------------------------------------------------------ meshes
-        static void SaveMeshes(Transform root)
+        static void SaveMeshes(Transform root, string dir)
         {
-            if (AssetDatabase.IsValidFolder(MeshDir)) AssetDatabase.DeleteAsset(MeshDir);
-            Directory.CreateDirectory(MeshDir); AssetDatabase.Refresh();
+            if (AssetDatabase.IsValidFolder(dir)) AssetDatabase.DeleteAsset(dir);
+            Directory.CreateDirectory(dir); AssetDatabase.Refresh();
             int n = 0;
             foreach (var mf in root.GetComponentsInChildren<MeshFilter>(true))
             {
                 var mesh = mf.sharedMesh; if (mesh == null || !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(mesh))) continue;
-                AssetDatabase.CreateAsset(mesh, $"{MeshDir}/{mf.transform.parent.name.Replace(' ', '_')}_{mf.name}_{n++}.asset");
+                AssetDatabase.CreateAsset(mesh, $"{dir}/{mf.transform.parent.name.Replace(' ', '_')}_{mf.name}_{n++}.asset");
             }
             Debug.Log($"[ASBO] estate: saved {n} meshes");
         }
@@ -157,12 +210,12 @@ namespace ASBO.EditorTools
             var td = t.terrainData; Vector3 tp = t.transform.position, size = td.size;
             int res = td.heightmapResolution; var h = td.GetHeights(0, 0, res, res);
             var area = CouncilEstate.Area; const float fall = 28f;
+            float Dist(Rect r, float wx, float wz) { float dx = Mathf.Max(0f, Mathf.Max(r.xMin - wx, wx - r.xMax)), dz = Mathf.Max(0f, Mathf.Max(r.yMin - wz, wz - r.yMax)); return Mathf.Sqrt(dx * dx + dz * dz); }
             for (int y = 0; y < res; y++)
                 for (int x = 0; x < res; x++)
                 {
                     float wx = tp.x + x / (float)(res - 1) * size.x, wz = tp.z + y / (float)(res - 1) * size.z;
-                    float dx = Mathf.Max(0f, Mathf.Max(area.xMin - wx, wx - area.xMax)), dz = Mathf.Max(0f, Mathf.Max(area.yMin - wz, wz - area.yMax));
-                    float d = Mathf.Sqrt(dx * dx + dz * dz); if (d >= fall) continue;
+                    float d = Mathf.Min(Dist(area, wx, wz), Dist(SiteGround, wx, wz)); if (d >= fall) continue;
                     float k = Mathf.SmoothStep(0f, 1f, d / fall);
                     h[y, x] = Mathf.Lerp(-tp.y / size.y, h[y, x], k);
                 }
@@ -173,6 +226,7 @@ namespace ASBO.EditorTools
             {
                 float wx = tp.x + ti.position.x * size.x, wz = tp.z + ti.position.z * size.z;
                 if (wx > area.xMin - 3f && wx < area.xMax + 3f && wz > area.yMin - 3f && wz < area.yMax + 3f) continue;
+                if (wx > SiteGround.xMin - 3f && wx < SiteGround.xMax + 3f && wz > SiteGround.yMin - 3f && wz < SiteGround.yMax + 3f) continue;
                 keep.Add(ti);
             }
             td.treeInstances = keep.ToArray();
@@ -187,6 +241,7 @@ namespace ASBO.EditorTools
                     {
                         if (map[y, x] == 0) continue;
                         float wx = tp.x + (x + 0.5f) / dr * size.x, wz = tp.z + (y + 0.5f) / dr * size.z;
+                        if (ConstructionSite.Area.Contains(new Vector2(wx, wz)) || wx > ConstructionSite.GateX0 - 1f && wx < ConstructionSite.GateX1 + 1f && wz < -34f && wz > ConstructionSite.FrontZ - 1f) { map[y, x] = 0; cleared++; continue; }
                         if (wx < area.xMin || wx > area.xMax || wz < area.yMin || wz > area.yMax) continue;
                         if (Paved(new Vector3(wx, 0, wz), c)) { map[y, x] = 0; cleared++; }
                     }

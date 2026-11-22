@@ -140,6 +140,17 @@ namespace ASBO.Slice
                 tints["hoodie_grey"] = tints["sweater_granit"] = new Color(0.2f, 0.46f, 0.3f);
                 tints["sportpants_grey"] = tints["pants_granit"] = new Color(0.17f, 0.36f, 0.25f);
             }
+            else if (role == "Builder")
+            {
+                // builders: a hi-vis top (fluorescent orange or yellow), dark work trousers, boots, short hair
+                wear.Add(Pick(Pool(race, "Chest", "hoodie_grey", "sweater_granit"), rng));
+                var bLegs = Pool(race, "Legs", "pants_granit", "sportpants_grey"); if (bLegs.Count == 0) bLegs = Pool(race, "Legs", "pants");
+                wear.Add(Pick(bLegs, rng));
+                wear.Add(Pick(Pool(race, "Feet", "shoe"), rng));
+                wear.Add(Pick(Pool(race, "Hair", "short", "military", "haircut"), rng));
+                tints["hoodie_grey"] = tints["sweater_granit"] = rng.Next(2) == 0 ? new Color(1f, 0.48f, 0.06f) : new Color(0.86f, 1f, 0.12f);
+                tints["sportpants_grey"] = tints["pants_granit"] = new Color(0.3f, 0.3f, 0.33f);
+            }
             else if (isPlayer)
             {
                 // the player: hoodie, trackies and trainers
