@@ -125,6 +125,7 @@ namespace ASBO.Slice
             var r = MakePerson(new Vector3(-20f, 0, Estate.LaneZ), new Color(0.35f, 0.45f, 0.3f), new Color(0.3f, 0.25f, 0.2f), "Resident");
             r.route.AddRange(new[] { new Vector3(30f, 0, Estate.LaneZ), new Vector3(0f, 0, Estate.LaneZ), new Vector3(0f, 0, 5f), new Vector3(0f, 0, Estate.LaneZ), new Vector3(-30f, 0, Estate.LaneZ) });
             r.speed = 1.0f;
+            CouncilEstate.Locals(); // people out on Hawthorn Way, if the scene has it
         }
 
         void Walker(Vector3 a, Vector3 b, Color shirt, bool important)

@@ -545,6 +545,27 @@ namespace ASBO.Slice
             Debug.Log($"[ASBO] estate dressed: {bins} wheelie bins, {cars} cars on drives");
         }
 
+        /// <summary>A few locals out and about on the estate: walking the pavements, crossing the green, two lads by the sign.</summary>
+        public static void Locals()
+        {
+            if (GameObject.Find(RootName) == null) return;
+            var rng = new System.Random(55);
+            Color C() => Color.HSVToRGB((float)rng.NextDouble(), 0.2f + (float)rng.NextDouble() * 0.5f, 0.25f + (float)rng.NextDouble() * 0.55f);
+            void Walk(float speed, params Vector3[] pts)
+            {
+                var p = World.MakePerson(pts[0], C(), C() * 0.6f, "Pedestrian");
+                for (int i = 1; i < pts.Length; i++) p.route.Add(pts[i]);
+                p.route.Add(pts[0]); p.speed = speed;
+            }
+            float o = RoadHalf + KerbW + PaveW * 0.5f;
+            Walk(1.25f, new Vector3(-40f - o, 0, -40f), new Vector3(-40f - o, 0, -100f), new Vector3(-30f, 0, -110f - o), new Vector3(30f, 0, -110f - o), new Vector3(40f + o, 0, -100f), new Vector3(40f + o, 0, -40f));
+            Walk(1.1f, new Vector3(40f - o, 0, -42f), new Vector3(40f - o, 0, -98f), new Vector3(26f, 0, -110f + o), new Vector3(-26f, 0, -110f + o), new Vector3(-40f + o, 0, -98f), new Vector3(-40f + o, 0, -42f));
+            Walk(1.3f, new Vector3(0f, 0, -38.5f), new Vector3(0f, 0, -103.5f));
+            Walk(0.55f, new Vector3(-32.6f, 0, -41.6f), new Vector3(-31.4f, 0, -43.2f));
+            Walk(0.6f, new Vector3(-31.8f, 0, -43.6f), new Vector3(-33.2f, 0, -42f));
+            Walk(1.15f, new Vector3(-46.5f, 0, -60f), new Vector3(-30f, 0, -62f), new Vector3(-12f, 0, -70f));
+        }
+
         static Material[] binMats;
         /// <summary>
         /// A 240-litre wheelie bin: body, hinged lid, two wheels and the handle bar. Lid colours: 0 black (general),
