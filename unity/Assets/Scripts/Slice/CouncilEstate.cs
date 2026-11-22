@@ -569,7 +569,7 @@ namespace ASBO.Slice
             Walk(1.3f, new Vector3(0f, 0, -38.5f), new Vector3(0f, 0, -103.5f));
             Walk(0.55f, new Vector3(-32.6f, 0, -41.6f), new Vector3(-31.4f, 0, -43.2f));
             Walk(0.6f, new Vector3(-31.8f, 0, -43.6f), new Vector3(-33.2f, 0, -42f));
-            Walk(1.15f, new Vector3(-46.5f, 0, -60f), new Vector3(-30f, 0, -62f), new Vector3(-12f, 0, -70f));
+            Walk(1.15f, new Vector3(-46.5f, 0, -60f), new Vector3(-36f, 0, -75f), new Vector3(-12f, 0, -75f)); // round the end of Hawthorn Parade
         }
 
         static Material[] binMats;

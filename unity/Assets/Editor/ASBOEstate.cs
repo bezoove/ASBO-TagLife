@@ -22,6 +22,10 @@ namespace ASBO.EditorTools
         const string SiteTex = "Assets/Art/Site", SiteMats = "Assets/Resources/Site", SiteMeshes = "Assets/Art/Generated/Site";
         /// <summary>Ground levelled for the building site (x, z), a little bigger than its fence.</summary>
         static readonly Rect SiteGround = new Rect(90f, -102f, 66f, 64f);
+        /// <summary>Ground levelled for the high street: the north parade with the beer garden behind it, and the south parade.</summary>
+        static readonly Rect HighNorth = new Rect(-140f, -24f, 94f, 28f), HighSouth = new Rect(-147f, -52f, 65f, 16f);
+        /// <summary>Hawthorn Parade on the estate green (x, z footprint, with a margin).</summary>
+        static readonly Rect EstateParade = new Rect(-34f, -73f, 12.5f, 30f);
 
         [MenuItem("ASBO/Art/Build Council Estate")]
         public static void Build()
@@ -35,16 +39,19 @@ namespace ASBO.EditorTools
             var old = world.transform.Find(CouncilEstate.RootName); if (old != null) Object.DestroyImmediate(old.gameObject);
             var oldSite = world.transform.Find(ConstructionSite.RootName); if (oldSite != null) Object.DestroyImmediate(oldSite.gameObject);
             var oldCastle = world.transform.Find(Castle.RootName); if (oldCastle != null) Object.DestroyImmediate(oldCastle.gameObject);
+            var oldHigh = world.transform.Find(HighStreet.RootName); if (oldHigh != null) Object.DestroyImmediate(oldHigh.gameObject);
             var terrain = Object.FindFirstObjectByType<Terrain>();
             if (terrain != null) Ground(terrain);
             var root = CouncilEstate.Build(world.transform);
             if (root == null) return;
             var site = ConstructionSite.Build(world.transform);
             var castle = Castle.Build(world.transform, terrain);
+            var high = HighStreet.Build(world.transform);
             SaveMeshes(root, MeshDir);
             if (site != null) SaveMeshes(site, SiteMeshes);
             if (castle != null) SaveMeshes(castle, "Assets/Art/Generated/Castle");
-            var built = new List<Transform> { root }; if (site != null) built.Add(site); if (castle != null) built.Add(castle);
+            if (high != null) SaveMeshes(high, "Assets/Art/Generated/HighStreet");
+            var built = new List<Transform> { root }; if (site != null) built.Add(site); if (castle != null) built.Add(castle); if (high != null) built.Add(high);
             foreach (var t in built)
                 foreach (var r in t.GetComponentsInChildren<MeshRenderer>(true))
                 {
@@ -127,6 +134,7 @@ namespace ASBO.EditorTools
             });
             SiteMaterials();
             CastleMaterials();
+            TownMaterials();
             Mat("EstateWindows", null, m =>
             {
                 var t = T("estate_windows"); m.SetTexture("_BaseMap", t); m.mainTexture = t; m.SetColor("_BaseColor", Color.white);
@@ -193,6 +201,39 @@ namespace ASBO.EditorTools
             Mat("CastleIron", null, m => { m.SetColor("_BaseColor", new Color(0.12f, 0.11f, 0.1f)); m.SetFloat("_Smoothness", 0.4f); m.SetFloat("_Metallic", 0.6f); }, dir);
         }
 
+        static void TownMaterials()
+        {
+            const string dir = "Assets/Resources/Town", tex = "Assets/Art/Town"; Directory.CreateDirectory(dir);
+            if (Directory.Exists(tex))
+                foreach (var f in Directory.GetFiles(tex, "*.png"))
+                {
+                    var imp = (TextureImporter)AssetImporter.GetAtPath(f.Replace('\\', '/')); if (imp == null) continue;
+                    bool sash = f.Contains("sash"), tiles = f.Contains("tiles"), big = f.Contains("shopfronts");
+                    imp.textureType = TextureImporterType.Default; imp.sRGBTexture = true; imp.mipmapEnabled = true; imp.filterMode = FilterMode.Trilinear; imp.anisoLevel = 4;
+                    imp.alphaSource = sash ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None; imp.alphaIsTransparency = false;
+                    imp.wrapMode = tiles ? TextureWrapMode.Repeat : TextureWrapMode.Clamp; imp.maxTextureSize = 2048;
+                    imp.SetPlatformTextureSettings(new TextureImporterPlatformSettings { name = "Android", overridden = true, maxTextureSize = big ? 2048 : 512, format = TextureImporterFormat.ASTC_6x6 });
+                    imp.SaveAndReimport();
+                }
+            Texture2D T(string n) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{tex}/{n}.png");
+            void Plain(string n, Color c, float smooth, float metal = 0f, Texture2D t = null) => Mat(n, null, m => { m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", smooth); m.SetFloat("_Metallic", metal); if (t != null) { m.SetTexture("_BaseMap", t); m.mainTexture = t; } }, dir);
+            Mat("TownBrick", Surfaces.Source("red_brick_vic"), m => m.SetColor("_BaseColor", new Color(1.05f, 1.02f, 1.0f)), dir);
+            Mat("TownStone", Surfaces.Source("plaster_smooth"), m => m.SetColor("_BaseColor", new Color(0.9f, 0.87f, 0.8f)), dir);
+            Mat("TownRender", Surfaces.Source("plaster_smooth"), m => m.SetColor("_BaseColor", new Color(1.14f, 1.13f, 1.09f)), dir);
+            Mat("TownSlate", Surfaces.Source("roof_slates_03"), m => m.SetColor("_BaseColor", new Color(0.66f, 0.68f, 0.74f)), dir);
+            Mat("TownSash", null, m =>
+            {
+                var t = T("sash"); m.SetTexture("_BaseMap", t); m.mainTexture = t; m.SetColor("_BaseColor", Color.white); m.SetFloat("_Metallic", 0f); m.SetFloat("_Smoothness", 1f);
+                m.SetFloat("_SmoothnessTextureChannel", 1f); m.EnableKeyword("_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A");
+            }, dir);
+            Plain("TownShops", Color.white, 0.6f, 0f, T("shopfronts"));
+            Plain("TownPubTiles", Color.white, 0.8f, 0f, T("pub_tiles"));
+            Plain("TownPubSign", Color.white, 0.35f, 0f, T("pub_sign"));
+            Plain("TownPaint", new Color(0.07f, 0.2f, 0.13f), 0.7f);
+            Plain("TownFrame", new Color(0.16f, 0.16f, 0.18f), 0.5f, 0.2f);
+            Plain("TownPot", new Color(0.55f, 0.28f, 0.18f), 0.25f);
+        }
+
         static Material Mat(string name, Material from, System.Action<Material> set) => Mat(name, from, set, MatDir);
         static Material Mat(string name, Material from, System.Action<Material> set, string dir)
         {
@@ -247,7 +288,7 @@ namespace ASBO.EditorTools
                 for (int x = 0; x < res; x++)
                 {
                     float wx = tp.x + x / (float)(res - 1) * size.x, wz = tp.z + y / (float)(res - 1) * size.z;
-                    float d = Mathf.Min(Dist(area, wx, wz), Dist(SiteGround, wx, wz)); if (d >= fall) continue;
+                    float d = Mathf.Min(Mathf.Min(Dist(area, wx, wz), Dist(SiteGround, wx, wz)), Mathf.Min(Dist(HighNorth, wx, wz), Dist(HighSouth, wx, wz))); if (d >= fall) continue;
                     float k = Mathf.SmoothStep(0f, 1f, d / fall);
                     h[y, x] = Mathf.Lerp(-tp.y / size.y, h[y, x], k);
                 }
@@ -261,6 +302,7 @@ namespace ASBO.EditorTools
                 if (wx > SiteGround.xMin - 3f && wx < SiteGround.xMax + 3f && wz > SiteGround.yMin - 3f && wz < SiteGround.yMax + 3f) continue;
                 if (Vector2.Distance(new Vector2(wx, wz), new Vector2(Castle.Centre.x, Castle.Centre.z)) < Castle.Plateau + 4f || NearLane(wx, wz, 4f)) continue;
                 if (Mathf.Abs(wz - World.RoadZ) < 10f) continue; // nothing growing in the road
+                if (HighNorth.Contains(new Vector2(wx, wz)) || HighSouth.Contains(new Vector2(wx, wz))) continue;
                 keep.Add(ti);
             }
             td.treeInstances = keep.ToArray();
@@ -275,6 +317,7 @@ namespace ASBO.EditorTools
                     {
                         if (map[y, x] == 0) continue;
                         float wx = tp.x + (x + 0.5f) / dr * size.x, wz = tp.z + (y + 0.5f) / dr * size.z;
+                        if (HighNorth.Contains(new Vector2(wx, wz)) || HighSouth.Contains(new Vector2(wx, wz))) { map[y, x] = 0; cleared++; continue; }
                         if (ConstructionSite.Area.Contains(new Vector2(wx, wz)) || wx > ConstructionSite.GateX0 - 1f && wx < ConstructionSite.GateX1 + 1f && wz < -34f && wz > ConstructionSite.FrontZ - 1f) { map[y, x] = 0; cleared++; continue; }
                         if (wx < area.xMin || wx > area.xMax || wz < area.yMin || wz > area.yMax) continue;
                         if (Paved(new Vector3(wx, 0, wz), c)) { map[y, x] = 0; cleared++; }
@@ -296,6 +339,7 @@ namespace ASBO.EditorTools
             if (Grow(CouncilEstate.Tower, 3.2f).Contains(new Vector2(p.x, p.z))) return true;
             if (new Rect(CouncilEstate.GaragesX - 1f, CouncilEstate.GaragesZ - CouncilEstate.GarageD - 0.5f, CouncilEstate.GarageCount * CouncilEstate.GarageW + 2f, CouncilEstate.GarageD + 8f).Contains(new Vector2(p.x, p.z))) return true;
             if (Grow(CouncilEstate.Playground, 0.6f).Contains(new Vector2(p.x, p.z))) return true;
+            if (EstateParade.Contains(new Vector2(p.x, p.z))) return true;
             if (p.x > 0.5f && p.x < CouncilEstate.Tower.xMin && Mathf.Abs(p.z - CouncilEstate.Tower.center.y) < 2f) return true; // path to the tower
             foreach (var b in CouncilEstate.Blocks)
             {
@@ -328,7 +372,7 @@ namespace ASBO.EditorTools
             {
                 if (Mathf.Abs(x) < 4f) return;
                 var q = new Vector2(x, z);
-                if (Grow(CouncilEstate.Tower, 6f).Contains(q) || Grow(CouncilEstate.Playground, 3f).Contains(q)) return;
+                if (Grow(CouncilEstate.Tower, 6f).Contains(q) || Grow(CouncilEstate.Playground, 3f).Contains(q) || Grow(EstateParade, 3f).Contains(q)) return;
                 if (new Rect(CouncilEstate.GaragesX - 3f, CouncilEstate.GaragesZ - CouncilEstate.GarageD - 3f, CouncilEstate.GarageCount * CouncilEstate.GarageW + 6f, CouncilEstate.GarageD + 11f).Contains(q)) return;
                 var ti = new TreeInstance
                 {

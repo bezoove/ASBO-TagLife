@@ -16,7 +16,7 @@ namespace ASBO.Slice
         public static readonly Vector3 Centre = new Vector3(-175f, 0f, -118f);
         public const float HillTop = 18f, Plateau = 27f, HillFoot = 72f, WallR = 20f, WallH = 7f, WallT = 1.8f;
         /// <summary>The lane up from the main road, as waypoints on the ground (heights come from the terrain).</summary>
-        public static readonly Vector2[] Lane = { new Vector2(-150f, -37.8f), new Vector2(-142f, -55f), new Vector2(-153f, -70f), new Vector2(-139f, -84f), new Vector2(-151f, -95f), new Vector2(-160.5f, -101.5f) };
+        public static readonly Vector2[] Lane = { new Vector2(-152.5f, -37.8f), new Vector2(-149.5f, -56f), new Vector2(-153f, -70f), new Vector2(-139f, -84f), new Vector2(-151f, -95f), new Vector2(-160.5f, -101.5f) };
 
         class Mats { public Material stone, stone2, dark, iron, gravel, grass, timber; }
         static Mats M;

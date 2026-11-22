@@ -20,7 +20,7 @@ namespace ASBO.Slice
             ["metal_plate"] = 0.5f, ["old_stone_wall"] = 2f, ["plaster_brick_pattern"] = 2f, ["plastered_wall_05"] = 2f,
             ["red_brick_plaster_patch_02"] = 1.5f, ["rock_wall_08"] = 1.8f, ["rocky_trail"] = 2f, ["roof_slates_03"] = 3f,
             ["rustic_stone_wall_02"] = 1.5f, ["stone_tile_wall"] = 2f, ["stone_wall_04"] = 1.7f,
-            ["limewash_stone"] = 2f, ["plaster_smooth"] = 2f, ["buff_brick"] = 1.8f,
+            ["limewash_stone"] = 2f, ["plaster_smooth"] = 2f, ["buff_brick"] = 1.8f, ["red_brick_vic"] = 2.7f,
             ["dark_rock_02"] = 2f, ["rock_pitted_mossy"] = 1f, ["bark_brown_01"] = 1f, ["coated_pine"] = 0.74f,
             ["eucalyptus_bark"] = 1.81f, ["hinoki_planks"] = 1.89f, ["jolcham_oak_bark_01"] = 2f, ["sakura_bark"] = 1.6f,
         };

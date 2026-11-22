@@ -109,6 +109,7 @@ namespace ASBO.Slice
             for (float x = -70f; x < 70f; x += R(1.2f, 2.2f))
             {
                 if (Mathf.Abs(x) < 5.8f) continue; // the gate
+                if (x < -45.5f) continue;            // the high street's shops start here
                 bool wallRun = Mathf.Abs(x) < 45f;
                 if (rng.NextDouble() < (wallRun ? 0.45 : 0.6))
                     Put(wallRun ? Any(Weeds) : Any(Grass), new Vector3(x + R(-0.3f, 0.3f), 0, north - R(0.08f, 0.2f)), R(0, 360), wallRun ? R(1.6f, 2.4f) : R(2.2f, 3.2f));
@@ -122,6 +123,7 @@ namespace ASBO.Slice
             // the far verge: tufts, dandelions, celandine and the odd stone
             for (float x = -90f; x < 90f; x += R(0.8f, 1.6f))
             {
+                if (x < -84f) continue; // the south parade of shops
                 if (rng.NextDouble() < 0.7)
                 {
                     double t = rng.NextDouble();

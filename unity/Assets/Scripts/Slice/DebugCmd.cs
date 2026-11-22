@@ -744,6 +744,19 @@ namespace ASBO.Slice
                     (new Vector3(-167f, 19.8f, -112f), new Vector3(-178f, 24f, -124f)),
                 };
             }
+            if (set == 3)
+            {
+                prefix = "place_";
+                views = new (Vector3 from, Vector3 at)[]
+                {
+                    (new Vector3(-56f, 1.7f, -30f), new Vector3(-90f, 4f, -17f)),
+                    (new Vector3(-47f, 1.7f, -27.5f), new Vector3(-58f, 4f, -17f)),
+                    (new Vector3(-90f, 1.7f, -30f), new Vector3(-108f, 3.5f, -42f)),
+                    (new Vector3(-60f, 34f, -50f), new Vector3(-92f, 0f, -22f)),
+                    (new Vector3(-43f, 1.7f, -48f), new Vector3(-33f, 3f, -62f)),
+                    (new Vector3(-120f, 1.7f, -30f), new Vector3(-140f, 3.5f, -20f)),
+                };
+            }
             for (int i = 0; i < views.Length; i++)
             {
                 cg.transform.position = views[i].from; cg.transform.LookAt(views[i].at);
