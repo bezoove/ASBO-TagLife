@@ -55,7 +55,7 @@ namespace ASBO.Slice
         {
             if (cam == null) return;
             var d = new float[32]; d[Bld.DetailLayer] = Application.isMobilePlatform ? 55f : 90f;
-            cam.layerCullDistances = d; cam.layerCullSpherical = true;
+            cam.layerCullDistances = d;
         }
         Camera culled;
         void Update()

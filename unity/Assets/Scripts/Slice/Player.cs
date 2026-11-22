@@ -192,6 +192,7 @@ namespace ASBO.Slice
             bool walk = (kb != null && kb.leftCtrlKey.isPressed) || (mag > 0.05f && mag < (touchStick ? FloatStick.RunAt : 0.5f));
             float pace = sprint ? sp.sprint : walk ? sp.walk * (touchStick ? Mathf.Lerp(0.45f, 1f, mag / FloatStick.RunAt) : 1f) : sp.run; // a gentle push ambles, more walks briskly
             if (crouched) pace = Mathf.Min(pace, 1.35f);
+            pace *= Drugs.SpeedScale; // whack slows you right down, fizz speeds you up
             if (person.hurt) pace = person.HurtSpeed;
             if (fighter != null)
             {

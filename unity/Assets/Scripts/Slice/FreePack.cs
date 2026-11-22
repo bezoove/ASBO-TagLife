@@ -158,6 +158,18 @@ namespace ASBO.Slice
                 tints["hoodie_grey"] = tints["sweater_granit"] = rng.Next(2) == 0 ? new Color(1f, 0.48f, 0.06f) : new Color(0.86f, 1f, 0.12f);
                 tints["sportpants_grey"] = tints["pants_granit"] = new Color(0.3f, 0.3f, 0.33f);
             }
+            else if (role != null && role.StartsWith("Gang"))
+            {
+                // estate gangs: a hoodie in the crew's colour (dark), black trackies, trainers, short or shaved hair
+                int gi = role.Length > 4 ? role[4] - '0' : 0; var gc = TownPlan.Turfs[Mathf.Clamp(gi, 0, 2)].colour;
+                wear.Add(Pick(Pool(race, "Chest", "hoodie_grey", "sweater_granit"), rng));
+                var gLegs = Pool(race, "Legs", "pants_granit", "sportpants_grey"); if (gLegs.Count == 0) gLegs = Pool(race, "Legs", "pants");
+                wear.Add(Pick(gLegs, rng));
+                wear.Add(Pick(Pool(race, "Feet", "shoe"), rng));
+                wear.Add(Pick(Pool(race, "Hair", "short", "military", "haircut"), rng));
+                tints["hoodie_grey"] = tints["sweater_granit"] = Color.Lerp(gc, Color.black, 0.35f + (float)rng.NextDouble() * 0.2f);
+                tints["sportpants_grey"] = tints["pants_granit"] = new Color(0.08f, 0.08f, 0.09f);
+            }
             else if (role == "Staff")
             {
                 // casino staff: black top, black trousers, proper shoes, neat hair

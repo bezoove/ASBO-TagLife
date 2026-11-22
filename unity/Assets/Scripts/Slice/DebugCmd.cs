@@ -186,6 +186,8 @@ namespace ASBO.Slice
         public static void AmbLook() { new GameObject("AmbLook").AddComponent<AmbLookRun>(); }
         /// <summary>Climb test: in front of a precinct planter (a vault) and the Kestrel lock-ups' yard wall... press jump, see where you end up.</summary>
         public static void ClimbTest() { new GameObject("ClimbTest").AddComponent<ClimbTestRun>(); }
+        /// <summary>Gangs: a look at the Kestrel Crew at their cage, a rider going by, then hang about till they come for you; then a go on the wow.</summary>
+        public static void GangTest() { new GameObject("GangTest").AddComponent<GangTestRun>(); }
         public static void RigInfo() { Debug.Log($"[ASBO] rig ready={CarRig.Ready} styles=[{CarRig.Styles()}] fixedDt={Time.fixedDeltaTime} cars={PlayerCar.All.Count} parked={ParkedCar.All.Count}"); }
         public static void HardHit() { var v = Object.FindObjectsByType<Resident>(FindObjectsSortMode.None).Select(r => r.GetComponent<Person>()).FirstOrDefault(p => p != null && p.Ready && p.state == Person.State.Walking); var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (v != null && pc != null) { v.GetComponent<Resident>().HoldAt(pc.transform.position + pc.transform.forward * 3f, 0f, 30f); v.Hit(pc.transform.forward * 9f, v.transform.position + Vector3.up, 9f); } }
         public static void AmbTest() { new GameObject("AmbTest").AddComponent<AmbTestRun>(); }
@@ -802,6 +804,25 @@ namespace ASBO.Slice
             } : new float[0][];
             for (int i = 0; i < views.Length; i++) { var v = views[i]; DebugCmd.ShotAt(v[0], v[1], v[2], v[3], v[4], v[5], "prev_" + i); yield return null; }
             Debug.Log("[ASBO] preview " + which + ": " + views.Length + " views");
+            Destroy(gameObject);
+        }
+    }
+
+    public class GangTestRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>(); if (pc == null) yield break;
+            pc.Teleport(new Vector3(-196f, 0.2f, 58f), 200f, 10f); yield return new WaitForSeconds(4f);
+            DebugCmd.ShotAt(-190f, 2.2f, 60f, -205f, 1.2f, 46f, "gang_cage");
+            DebugCmd.ShotAt(-180f, 1.7f, 62f, -215f, 1f, 68f, "gang_close");
+            yield return new WaitForSeconds(12f);
+            Debug.Log($"[ASBO] gang test: fights on: {Fighter.Session.Hot}");
+            DebugCmd.ShotAt(pc.transform.position.x + 4f, 2.4f, pc.transform.position.z + 4f, pc.transform.position.x, 1f, pc.transform.position.z, "gang_fight");
+            pc.Teleport(new Vector3(-196f, 0.2f, 47.5f), 180f, 10f); yield return new WaitForSeconds(1f);
+            Debug.Log($"[ASBO] gang test: dealer menu {Gangs.TryDeal()}");
+            Drugs.Take(Drugs.Kind.Wow); yield return new WaitForSeconds(12f);
+            ScreenCapture.CaptureScreenshot(System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/views/gang_wow.png"));
             Destroy(gameObject);
         }
     }

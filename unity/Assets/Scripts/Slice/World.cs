@@ -43,7 +43,7 @@ namespace ASBO.Slice
                 GameAudio.Create(Root); Perf.Create(Root); Social.Create(Root); GameClock.Create(Root); Tag.Create(Root); LightBudget.Create(Root);
                 BuildGround(Root); BuildStatic(Root);
                 Physics.SyncTransforms();
-                Dressing.Place(Root);
+                Dressing.Place(Root); Gangs.Spawn(Root);
                 Nav.Build(new Bounds(new Vector3(0, 4f, 10f), new Vector3(240f, 12f, 96f)));
             }
             else
@@ -52,7 +52,7 @@ namespace ASBO.Slice
                 Look.ApplyPost(Root);
                 GameAudio.Create(Root); Perf.Create(Root); Social.Create(Root); GameClock.Create(Root); Tag.Create(Root); LightBudget.Create(Root);
                 Estate.Attach(); TudorManor.Attach();
-                Dressing.Place(Root);
+                Dressing.Place(Root); Gangs.Spawn(Root);
                 Nav.UseBaked();
             }
             Traffic.Spawn(Root);
