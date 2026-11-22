@@ -720,12 +720,12 @@ namespace ASBO.Slice
             string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots"); System.IO.Directory.CreateDirectory(dir);
             var views = new (Vector3 from, Vector3 at)[]
             {
-                (new Vector3(-37f, 1.7f, -36.5f), new Vector3(-47f, 4f, -66f)),
+                (new Vector3(-4f, 1.7f, -46f), new Vector3(16f, 14f, -72f)),
                 (new Vector3(0f, 48f, -18f), new Vector3(0f, 0f, -86f)),
-                (new Vector3(-40.5f, 1.7f, -58f), new Vector3(-52f, 4.5f, -61f)),
-                (new Vector3(-4f, 1.8f, -96f), new Vector3(-14f, 5f, -122f)),
-                (new Vector3(38f, 1.7f, -33f), new Vector3(50f, 4f, -62f)),
-                (new Vector3(-48f, 1.7f, -76f), new Vector3(-52f, 3f, -70f)),
+                (new Vector3(-3f, 1.7f, -66f), new Vector3(-15f, 0.6f, -56f)),
+                (new Vector3(-14f, 1.7f, -82f), new Vector3(-15f, 1.2f, -95f)),
+                (new Vector3(-1.5f, 1.7f, -67f), new Vector3(6f, 2.6f, -72.5f)),
+                (new Vector3(-37f, 1.7f, -36.5f), new Vector3(-47f, 4f, -66f)),
             };
             for (int i = 0; i < views.Length; i++)
             {

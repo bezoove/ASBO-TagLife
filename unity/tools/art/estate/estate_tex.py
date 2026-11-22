@@ -214,6 +214,20 @@ def sign(text, fname, sub=None):
         d.text(((W - tw2) / 2, 164), sub, font=f2, fill=(15, 15, 15))
     img.save(os.path.join(EST, fname)); print('sign', text)
 
-brick(); windows(); doors(); garage()
+def railing():
+    """Bow-top railing, 2 m x 1 m per repeat: green bars every 12 cm, loops over the top rail, alpha cut-out."""
+    W, H = 512, 256
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    g = (22, 70, 36, 255)
+    pitch = W / 16.0
+    for i in range(16):
+        x = int(i * pitch + pitch / 2)
+        d.rectangle([x - 2, 18, x + 2, H - 6], fill=g)
+        d.arc([x - int(pitch / 2), 4, x + int(pitch / 2), 4 + int(pitch)], 180, 360, fill=g, width=4)
+    d.rectangle([0, 18, W, 24], fill=g); d.rectangle([0, H - 30, W, H - 24], fill=g)
+    img.save(os.path.join(EST, 'railing.png')); print('railing done')
+
+brick(); windows(); doors(); garage(); railing()
+sign('HAWTHORN COURT', 'sign_hawthorn_court.png', 'FLATS 1-48')
 sign('HAWTHORN WAY', 'sign_hawthorn_way.png')
 sign('HAWTHORN WAY', 'sign_hawthorn_way_1_28.png', '1-28')

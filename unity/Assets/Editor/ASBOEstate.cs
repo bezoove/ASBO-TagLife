@@ -65,10 +65,10 @@ namespace ASBO.EditorTools
             foreach (var f in Directory.GetFiles(Tex, "*.png"))
             {
                 var imp = (TextureImporter)AssetImporter.GetAtPath(f.Replace('\\', '/'));
-                bool win = f.Contains("estate_windows");
+                bool win = f.Contains("estate_windows"), rail = f.Contains("railing");
                 imp.textureType = TextureImporterType.Default; imp.sRGBTexture = true; imp.mipmapEnabled = true; imp.filterMode = FilterMode.Trilinear; imp.anisoLevel = 4;
-                imp.alphaSource = win ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None; imp.alphaIsTransparency = false;
-                imp.wrapMode = TextureWrapMode.Clamp;
+                imp.alphaSource = win || rail ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None; imp.alphaIsTransparency = rail;
+                imp.wrapMode = rail ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
                 imp.SetPlatformTextureSettings(new TextureImporterPlatformSettings { name = "Android", overridden = true, maxTextureSize = win ? 1024 : 512, format = TextureImporterFormat.ASTC_6x6 });
                 imp.SaveAndReimport();
             }
@@ -99,6 +99,20 @@ namespace ASBO.EditorTools
             Plain("EstateGarageRed", new Color(0.82f, 0.13f, 0.11f), 0.45f, 0.3f, gd);
             Plain("EstateGarageWhite", new Color(1f, 1f, 0.98f), 0.45f, 0.3f, gd);
             Plain("EstateGarageBrown", new Color(0.56f, 0.37f, 0.23f), 0.4f, 0.3f, gd);
+            From("EstateConcrete", "concrete_layers", new Color(1.32f, 1.31f, 1.27f));   // board-marked concrete, light grey
+            From("EstateTowerPanel", "plaster_smooth", new Color(0.58f, 0.66f, 0.74f));
+            Plain("EstateFelt", new Color(0.1f, 0.1f, 0.11f), 0.15f);
+            Plain("EstateRubber", new Color(0.18f, 0.32f, 0.18f), 0.08f);
+            Plain("EstateRailGreen", new Color(0.08f, 0.26f, 0.13f), 0.45f, 0.3f);
+            Plain("EstatePlayRed", new Color(0.78f, 0.12f, 0.1f), 0.55f, 0.15f);
+            Plain("EstatePlayYellow", new Color(0.95f, 0.74f, 0.08f), 0.55f, 0.15f);
+            Plain("EstatePlayBlue", new Color(0.1f, 0.3f, 0.72f), 0.55f, 0.15f);
+            Plain("EstateCourtSign", Color.white, 0.3f, 0f, T("sign_hawthorn_court"));
+            Mat("EstateRailing", null, m =>
+            {
+                var t = T("railing"); m.SetTexture("_BaseMap", t); m.mainTexture = t; m.SetColor("_BaseColor", Color.white); m.SetFloat("_Smoothness", 0.4f); m.SetFloat("_Metallic", 0.3f);
+                m.SetFloat("_AlphaClip", 1f); m.SetFloat("_Cutoff", 0.5f); m.EnableKeyword("_ALPHATEST_ON"); m.SetFloat("_Cull", 0f); m.renderQueue = 2450; m.SetOverrideTag("RenderType", "TransparentCutout");
+            });
             Mat("EstateWindows", null, m =>
             {
                 var t = T("estate_windows"); m.SetTexture("_BaseMap", t); m.mainTexture = t; m.SetColor("_BaseColor", Color.white);
@@ -190,6 +204,10 @@ namespace ASBO.EditorTools
                 if ((a + ab * t - p).magnitude < CouncilEstate.RoadHalf + CouncilEstate.KerbW + CouncilEstate.PaveW + 0.6f) return true;
             }
             if (Mathf.Abs(p.x) < 1.6f && p.z < -37f && p.z > -105f) return true; // the footpath
+            if (Grow(CouncilEstate.Tower, 3.2f).Contains(new Vector2(p.x, p.z))) return true;
+            if (new Rect(CouncilEstate.GaragesX - 1f, CouncilEstate.GaragesZ - CouncilEstate.GarageD - 0.5f, CouncilEstate.GarageCount * CouncilEstate.GarageW + 2f, CouncilEstate.GarageD + 8f).Contains(new Vector2(p.x, p.z))) return true;
+            if (Grow(CouncilEstate.Playground, 0.6f).Contains(new Vector2(p.x, p.z))) return true;
+            if (p.x > 0.5f && p.x < CouncilEstate.Tower.xMin && Mathf.Abs(p.z - CouncilEstate.Tower.center.y) < 2f) return true; // path to the tower
             foreach (var b in CouncilEstate.Blocks)
             {
                 var l = Quaternion.Inverse(Quaternion.Euler(0, b.yaw, 0)) * (p - b.origin);
@@ -197,6 +215,8 @@ namespace ASBO.EditorTools
             }
             return false;
         }
+
+        static Rect Grow(Rect r, float m) => new Rect(r.xMin - m, r.yMin - m, r.width + 2f * m, r.height + 2f * m);
 
         /// <summary>Mature trees round the green: a row inside each pavement and a few loose on the grass, kept off the footpath.</summary>
         static void Trees(Terrain t)
@@ -207,6 +227,9 @@ namespace ASBO.EditorTools
             void Add(float x, float z)
             {
                 if (Mathf.Abs(x) < 4f) return;
+                var q = new Vector2(x, z);
+                if (Grow(CouncilEstate.Tower, 6f).Contains(q) || Grow(CouncilEstate.Playground, 3f).Contains(q)) return;
+                if (new Rect(CouncilEstate.GaragesX - 3f, CouncilEstate.GaragesZ - CouncilEstate.GarageD - 3f, CouncilEstate.GarageCount * CouncilEstate.GarageW + 6f, CouncilEstate.GarageD + 11f).Contains(q)) return;
                 var ti = new TreeInstance
                 {
                     position = new Vector3((x - tp.x) / size.x, 0f, (z - tp.z) / size.z), prototypeIndex = rng.Next(td.treePrototypes.Length),

@@ -14,7 +14,7 @@ namespace ASBO.Slice
     /// in the NavMesh and solid; at Play, <see cref="Dress"/> adds the loose things: wheelie bins you can kick over and
     /// cars parked on the drives.
     /// </summary>
-    public static class CouncilEstate
+    public static partial class CouncilEstate
     {
         public const string RootName = "CouncilEstate";
         // house: width, depth, floor-to-floor, eaves height, roof pitch, forecourt and back-garden depth
@@ -49,6 +49,7 @@ namespace ASBO.Slice
         {
             public Material brick, roof, ridge, cream, white, black, windows, doors, slabs, drive, asphalt, kerb, pave, fence, sign, post, lampCol, glow, line, step;
             public Material[] garage;
+            public Material concrete, towerPanel, felt, rubber, railing, railGreen, playRed, playYellow, playBlue, courtSign;
         }
         public static Mats M;
         static Material L(string n) => Resources.Load<Material>("Estate/" + n);
@@ -61,11 +62,14 @@ namespace ASBO.Slice
                 drive = L("EstateDrive"), asphalt = Surfaces.Source("asphalt_02"), kerb = L("EstateKerb"), pave = L("EstatePave"), fence = L("EstateFence"),
                 sign = L("EstateSign"), post = L("EstatePost"), lampCol = L("EstateLampColumn"), glow = L("EstateLampGlow"), line = L("EstateLine"), step = L("EstateStep"),
                 garage = new[] { L("EstateGarageBlue"), L("EstateGarageRed"), L("EstateGarageWhite"), L("EstateGarageBrown") },
+                concrete = L("EstateConcrete"), towerPanel = L("EstateTowerPanel"), felt = L("EstateFelt"), rubber = L("EstateRubber"), railing = L("EstateRailing"), railGreen = L("EstateRailGreen"),
+                playRed = L("EstatePlayRed"), playYellow = L("EstatePlayYellow"), playBlue = L("EstatePlayBlue"), courtSign = L("EstateCourtSign"),
             };
             if (M.brick == null || M.roof == null || M.windows == null) { Debug.LogWarning("[ASBO] estate: materials missing (run ASBO/Art/Build Council Estate)"); return false; }
             // metres per texture repeat, for MeshKit's planar UVs
             void T(Material m, float metres) { if (m != null) MeshKit.Tile[m] = metres; }
             T(M.brick, Surfaces.Size["buff_brick"]); T(M.roof, 3f); T(M.ridge, 3f); T(M.cream, 2f); T(M.slabs, Surfaces.Size["large_grey_tiles"]);
+            T(M.concrete, 1.55f); T(M.towerPanel, 2f); T(M.railing, 2f);
             T(M.drive, 2f); T(M.asphalt, Surfaces.Size["asphalt_02"]); T(M.kerb, 1.55f); T(M.pave, 2.4f); T(M.fence, 1.89f); T(M.step, 1.55f);
             return true;
         }
@@ -77,6 +81,7 @@ namespace ASBO.Slice
             var root = new GameObject(RootName).transform; root.SetParent(parent, false);
             foreach (var b in Blocks) Terrace(root, b);
             Roads(root);
+            Court(root);
             Debug.Log($"[ASBO] estate: {Blocks.Length} terraces, {Houses().Count} houses");
             return root;
         }
@@ -134,9 +139,9 @@ namespace ASBO.Slice
         }
 
         // ---- atlas rectangles (estate_windows.png: three upper rows, then small window | patio unit)
-        static Rect AtlasUpper(int v) => new Rect(0f, 1f - (v + 1) * 0.25f + 0.004f, 1f, 0.242f);
-        static Rect AtlasGround(int v) => v == 0 ? new Rect(0f, 0.004f, 0.5f, 0.242f) : new Rect(0f, 0.004f, 0.5f, 0.242f);
-        static Rect AtlasPatio() => new Rect(0.5f, 0.004f, 0.5f, 0.242f);
+        internal static Rect AtlasUpper(int v) => new Rect(0f, 1f - (v + 1) * 0.25f + 0.004f, 1f, 0.242f);
+        internal static Rect AtlasGround(int v) => v == 0 ? new Rect(0f, 0.004f, 0.5f, 0.242f) : new Rect(0f, 0.004f, 0.5f, 0.242f);
+        internal static Rect AtlasPatio() => new Rect(0.5f, 0.004f, 0.5f, 0.242f);
         static Rect DoorUV(int v) => new Rect(v * 0.25f + 0.008f, 0f, 0.234f, 1f);
 
         /// <summary>The wall plane at depth z (front faces +z, back -z) with rectangular holes cut out, as brick.</summary>
