@@ -166,6 +166,7 @@ namespace ASBO.Slice
             Button("shove", "SHOVE", "<Gamepad>/rightShoulder", true, false, new Vector2(-790, 250), default, 125, new Color(0.4f, 0.18f, 0.1f, 0.5f));
             Button("fists", "FISTS", "<Gamepad>/dpad/up", true, false, new Vector2(-560, 560), default, 115, dark);
             Button("talk", "TALK", "<Gamepad>/buttonNorth", true, false, new Vector2(-330, 560), default, 130, new Color(0.15f, 0.35f, 0.25f, 0.55f));
+            Button("crouch", "CROUCH", "<Gamepad>/rightStickPress", true, false, new Vector2(-790, 520), default, 115, dark); // crouch / sneak (jump at a wall climbs it)
             // driving, laid out like the old game: pedals on the left, steering buttons on the right
             Hold("vfwd", "FORWARD", true, new Vector2(192, 475), 250, new Color(0.08f, 0.35f, 0.12f, 0.5f), v => TouchCar.fwd = v);
             Hold("vbrake", "BRAKE\nREVERSE", true, new Vector2(440, 200), 220, new Color(0.45f, 0.08f, 0.06f, 0.5f), v => TouchCar.brake = v); // brakes, then reverses once stopped

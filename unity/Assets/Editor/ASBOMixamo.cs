@@ -276,6 +276,10 @@ namespace ASBO.EditorTools
             Cut("Zombie Stand Up", "MX_StandUp", -1f, -1f, false);
             Cut("Walk Backwards", "MX_WalkBack", -1f, -1f, true);
             Cut("Honking Horn", "MX_Drive", 3.0f, 4.3f, true); // sat at the wheel, hands on it (between the toots)
+            Cut("Crouching Idle", "MX_CrouchIdle", -1f, -1f, true);
+            Cut("Crouch Walk", "MX_CrouchWalk", -1f, -1f, true);
+            Cut("Climbing To Top", "MX_ClimbUp", -1f, -1f, false);
+            Cut("Jostled Passenger", "MX_Sit", 0.5f, 4.5f, true); // sat on a bench
             Drop("Uppercut", "MX_Uppercut"); // the whole take again under another name: Unity refuses the copy (now cut as a Hay version)
             // cuts left in a file from an older list of takes (a take moved to another file keeps its old copy here,
             // and Unity drops the newer cut if it's the same stretch of the same take): out they go

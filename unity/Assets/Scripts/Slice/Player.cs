@@ -186,9 +186,12 @@ namespace ASBO.Slice
             bool touchStick = FloatStick.Active; if (touchStick) inp = FloatStick.Value; // the floating thumb stick
             float mag = Mathf.Clamp01(inp.magnitude);
             Vector3 dir = camYaw * new Vector3(inp.x, 0, inp.y); if (dir.sqrMagnitude > 1e-4f) dir.Normalize();
-            bool sprint = fakeSprint || (kb != null && kb.leftShiftKey.isPressed) || (pad != null && pad.leftStickButton.isPressed) || touchStick && FloatStick.Sprint;
+            // crouch (Z / pad right stick click / the touch button): a slow, quiet sneak; stand up again only where there's headroom
+            if ((kb != null && kb.zKey.wasPressedThisFrame) || (pad != null && pad.rightStickButton.wasPressedThisFrame) || crouchTap) { crouchTap = false; SetCrouch(!crouched); }
+            bool sprint = !crouched && (fakeSprint || (kb != null && kb.leftShiftKey.isPressed) || (pad != null && pad.leftStickButton.isPressed) || touchStick && FloatStick.Sprint);
             bool walk = (kb != null && kb.leftCtrlKey.isPressed) || (mag > 0.05f && mag < (touchStick ? FloatStick.RunAt : 0.5f));
             float pace = sprint ? sp.sprint : walk ? sp.walk * (touchStick ? Mathf.Lerp(0.45f, 1f, mag / FloatStick.RunAt) : 1f) : sp.run; // a gentle push ambles, more walks briskly
+            if (crouched) pace = Mathf.Min(pace, 1.35f);
             if (person.hurt) pace = person.HurtSpeed;
             if (fighter != null)
             {
@@ -246,7 +249,13 @@ namespace ASBO.Slice
             if (grounded && !wasGrounded && fallSpeed < -3.5f && GameAudio.I != null) GameAudio.I.Land(transform.position);
             fallSpeed = vy; wasGrounded = grounded;
             if (grounded && vy < 0f) vy = -2f; else vy -= 19.6f * Time.deltaTime;
-            if (grounded && turnTimer <= 0f && ((kb != null && kb.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonSouth.wasPressedThisFrame))) { vy = 4.6f; person.Jump(); }
+            if (grounded && turnTimer <= 0f && !climbing && ((kb != null && kb.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonSouth.wasPressedThisFrame) || jumpTap))
+            {
+                jumpTap = false;
+                if (Ledge(out var top)) StartCoroutine(Climb(top));   // a wall or a fence in front, low enough: up and over onto it
+                else if (!crouched) { vy = 4.6f; person.Jump(); }
+            }
+            if (climbing) return;
             cc.Move((vel + Vector3.up * vy) * Time.deltaTime);
             person.SetGrounded(cc.isGrounded);
 
@@ -343,6 +352,50 @@ namespace ASBO.Slice
             }
             if (PCar != null) { yield return new WaitForSeconds(spd > 2.5f ? 0.9f : 0.55f); PCar.Door(0f); }
             doorBusy = false;
+        }
+
+        // ------------------------------------------------------------------ crouching and climbing
+        bool crouched, climbing; public static bool crouchTap, jumpTap;
+        public bool Crouched => crouched;
+        /// <summary>Crouch down or stand up (standing waits for room above your head).</summary>
+        public void SetCrouch(bool on)
+        {
+            if (!on && crouched && Physics.SphereCast(transform.position + Vector3.up * 0.6f, 0.26f, Vector3.up, out _, 0.9f, ~((1 << 2) | (1 << Person.RagdollLayer) | (1 << Person.VehicleLayer)), QueryTriggerInteraction.Ignore)) return;
+            crouched = on;
+            if (on) { cc.height = 1.05f; cc.center = new Vector3(0, 0.54f, 0); } else { cc.height = 1.6f; cc.center = new Vector3(0, 0.81f, 0); }
+            if (person != null && person.anim != null && HasParam(person.anim, "Crouch")) person.anim.SetBool("Crouch", on);
+        }
+        static readonly int ClimbMask = ~((1 << 2) | (1 << Person.RagdollLayer) | (1 << Person.VehicleLayer) | (1 << World.CamBlockLayer));
+        /// <summary>Something to climb straight ahead: a face within reach, its top between knee and head-and-a-bit high, room to stand on it.</summary>
+        bool Ledge(out Vector3 top) => Ledge(out top, out _);
+        public string LedgeWhy() { Ledge(out _, out var why); return why; }
+        bool Ledge(out Vector3 top, out string why)
+        {
+            top = default; why = ""; Vector3 f = transform.forward, p = transform.position;
+            bool hit = false; float dist = 0f;
+            foreach (float h in new[] { 0.35f, 0.75f, 1.2f, 1.6f }) if (Physics.Raycast(p + Vector3.up * h, f, out var w, 0.9f, ClimbMask, QueryTriggerInteraction.Ignore) && Mathf.Abs(w.normal.y) < 0.4f) { hit = true; dist = w.distance; why = $"face {w.collider.name} at {h}m/{dist:F2}; "; break; }
+            if (!hit) { why = "no face ahead"; return false; }
+            Vector3 over = p + f * (dist + 0.4f) + Vector3.up * 2.6f;
+            if (!Physics.Raycast(over, Vector3.down, out var d, 2.6f, ClimbMask, QueryTriggerInteraction.Ignore) || d.normal.y < 0.7f) { why += "no top"; return false; }
+            float rise = d.point.y - p.y; why += $"top {rise:F2}; "; if (rise < 0.45f || rise > 2.35f) { why += "wrong height"; return false; }
+            // something to stand on, not the top rail of a fence: the surface carries on a bit further in
+            if (!Physics.Raycast(over + f * 0.35f, Vector3.down, out var d2, 2.6f, ClimbMask, QueryTriggerInteraction.Ignore) || Mathf.Abs(d2.point.y - d.point.y) > 0.15f) { why += "too thin"; return false; }
+            // room to stand up there
+            if (Physics.CheckCapsule(d.point + Vector3.up * 0.35f, d.point + Vector3.up * 1.5f, 0.25f, ClimbMask, QueryTriggerInteraction.Ignore)) { why += "no headroom"; return false; }
+            top = d.point; why += "ok"; return true;
+        }
+        /// <summary>Up onto a ledge: hands on, pull up (or a quick vault for low ones), step forward onto it.</summary>
+        System.Collections.IEnumerator Climb(Vector3 top)
+        {
+            climbing = true; cc.enabled = false; vel = Vector3.zero; vy = 0f;
+            float rise = top.y - transform.position.y; bool high = rise > 1.25f;
+            if (person != null && person.anim != null) { if (high && HasParam(person.anim, "Climb")) person.anim.SetTrigger("Climb"); else person.Jump(); }
+            var fg2 = GetComponentInChildren<FootGround>(); if (fg2 != null) fg2.off = true;
+            Vector3 a = transform.position, up = new Vector3(a.x, top.y + 0.02f, a.z) + transform.forward * 0.15f, b = top + Vector3.up * 0.02f + transform.forward * 0.25f;
+            float t1 = high ? 0.9f : 0.35f, t2 = high ? 0.55f : 0.3f;
+            for (float t = 0; t < t1; t += Time.deltaTime) { transform.position = Vector3.Lerp(a, up, Mathf.SmoothStep(0, 1, t / t1)); yield return null; }
+            for (float t = 0; t < t2; t += Time.deltaTime) { transform.position = Vector3.Lerp(up, b, Mathf.SmoothStep(0, 1, t / t2)); yield return null; }
+            transform.position = b; cc.enabled = true; if (fg2 != null) fg2.off = false; climbing = false;
         }
 
         bool seated;

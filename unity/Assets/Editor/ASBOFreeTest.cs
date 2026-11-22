@@ -308,8 +308,8 @@ namespace ASBO.EditorTools
             if (File.Exists(ctrlPath)) AssetDatabase.DeleteAsset(ctrlPath);
             var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
             foreach (var n in new[] { "MoveX", "MoveZ", "Variant", "Gait", "IdleVar" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
-            foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded", "Seated" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
-            foreach (var n in new[] { "Jump", "TurnL", "TurnR" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
+            foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded", "Seated", "Crouch", "Sit" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
+            foreach (var n in new[] { "Jump", "TurnL", "TurnR", "Climb" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
             var sm = ac.layers[0].stateMachine;
 
             var move = ac.CreateBlendTreeInController("Move", out BlendTree tree, 0);
@@ -395,6 +395,33 @@ namespace ASBO.EditorTools
                 var st = St(nm, c, new Vector3(300, y));
                 var a = move.AddTransition(st); a.AddCondition(AnimatorConditionMode.If, 0, nm); a.hasExitTime = false; a.duration = 0.35f;
                 var b = st.AddTransition(move); b.AddCondition(AnimatorConditionMode.IfNot, 0, nm); b.hasExitTime = false; b.duration = 0.35f;
+            }
+            // crouched (and sneaking along): Mixamo's crouch idle and crouch walk on the forward speed
+            var cIdle = ASBOMixamo.ClipFrom("Crouching Idle", "MX_CrouchIdle"); var cWalk = ASBOMixamo.ClipFrom("Crouch Walk", "MX_CrouchWalk");
+            if (cIdle != null && cWalk != null)
+            {
+                var crouch = ac.CreateBlendTreeInController("Crouch", out BlendTree ct, 0);
+                ct.blendType = BlendTreeType.Simple1D; ct.blendParameter = "MoveZ"; ct.useAutomaticThresholds = false;
+                ct.AddChild(cIdle, 0f); ct.AddChild(cWalk, Mathf.Max(0.6f, cWalk.averageSpeed.z));
+                var a = move.AddTransition(crouch); a.AddCondition(AnimatorConditionMode.If, 0, "Crouch"); a.hasExitTime = false; a.duration = 0.25f;
+                var b = crouch.AddTransition(move); b.AddCondition(AnimatorConditionMode.IfNot, 0, "Crouch"); b.hasExitTime = false; b.duration = 0.25f;
+            }
+            else Debug.LogWarning("[ASBO] no crouch clips (ASBO/Mixamo/2 Cut Clips)");
+            // climbing up onto something
+            var climb = ASBOMixamo.ClipFrom("Climbing To Top", "MX_ClimbUp");
+            if (climb != null)
+            {
+                var cs = St("Climb", climb, new Vector3(300, 460));
+                var a = sm.AddAnyStateTransition(cs); a.AddCondition(AnimatorConditionMode.If, 0, "Climb"); a.hasExitTime = false; a.duration = 0.1f; a.canTransitionToSelf = false;
+                var b = cs.AddTransition(move); b.hasExitTime = true; b.exitTime = 0.92f; b.duration = 0.15f;
+            }
+            // sat on a bench
+            var sit = ASBOMixamo.ClipFrom("Jostled Passenger", "MX_Sit");
+            if (sit != null)
+            {
+                var ss = St("Sit", sit, new Vector3(300, 540));
+                var a = move.AddTransition(ss); a.AddCondition(AnimatorConditionMode.If, 0, "Sit"); a.hasExitTime = false; a.duration = 0.3f;
+                var b = ss.AddTransition(move); b.AddCondition(AnimatorConditionMode.IfNot, 0, "Sit"); b.hasExitTime = false; b.duration = 0.3f;
             }
             // sat at the wheel of a car (Mixamo's driver, between toots of the horn)
             var driveClip = ASBOMixamo.ClipFrom("Honking Horn", "MX_Drive");

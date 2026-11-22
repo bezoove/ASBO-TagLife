@@ -221,8 +221,11 @@ namespace ASBO.Slice
             }
             k.Cyl(E.railGreen, c + Vector3.up * 6.2f, 0.06f, 0.8f, 6); k.Sphere(E.railGreen, c + Vector3.up * 7f, Vector3.one * 0.15f, 6, 4);
             Vector3 sd = c + V(0, 0, -R); for (int s = 0; s < 4; s++) k.Box(E.slabs, sd + V(-1.4f, 0f, -0.35f * (s + 1)), sd + V(1.4f, 0.9f - s * 0.22f, -0.35f * s)); // steps at the south
-            var col = new GameObject("Bandstand"); col.transform.SetParent(g, false); var bc = col.AddComponent<CapsuleCollider>(); bc.center = c + Vector3.up * 0.45f; bc.radius = R; bc.height = 0.9f; bc.direction = 0;
-            var top = col.AddComponent<BoxCollider>(); top.center = c + Vector3.up * 0.45f; top.size = V(R * 1.6f, 0.9f, R * 1.6f);
+            // the plinth as two squares turned 45 degrees to each other (an octagon), and the posts
+            var col = new GameObject("Bandstand"); col.transform.SetParent(g, false); col.transform.position = c;
+            var top = col.AddComponent<BoxCollider>(); top.center = Vector3.up * 0.45f; top.size = V(R * 1.84f, 0.9f, R * 1.84f);
+            var col2 = new GameObject("Bandstand45"); col2.transform.SetParent(col.transform, false); col2.transform.localRotation = Quaternion.Euler(0, 45f, 0);
+            var top2 = col2.AddComponent<BoxCollider>(); top2.center = Vector3.up * 0.45f; top2.size = V(R * 1.84f, 0.9f, R * 1.84f);
             // planters (raised brick beds with shrubs), benches, bins, lamps, a clock post, the phone kiosk, a cash machine
             foreach (var pc in new[] { V(0f, 0, 93f), V(20f, 0, 88f), V(60f, 0, 98f), V(80f, 0, 88f), V(-18f, 0, 98f), V(95f, 0, 98f) })
             {

@@ -184,6 +184,8 @@ namespace ASBO.Slice
         public static void Preview(string which) { var r = new GameObject("Preview").AddComponent<PreviewRun>(); r.which = string.IsNullOrEmpty(which) ? "estates" : which; }
         /// <summary>The ambulance model parked up: side, front three-quarter, and looking in through its open back doors.</summary>
         public static void AmbLook() { new GameObject("AmbLook").AddComponent<AmbLookRun>(); }
+        /// <summary>Climb test: in front of a precinct planter (a vault) and the Kestrel lock-ups' yard wall... press jump, see where you end up.</summary>
+        public static void ClimbTest() { new GameObject("ClimbTest").AddComponent<ClimbTestRun>(); }
         public static void RigInfo() { Debug.Log($"[ASBO] rig ready={CarRig.Ready} styles=[{CarRig.Styles()}] fixedDt={Time.fixedDeltaTime} cars={PlayerCar.All.Count} parked={ParkedCar.All.Count}"); }
         public static void HardHit() { var v = Object.FindObjectsByType<Resident>(FindObjectsSortMode.None).Select(r => r.GetComponent<Person>()).FirstOrDefault(p => p != null && p.Ready && p.state == Person.State.Walking); var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (v != null && pc != null) { v.GetComponent<Resident>().HoldAt(pc.transform.position + pc.transform.forward * 3f, 0f, 30f); v.Hit(pc.transform.forward * 9f, v.transform.position + Vector3.up, 9f); } }
         public static void AmbTest() { new GameObject("AmbTest").AddComponent<AmbTestRun>(); }
@@ -800,6 +802,24 @@ namespace ASBO.Slice
             } : new float[0][];
             for (int i = 0; i < views.Length; i++) { var v = views[i]; DebugCmd.ShotAt(v[0], v[1], v[2], v[3], v[4], v[5], "prev_" + i); yield return null; }
             Debug.Log("[ASBO] preview " + which + ": " + views.Length + " views");
+            Destroy(gameObject);
+        }
+    }
+
+    public class ClimbTestRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>(); if (pc == null) yield break;
+            foreach (var (n, p, yaw) in new[] { ("planter", new Vector3(20f, 0.3f, 85.6f), 0f), ("bandstand side", new Vector3(46.5f, 0.3f, 93f), -90f), ("crane deck", new Vector3(176f, 0.2f, -135f), 0f) })
+            {
+                pc.Teleport(p, yaw, 8f); yield return new WaitForSeconds(0.6f);
+                var cc = pc.GetComponent<CharacterController>(); for (float t = 0; t < 0.8f; t += Time.deltaTime) { cc.Move((pc.transform.forward * 1.5f + Vector3.down) * Time.deltaTime); yield return null; } // walk up to it
+                float y0 = pc.transform.position.y; string why = pc.LedgeWhy(); PlayerCtl.jumpTap = true;
+                Debug.Log($"[ASBO] climb test {n}: ledge says {why}; grounded {pc.GetComponent<CharacterController>().isGrounded}");
+                yield return new WaitForSeconds(2.2f);
+                Debug.Log($"[ASBO] climb test {n}: from y {y0:F2} to y {pc.transform.position.y:F2} at {pc.transform.position}");
+            }
             Destroy(gameObject);
         }
     }
