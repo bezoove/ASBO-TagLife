@@ -269,6 +269,7 @@ namespace ASBO.Slice
             float sp = car.Speed;
             if (sp < 1.5f) return;
             Hit(car.Velocity, other.ClosestPoint(transform.position + Vector3.up), sp);
+            if (car is TrafficCar tc) tc.Struck(); // the driver stamps on the brakes
         }
 
         public const int RagdollLayer = 29, VehicleLayer = 28;
@@ -355,7 +356,7 @@ namespace ASBO.Slice
             if (severity >= 7f && !important) dead = true; else injured = true;
             // a light knock: down, a moment on the floor, then up and limping off (no ambulance)
             getUp = !dead && severity < 5.5f; knockKO = true; knockDelay = 0f;
-            EnterRagdoll(v, severity);
+            EnterRagdoll(v, severity, true);
             Vector3 flat = v.normalized;
             Gore.Burst(point, flat + Vector3.up * 0.3f, getUp ? 25 : 90);
             if (GameAudio.I != null)
@@ -369,7 +370,7 @@ namespace ASBO.Slice
             if (!getUp) Ambulance.Dispatch(this);
         }
 
-        void EnterRagdoll(Vector3 v, float severity)
+        void EnterRagdoll(Vector3 v, float severity, bool struckByVehicle = false)
         {
             state = State.Ragdoll; hitTime = 0; calmTimer = 0;
             var agent = GetComponent<UnityEngine.AI.NavMeshAgent>(); if (agent != null) agent.enabled = false;
@@ -378,6 +379,21 @@ namespace ASBO.Slice
             anim.enabled = false;
             BuildRagdoll();
             if (v.magnitude > 14f) v = v.normalized * 14f;
+            if (struckByVehicle)
+            {
+                // a car takes the legs: they're swept along at the car's speed and scooped up, the body lags behind and pitches
+                // back onto the bonnet, so the whole person goes over limp (not launched upright, all at one speed)
+                Vector3 dir = v.WithY(0).normalized; Vector3 pitchAxis = Vector3.Cross(Vector3.up, dir);
+                float lift = Mathf.Clamp(severity * 0.2f, 0.6f, 3.2f);
+                foreach (var b in bones)
+                {
+                    float h = Mathf.Clamp01((b.t.position.y - transform.position.y) / 1.7f); // 0 feet .. 1 head
+                    float legs = 1f - Mathf.Clamp01(h / 0.55f);
+                    b.rb.linearVelocity = v * Mathf.Lerp(0.5f, 1.05f, legs) * UnityEngine.Random.Range(0.92f, 1.04f) + Vector3.up * lift * Mathf.Lerp(0.35f, 1.1f, legs);
+                    b.rb.angularVelocity = -pitchAxis * Mathf.Clamp(severity * 0.55f, 1.5f, 7f) + UnityEngine.Random.insideUnitSphere * 1.5f;
+                }
+                return;
+            }
             foreach (var b in bones)
             {
                 float h = b.t.position.y - transform.position.y;

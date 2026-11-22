@@ -32,7 +32,8 @@ namespace ASBO.Slice
             new Take { trig = "Hook", file = "Right Hook", a = 0.55f, b = 1.5f, hit = 0.87f, speed = 1.2f, contact = 0.80f, w = 1f },
             // to the body: a knee in close
             new Take { trig = "Body", file = "Illegal Knee", a = 1.50f, b = 2.6f, hit = 2.00f, speed = 1.35f, contact = 0.68f, w = 0.8f },
-            // the big one (held punch): uppercut, or the nut
+            // the big one (held punch): a swinging haymaker, an uppercut, or the nut (the old overhand read as taking a punch, so it's gone)
+            new Take { trig = "Hay", file = "Hook Punch", a = 1.25f, b = 2.6f, hit = 1.93f, speed = 1.25f, contact = 0.86f, w = 1.4f },
             new Take { trig = "Hay", file = "Uppercut", a = 0.10f, b = 1.33f, hit = 0.47f, speed = 1.2f, contact = 0.82f, w = 1f },
             new Take { trig = "Hay", file = "Headbutt", a = 1.30f, b = 2.5f, hit = 1.83f, speed = 1.25f, contact = 0.57f, w = 0.8f },
             // kicks: front kick, and now and then a flying one

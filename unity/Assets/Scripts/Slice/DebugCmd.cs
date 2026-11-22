@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -174,6 +175,13 @@ namespace ASBO.Slice
         public static void DentTest(string id) { var r = new GameObject("DentTest").AddComponent<DentTestRun>(); r.id = string.IsNullOrEmpty(id) ? "hatch90" : id; }
         /// <summary>A parked-up look at one kind of car: side, three-quarter front, and with the driver's door open.</summary>
         public static void CarLook(string id) { var r = new GameObject("CarLook").AddComponent<CarLookRun>(); r.id = id; }
+        /// <summary>You in the driver's seat (side, front and from behind), then a passing car's driver up close.</summary>
+        public static void SeatTest(string id) { var r = new GameObject("SeatTest").AddComponent<SeatTestRun>(); r.id = string.IsNullOrEmpty(id) ? "hatch90" : id; }
+        /// <summary>
+        /// Build a town part live (without the long editor rebuild) and photograph it from set viewpoints: which = estates.
+        /// Shots/views/prev_N.png. The ground's already levelled for every TownPlan area.
+        /// </summary>
+        public static void Preview(string which) { var r = new GameObject("Preview").AddComponent<PreviewRun>(); r.which = string.IsNullOrEmpty(which) ? "estates" : which; }
         public static void RigInfo() { Debug.Log($"[ASBO] rig ready={CarRig.Ready} styles=[{CarRig.Styles()}] fixedDt={Time.fixedDeltaTime} cars={PlayerCar.All.Count} parked={ParkedCar.All.Count}"); }
         public static void HardHit() { var v = Object.FindObjectsByType<Resident>(FindObjectsSortMode.None).Select(r => r.GetComponent<Person>()).FirstOrDefault(p => p != null && p.Ready && p.state == Person.State.Walking); var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (v != null && pc != null) { v.GetComponent<Resident>().HoldAt(pc.transform.position + pc.transform.forward * 3f, 0f, 30f); v.Hit(pc.transform.forward * 9f, v.transform.position + Vector3.up, 9f); } }
         public static void AmbTest() { new GameObject("AmbTest").AddComponent<AmbTestRun>(); }
@@ -749,21 +757,105 @@ namespace ASBO.Slice
         }
     }
 
-    public class CarLookRun : MonoBehaviour
+    public class PreviewRun : MonoBehaviour
+    {
+        public string which;
+        System.Collections.IEnumerator Start()
+        {
+            var root = World.Root != null ? World.Root : null;
+            if (which == "estates")
+            {
+                var old = root != null ? root.Find(Estates.RootName) : null; if (old != null) Destroy(old.gameObject);
+                yield return null;
+                Estates.Build(root);
+                Estates.Dress(root);
+            }
+            yield return new WaitForSeconds(0.5f);
+            // (eye x, y, z, look-at x, y, z)
+            var views = which == "estates" ? new[]
+            {
+                new[] { -150f, 60f, 20f, -232f, 10f, 75f }, new[] { -168f, 1.7f, 64f, -230f, 8f, 75f }, new[] { -200f, 1.7f, 70f, -223f, 20f, 100f },
+                new[] { -230f, 45f, 190f, -230f, 5f, 140f }, new[] { 125f, 60f, 10f, 205f, 10f, 75f }, new[] { 134f, 1.7f, 26f, 180f, 10f, 70f },
+                new[] { 136f, 1.7f, 80f, 150f, 14f, 80f }, new[] { 225f, 1.7f, 40f, 200f, 20f, 75f }, new[] { 0f, 55f, -110f, -5f, 5f, -170f },
+            } : new float[0][];
+            for (int i = 0; i < views.Length; i++) { var v = views[i]; DebugCmd.ShotAt(v[0], v[1], v[2], v[3], v[4], v[5], "prev_" + i); yield return null; }
+            Debug.Log("[ASBO] preview " + which + ": " + views.Length + " views");
+            Destroy(gameObject);
+        }
+    }
+
+    public class SeatTestRun : MonoBehaviour
     {
         public string id;
         System.Collections.IEnumerator Start()
         {
+            var pc = FindFirstObjectByType<PlayerCtl>(); if (pc == null) yield break;
+            var traffic = Object.FindObjectsByType<TrafficCar>(FindObjectsSortMode.None);
+            foreach (var tc in traffic) tc.gameObject.SetActive(false);
+            var car = PlayerCar.Create(new Vector3(-120f, 0.2f, World.RoadZ - 2.1f), 90f, new Color(0.15f, 0.2f, 0.45f), id, CarKit.Wear.Clean, 5);
+            yield return new WaitForSeconds(0.8f);
+            pc.Teleport(car.transform.position - car.transform.right * 2.3f, 90f); yield return new WaitForSeconds(0.4f);
+            pc.UseCar(); yield return new WaitForSeconds(2.2f);
+            Vector3 c = car.transform.position; var head = pc.GetComponentInChildren<Animator>() is Animator an && an.isHuman ? an.GetBoneTransform(HumanBodyBones.Head) : null;
+            Debug.Log($"[ASBO] seat test {id}: inCar={pc.InCar} body at {pc.transform.position - c} head at {(head != null ? (head.position - c).ToString() : "?")} roof ~1.4");
+            DebugCmd.ShotAt(c.x + 0.3f, 1.25f, c.z - 3.2f, c.x - 0.1f, 1.0f, c.z, id + "_seat_side");
+            DebugCmd.ShotAt(c.x + 5f, 1.5f, c.z - 1.2f, c.x, 1.0f, c.z - 0.3f, id + "_seat_front");
+            DebugCmd.ShotAt(c.x - 6f, 2.2f, c.z + 0.5f, c.x, 1.0f, c.z, id + "_seat_back");
+            pc.UseCar(); yield return new WaitForSeconds(1.5f);
+            Destroy(car.gameObject);
+            foreach (var tc in traffic) if (tc != null) tc.gameObject.SetActive(true);
+            yield return new WaitForSeconds(0.5f);
+            // a passing driver: the nearest moving car, from the pavement side
+            TrafficCar best = null; float bd = 1e9f;
+            foreach (var tc in TrafficCar.All) { if (tc == null) continue; float d = (tc.transform.position - pc.transform.position).sqrMagnitude; if (d < bd) { bd = d; best = tc; } }
+            if (best != null)
+            {
+                var t = best.transform; Vector3 p = t.position + t.right * 2.6f + t.forward * 0.8f + Vector3.up * 1.2f, at = t.position + t.right * 0.4f + Vector3.up * 1.05f;
+                DebugCmd.ShotAt(p.x, p.y, p.z, at.x, at.y, at.z, "traffic_driver_side");
+                p = t.position + t.forward * 4.5f + t.right * 1.2f + Vector3.up * 1.4f;
+                DebugCmd.ShotAt(p.x, p.y, p.z, at.x, at.y, at.z, "traffic_driver_front");
+            }
+            Destroy(gameObject);
+        }
+    }
+
+    public class CarLookRun : MonoBehaviour
+    {
+        public string id;
+        static string Path(Transform t) { string n = t.name; while (t.parent != null) { t = t.parent; n = t.name + "/" + n; } return n; }
+        System.Collections.IEnumerator Start()
+        {
             foreach (var tc in Object.FindObjectsByType<TrafficCar>(FindObjectsSortMode.None)) tc.gameObject.SetActive(false);
+            var hidden = new List<GameObject>();
+            foreach (var pk in Object.FindObjectsByType<ParkedCar>(FindObjectsSortMode.None)) { hidden.Add(pk.gameObject); pk.gameObject.SetActive(false); }
+            foreach (var other in PlayerCar.All.ToArray()) if (other != null && other.gameObject.activeSelf) { hidden.Add(other.gameObject); other.gameObject.SetActive(false); }
             float z = World.RoadZ - 2.1f; var p = new Vector3(-120f, 0.2f, z);
             var car = PlayerCar.Create(p, 90f, new Color(0.12f, 0.3f, 0.2f), id, CarKit.Wear.Clean, 11);
             yield return new WaitForSeconds(1.2f);
             Vector3 c = car.transform.position;
+            // anything drawn round the car that isn't the car
+            foreach (var rd in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (!rd.enabled || !rd.gameObject.activeInHierarchy || rd.transform.IsChildOf(car.transform)) continue;
+                var q = rd.bounds.center - c; if (Mathf.Abs(q.x) < 4f && Mathf.Abs(q.z) < 4f && rd.bounds.size.magnitude < 6f) Debug.Log($"[ASBO] near car: {Path(rd.transform)} at {q} size {rd.bounds.size}");
+            }
+            foreach (var rd in car.GetComponentsInChildren<Renderer>()) if (rd.enabled && rd.bounds.center.y < c.y + 0.35f && Mathf.Abs(rd.bounds.center.z - c.z) > 1.1f) Debug.Log($"[ASBO] car part out at the side: {Path(rd.transform)} at {rd.bounds.center - c}");
+            foreach (var t in car.GetComponentsInChildren<Transform>(true))
+                if (t.name.StartsWith("DoorHinge"))
+                    foreach (var mr in t.GetComponentsInChildren<MeshRenderer>(true))
+                    {
+                        var mesh = mr.GetComponent<MeshFilter>().sharedMesh; var sb = new System.Text.StringBuilder();
+                        for (int k = 0; k < mesh.subMeshCount; k++) sb.Append($" [{k}:{mesh.GetSubMesh(k).indexCount / 3} tris, {(k < mr.sharedMaterials.Length && mr.sharedMaterials[k] != null ? mr.sharedMaterials[k].name : "-")}]");
+                        Debug.Log($"[ASBO] door part {mr.name}: {mesh.vertexCount} verts, uv0 {mesh.uv.Length}{sb}");
+                    }
             DebugCmd.ShotAt(c.x, 1.3f, c.z - 6f, c.x, 0.7f, c.z, id + "_look_side");
             DebugCmd.ShotAt(c.x + 4.8f, 1.6f, c.z - 4.2f, c.x, 0.6f, c.z, id + "_look_front");
             car.Door(1f); yield return new WaitForSeconds(1.2f);
-            DebugCmd.ShotAt(c.x - 1.5f, 1.7f, c.z - 4.6f, c.x + 0.3f, 0.8f, c.z, id + "_look_door");
-            Destroy(car.gameObject); Destroy(gameObject);
+            DebugCmd.ShotAt(c.x - 1.9f, 1.6f, c.z - 3.4f, c.x + 0.3f, 0.8f, c.z, id + "_look_door");
+            DebugCmd.ShotAt(c.x + 3.2f, 1.5f, c.z - 2.6f, c.x + 0.2f, 0.8f, c.z - 0.6f, id + "_look_doorin");
+            DebugCmd.ShotAt(c.x - 0.2f, 3.4f, c.z - 1.6f, c.x + 0.3f, 0.5f, c.z - 0.5f, id + "_look_doortop");
+            Destroy(car.gameObject); foreach (var h in hidden) if (h != null) h.SetActive(true);
+            Destroy(gameObject);
         }
     }
 
@@ -1151,6 +1243,161 @@ namespace ASBO.Slice
         System.Collections.IEnumerator Start()
         {
             var pc = FindFirstObjectByType<PlayerCtl>();
+            if (id == "hay")
+            {
+                // the held punch, each version in turn, filmed from the side against a stand-in opponent
+                var foe = World.MakePerson(pc.transform.position + Vector3.forward * 1.1f, new Color(0.3f, 0.5f, 0.3f), new Color(0.2f, 0.2f, 0.2f), "Pedestrian");
+                foe.route.Add(foe.transform.position); foe.speed = 0.01f; foe.transform.rotation = Quaternion.Euler(0, 180f, 0);
+                pc.Teleport(new Vector3(-70f, 0.15f, 50f), 0f, 4f); foe.transform.position = new Vector3(-70f, 0f, 51.1f);
+                yield return new WaitForSeconds(4f);
+                var pa = pc.GetComponent<Person>().anim;
+                var camGo = new GameObject("HayCam"); var cam = camGo.AddComponent<Camera>(); cam.depth = 60; cam.fieldOfView = 40f;
+                camGo.transform.position = new Vector3(-66.2f, 1.3f, 50.5f); camGo.transform.LookAt(new Vector3(-70f, 1.1f, 50.5f));
+                for (int v = 0; v < 3; v++)
+                {
+                    pa.SetFloat("AVar", v); pa.SetTrigger("Hay");
+                    float t0 = Time.time; int f = 0; float[] at = { 0.12f, 0.3f, 0.5f, 0.75f };
+                    while (f < at.Length) { yield return null; if (Time.time - t0 >= at[f]) { DebugCmd.Shot($"hay_{v}_{f}"); f++; } }
+                    yield return new WaitForSeconds(1.2f);
+                }
+                Destroy(camGo); Destroy(foe.gameObject);
+                Debug.Log("[ASBO] hay filmed"); Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            if (id == "carhit")
+            {
+                // a car at town speed into someone standing in the road, filmed from the side: limp and tumbling, or upright?
+                foreach (var t in TrafficCar.All.ToArray()) if (t != null) t.gameObject.SetActive(false);
+                var lane = TrafficNet.Lanes.FirstOrDefault(l => l.road == 0 && l.dir.x > 0.5f && l.pts[0].x < -100f && l.len > 60f) ?? TrafficNet.Lanes[0];
+                Vector3 at = lane.At(40f, out var tan);
+                var victim = World.MakePerson(at, new Color(0.6f, 0.2f, 0.2f), new Color(0.2f, 0.2f, 0.3f), "Pedestrian"); victim.route.Add(at); victim.speed = 0.01f;
+                yield return new WaitForSeconds(3.5f); // their body builds
+                pc.Teleport(at + Vector3.forward * -9f + tan * 2f, 0f, 6f); yield return new WaitForSeconds(0.5f);
+                var hitter = TrafficCar.Spawn(World.Root, lane, 4f, new System.Random(4)); hitter.cruise = 13f; hitter.testIgnorePeople = true;
+                float t0 = Time.time; bool hit = false; float hitT = 0f; var log = new System.Collections.Generic.List<string>(); int shot = 0;
+                var head = victim.anim != null && victim.anim.isHuman ? victim.anim.GetBoneTransform(HumanBodyBones.Head) : null;
+                while (Time.time - t0 < 9f)
+                {
+                    yield return new WaitForSeconds(0.1f);
+                    if (!hit && victim.state != Person.State.Walking) { hit = true; hitT = Time.time; }
+                    if (hit)
+                    {
+                        float dt = Time.time - hitT;
+                        if (head != null && log.Count < 26) log.Add($"{dt:F1}s pelvis {victim.BodyPos.y:F2} head {head.position.y:F2} {victim.state}");
+                        if (shot < 5 && dt > new[] { 0.1f, 0.35f, 0.7f, 1.2f, 2.5f }[shot]) { DebugCmd.Shot("carhit_" + shot); shot++; }
+                        if (dt > 3f) break;
+                    }
+                }
+                Debug.Log($"[ASBO] car hit: hit={hit} car {hitter.Speed * 3.6f:F0} km/h: " + string.Join(" | ", log));
+                foreach (var t in TrafficCar.All.ToArray()) if (t != null) t.gameObject.SetActive(true);
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            if (id == "doors")
+            {
+                // walk the player through every ground floor door of the Eggy Duck: who gets through, what stops them
+                var cc = pc.GetComponent<CharacterController>(); var rows = new System.Collections.Generic.List<string>(); int ok = 0, n = 0;
+                foreach (var D in TudorManor.Plan.doors)
+                {
+                    if (D.lv != 0) continue;
+                    bool X = D.line == "X"; Vector3 c = TudorManor.Origin + (X ? new Vector3(D.at, 0.15f, (D.a + D.b) * 0.5f) : new Vector3((D.a + D.b) * 0.5f, 0.15f, D.at)); Vector3 nrm = X ? Vector3.right : Vector3.forward;
+                    foreach (int dir in new[] { 1, -1 })
+                    {
+                        n++; Vector3 st = c - nrm * dir * 1.3f;
+                        pc.Teleport(st, Quaternion.LookRotation(nrm * dir).eulerAngles.y); yield return null; yield return null;
+                        for (float t = 0f; t < 1.3f; t += Time.deltaTime) { cc.Move(nrm * dir * 2.2f * Time.deltaTime + Vector3.down * 0.5f * Time.deltaTime); yield return null; }
+                        float got = Vector3.Dot(pc.transform.position - c, nrm * dir);
+                        bool through = got > 0.4f; if (through) ok++;
+                        string why = "";
+                        if (!through)
+                        {
+                            var hits = Physics.CapsuleCastAll(st + Vector3.up * 0.4f, st + Vector3.up * 1.5f, 0.28f, nrm * dir, 2.6f, ~((1 << 2) | (1 << Person.RagdollLayer)), QueryTriggerInteraction.Ignore);
+                            why = string.Join(",", hits.Where(h => h.collider.GetComponentInParent<PlayerCtl>() == null).Select(h => h.collider.name + "@" + h.distance.ToString("F1") + (h.collider is MeshCollider ? "(mesh)" : "")));
+                        }
+                        rows.Add($"{D.kind} {D.line}{D.at:F1} [{D.a:F1}-{D.b:F1}] h{D.hgt:F2} dir{dir}: {(through ? "through" : "BLOCKED at " + got.ToString("F2") + " by " + why)}");
+                    }
+                }
+                Debug.Log($"[ASBO] pub doors: {ok}/{n} passable: " + string.Join(" | ", rows));
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            if (id == "traffic")
+            {
+                // half a minute of traffic: do any two cars end up inside each other, does anyone get stuck for good
+                float t0 = Time.time; int overlaps = 0; float minGap = 99f; var still = new System.Collections.Generic.Dictionary<TrafficCar, float>(); int samples = 0, moving = 0;
+                while (Time.time - t0 < 30f)
+                {
+                    yield return new WaitForSeconds(0.2f); samples++;
+                    var cars = TrafficCar.All.Where(c => c != null && c.isActiveAndEnabled).ToList();
+                    for (int i = 0; i < cars.Count; i++)
+                    {
+                        if (cars[i].Speed > 0.5f) moving++;
+                        if (cars[i].Speed < 0.2f) { still.TryGetValue(cars[i], out float st); still[cars[i]] = st + 0.2f; } else still[cars[i]] = 0f;
+                        for (int j = i + 1; j < cars.Count; j++)
+                        {
+                            Vector3 d = cars[j].transform.position - cars[i].transform.position; float along = Mathf.Abs(Vector3.Dot(d, cars[i].transform.forward)), side = Mathf.Abs(Vector3.Dot(d, cars[i].transform.right));
+                            if (side < 1.6f) { minGap = Mathf.Min(minGap, along); if (along < 3.2f) overlaps++; }
+                        }
+                    }
+                }
+                int stuck = still.Count(kv => kv.Value > 20f);
+                Debug.Log($"[ASBO] traffic test: {TrafficCar.All.Count} cars, closest nose-to-tail {minGap:F1} m between centres, overlapping {overlaps} times, {stuck} stuck over 20 s, {moving * 100 / Mathf.Max(1, samples * TrafficCar.All.Count)}% of the time moving; lanes {TrafficNet.Lanes.Count}, signals {JunctionSignal.All.Count}");
+                foreach (var kv in still.Where(kv => kv.Value > 20f).Take(4)) Debug.Log($"[ASBO] traffic stuck at {kv.Key.transform.position}");
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            if (id == "lod")
+            {
+                pc.Teleport(new Vector3(0f, 0.15f, -18f), 0f, 8f); yield return new WaitForSeconds(14f);
+                var cam = Camera.main.transform.position; var rows = new System.Collections.Generic.List<(float d, string s)>(); long total = 0;
+                foreach (var p in Person.All)
+                {
+                    if (p == null || p.isPlayer) continue;
+                    var lod = p.GetComponentInChildren<UMA.Examples.UMASimpleLOD>(); long t = 0;
+                    foreach (var r in p.GetComponentsInChildren<SkinnedMeshRenderer>()) if (r.sharedMesh != null) for (int k = 0; k < r.sharedMesh.subMeshCount; k++) t += r.sharedMesh.GetIndexCount(k) / 3;
+                    total += t; float d = Vector3.Distance(cam, p.transform.position);
+                    rows.Add((d, $"{d:F0}m L{(lod != null ? lod.CurrentLOD : -1)} {t / 1000}k"));
+                }
+                Debug.Log($"[ASBO] perf people lod: {rows.Count} people, {total / 1000}k triangles in all: " + string.Join(", ", rows.OrderBy(r => r.d).Select(r => r.s)));
+                // one far person in detail: does each slot have LOD levels, and what's in the mesh now
+                var far = Person.All.Where(q => q != null && !q.isPlayer).OrderByDescending(q => Vector3.Distance(cam, q.transform.position)).FirstOrDefault();
+                var ud = far != null ? far.GetComponentInChildren<UMA.UMAData>() : null;
+                if (ud != null && ud.umaRecipe != null)
+                {
+                    var parts = new System.Collections.Generic.List<string>();
+                    foreach (var sd in ud.umaRecipe.slotDataList)
+                    {
+                        if (sd == null || sd.asset == null || sd.asset.meshData == null || sd.asset.meshData.submeshes == null) continue;
+                        int sub = Mathf.Clamp(sd.asset.subMeshIndex, 0, sd.asset.meshData.submeshes.Length - 1); var smt = sd.asset.meshData.submeshes[sub];
+                        int lc = 0; try { lc = smt.LODCount(); } catch { }
+                        string counts = ""; for (int l = 0; l < lc && l < 5; l++) { try { counts += smt.GetTriangleCount(l) + "/"; } catch { counts += "?/"; } }
+                        parts.Add($"{sd.slotName}: lods {lc} [{counts}] ranges {(smt.lodRanges != null ? smt.lodRanges.Count : -1)}");
+                    }
+                    var lodc = far.GetComponentInChildren<UMA.Examples.UMASimpleLOD>();
+                    Debug.Log($"[ASBO] perf lod detail {far.name} at L{(lodc != null ? lodc.CurrentLOD : -1)} useInternal {(lodc != null && lodc.useInternalMeshLOD)}: " + string.Join(" | ", parts));
+                }
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
+            if (id.StartsWith("views"))
+            {
+                // the perf gate: the same viewpoints every time, at the phone quality level
+                int mobile = System.Array.IndexOf(QualitySettings.names, "Mobile"); int was = QualitySettings.GetQualityLevel();
+                if (mobile >= 0) QualitySettings.SetQualityLevel(mobile, true);
+                var views = new (string n, Vector3 p, float yaw)[] { ("estate", new Vector3(5f, 0.15f, -48f), 180f), ("high street", new Vector3(-50f, 0.15f, -30f), 270f), ("cottages", new Vector3(0f, 0.15f, -18f), 0f),
+                    ("road east", new Vector3(40f, 0.15f, -33f), 90f), ("site", new Vector3(106f, 0.15f, -36f), 180f), ("castle lane", new Vector3(-140f, 0.15f, -60f), 225f) };
+                var names = new[] { "Batches Count", "SetPass Calls Count", "Draw Calls Count", "Triangles Count", "Shadow Casters Count", "Visible Skinned Meshes Count" };
+                var rows = new System.Collections.Generic.List<string>();
+                foreach (var v in views)
+                {
+                    pc.Teleport(v.p, v.yaw, 8f); yield return new WaitForSeconds(2.2f);
+                    var recs = names.Select(nm => Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Render, nm, 200)).ToArray();
+                    float t0 = Time.realtimeSinceStartup; int f0 = Time.frameCount; float worst = 0f;
+                    while (Time.realtimeSinceStartup - t0 < 2f) { yield return null; worst = Mathf.Max(worst, Time.unscaledDeltaTime); }
+                    float ms = (Time.realtimeSinceStartup - t0) * 1000f / Mathf.Max(1, Time.frameCount - f0);
+                    var vals = recs.Select(r => { long sum = 0; int c = 0; int k = Mathf.Min(r.Count, r.Capacity); for (int i = 0; i < k; i++) { long x = r.GetSample(i).Value; if (x > 0) { sum += x; c++; } } r.Dispose(); return c > 0 ? sum / c : 0; }).ToArray();
+                    rows.Add($"{v.n}: {1000f / ms:F0}fps {ms:F1}ms worst {worst * 1000f:F0} | batches {vals[0]} setpass {vals[1]} draws {vals[2]} tris {vals[3] / 1000}k casters {vals[4]} skinned {vals[5]}");
+                    if (id == "views shots") DebugCmd.Shot("view_" + v.n.Replace(' ', '_'));
+                }
+                Debug.Log("[ASBO] perf views (phone quality): " + string.Join(" || ", rows));
+                if (mobile >= 0) QualitySettings.SetQualityLevel(was, true);
+                Debug.Log("[ASBO] perf done"); Destroy(gameObject); yield break;
+            }
             if (id == "shaders")
             {
                 pc.Teleport(new Vector3(-150f, 0.15f, World.RoadZ - 6f), 90f);

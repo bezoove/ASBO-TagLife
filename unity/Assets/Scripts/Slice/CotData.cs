@@ -249,6 +249,7 @@ namespace ASBO.Slice
                     else if (a[i] is Dictionary<string, object> o) { float h = MiniJson.GF(o, "h", 0f); if (h > 0) cd.hgt = h; }
                 }
                 if (cd.kind == "cellar") cd.hgt = 1.85f;
+                cd.hgt = Mathf.Max(cd.hgt, cd.kind == "cellar" ? 1.95f : 2.02f); // room to walk through without catching your head on the lintel (floors sit a little proud of the ground)
                 p.doors.Add(cd);
             }
             foreach (var eo in MiniJson.L(MiniJson.G(d, "ext")))
@@ -257,7 +258,7 @@ namespace ASBO.Slice
                 var ce = new CExt { kind = a[0] as string, room = a[1] as string, side = a[2] as string, a = MiniJson.F(a[3]), b = MiniJson.F(a[4]) };
                 var o = a.Count > 5 ? MiniJson.M(a[5]) : null;
                 ce.stable = MiniJson.GB(o, "stable");
-                ce.hgt = MiniJson.GF(o, "h", ce.kind == "front" ? 1.95f : 1.9f);
+                ce.hgt = Mathf.Max(2.02f, MiniJson.GF(o, "h", ce.kind == "front" ? 1.95f : 1.9f));
                 p.ext.Add(ce);
             }
             foreach (var wo in MiniJson.L(MiniJson.G(d, "wins")))

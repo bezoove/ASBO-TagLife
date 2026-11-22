@@ -57,7 +57,7 @@ namespace ASBO.EditorTools
             var glassSrc = AssetDatabase.LoadAssetAtPath<Material>($"{Mats}/Glass.mat");
             var glass = AssetDatabase.LoadAssetAtPath<Material>($"{Mats}/KitGlass.mat");
             if (glass == null && glassSrc != null) { glass = new Material(glassSrc) { name = "KitGlass" }; AssetDatabase.CreateAsset(glass, $"{Mats}/KitGlass.mat"); }
-            if (glass != null) { glass.SetColor("_BaseColor", new Color(0.02f, 0.03f, 0.035f, 0.82f)); glass.SetFloat("_Smoothness", 0.92f); EditorUtility.SetDirty(glass); }
+            if (glass != null) { glass.SetColor("_BaseColor", new Color(0.02f, 0.03f, 0.035f, 0.5f)); glass.SetFloat("_Smoothness", 0.84f); EditorUtility.SetDirty(glass); } // light enough to see the driver through
 
             int made = 0;
             foreach (var fbx in Directory.GetFiles(Src, "*.fbx"))

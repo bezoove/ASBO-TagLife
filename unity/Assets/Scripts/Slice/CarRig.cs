@@ -58,6 +58,13 @@ namespace ASBO.Slice
             g.SetActive(true);
         }
 
+        /// <summary>RCC's crash debris comes out as big white cubes (its material lost its look in URP): small dark bits of trim instead. RCC makes its particles as the car starts, so call this a frame later.</summary>
+        public static void FixDebris(GameObject g)
+        {
+            foreach (var ps in g.GetComponentsInChildren<ParticleSystem>(true))
+                if (ps.name == "Debris") { var mm = ps.main; mm.startColor = new ParticleSystem.MinMaxGradient(new Color(0.16f, 0.16f, 0.17f), new Color(0.32f, 0.3f, 0.28f)); mm.startSizeMultiplier *= 0.3f; }
+        }
+
         struct WheelPair { public RCCP_WheelCollider wc; public Transform model; public bool front, left; }
 
         /// <summary>

@@ -155,17 +155,26 @@ namespace ASBO.Slice
             Color col = Color.Lerp(paint, new Color(0.62f, 0.62f, 0.6f), fade);
             if (wear == Wear.Dirty) col = Color.Lerp(col, new Color(0.33f, 0.29f, 0.22f), 0.3f);
             var sh = castShadow ? ShadowCastingMode.On : ShadowCastingMode.Off;
-            Material paintM = null;
+            Material paintM = null, plateM = null;
             var near = new List<Renderer>();
             foreach (var r in root.GetComponentsInChildren<MeshRenderer>(true))
             {
                 var mats = r.sharedMaterials;
                 for (int i = 0; i < mats.Length; i++)
-                    if (mats[i] != null && mats[i].name.EndsWith("_Paint"))
+                {
+                    if (mats[i] == null) continue;
+                    if (mats[i].name.EndsWith("_Paint"))
                     {
                         if (paintM == null) { paintM = new Material(mats[i]) { name = id + " paint" }; paintM.SetColor("_BaseColor", col); paintM.SetFloat("_Smoothness", wear == Wear.Clean ? 0.66f : wear == Wear.Tired ? 0.45f : 0.28f); }
                         mats[i] = paintM;
                     }
+                    else if (mats[i].name.EndsWith("_Plates"))
+                    {
+                        // its own registration (the pack's plates said "SEDAN" and "1988")
+                        if (plateM == null) { plateM = new Material(mats[i]) { name = "Plates" }; var pt = CarBody.PlateAtlas(rng); plateM.SetTexture("_BaseMap", pt); plateM.mainTexture = pt; if (wear == Wear.Dirty) plateM.SetColor("_BaseColor", new Color(0.82f, 0.78f, 0.7f)); }
+                        mats[i] = plateM;
+                    }
+                }
                 r.sharedMaterials = mats; r.shadowCastingMode = sh; near.Add(r);
             }
             var wheels = new Transform[4]; string[] names = { "wheel_FL", "wheel_FR", "wheel_RL", "wheel_RR" };
@@ -323,6 +332,8 @@ namespace ASBO.Slice
             if (!Has(id)) return null;
             bool drivable = wear < Wear.Wreck;
             var g = new GameObject((drivable ? "Parked " : "Wreck ") + id); g.transform.SetParent(parent, false);
+            // sat on whatever is under it (a road's surface is a few centimetres up: at y=0 the tyres sank into the tarmac)
+            if (Physics.Raycast(pos + Vector3.up * 2.5f, Vector3.down, out var gh, 6f, ~((1 << 2) | (1 << Person.VehicleLayer) | (1 << Person.RagdollLayer) | (1 << World.CamBlockLayer)), QueryTriggerInteraction.Ignore)) pos.y = gh.point.y + 0.005f;
             g.transform.SetPositionAndRotation(pos, Quaternion.Euler(0f, yaw, 0f));
             Color paint = CarBody.RandomPaint(new System.Random(seed ^ 0x5bd1e995)); // its own stream, so the car rebuilds the same when someone gets in
             Build(g.transform, id, paint, wear, true, new System.Random(seed));

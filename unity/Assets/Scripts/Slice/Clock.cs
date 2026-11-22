@@ -17,7 +17,9 @@ namespace ASBO.Slice
         public static float Hour => Minute / 60f;
         public static bool Night => Minute < 6 * 60 + 30 || Minute > 22 * 60;
         static readonly string[] Days = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
-        public static string Text => Days[Day % 7] + " " + ((int)(Minute / 60)).ToString("00") + ":" + ((int)(Minute % 60)).ToString("00");
+        static string text; static int textMin = -1;
+        /// <summary>"Mon 17:32": rebuilt only when the minute changes (the HUD asks every frame).</summary>
+        public static string Text { get { int m = Day * 1440 + (int)Minute; if (m != textMin || text == null) { textMin = m; text = Days[Day % 7] + " " + ((int)(Minute / 60)).ToString("00") + ":" + ((int)(Minute % 60)).ToString("00"); } return text; } }
         public static float Speed = 1f; // tests can run the clock fast
         public static System.Action<int> NewDay;
 

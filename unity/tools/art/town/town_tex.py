@@ -1,294 +1,279 @@
 """
-Textures for the high street (all generated here, own work; every shop and business name is made up):
-  Surfaces/red_brick_vic/   Victorian red brick in Flemish bond, 2.7 m repeat (albedo, normal, mask)
-  Town/sash.png             painted timber sash windows, four variants (nets, curtains, blind, dark); alpha = smoothness
-  Town/shopfronts.png       atlas of shopfronts, 4 x 5 cells of 512 x 384: fascia sign on top, window display and door below
-  Town/pub_tiles.png        green glazed pub tiles with a darker plinth (1 m repeat)
-  Town/pub_sign.png         The Eggy Duck hanging sign (painted board)
-Run: python3 town_tex.py <unity Assets folder>
+Textures for the new parts of town (all generated here, own work). Run: python3 town_tex.py <unity Assets folder>
+  Art/Town/signal_lamps.png    traffic light lenses (red, amber, green), red and green men, a Belisha globe (4x4 cells)
+  Art/Town/town_signs.png      street name plates and signs (2x8 cells, made-up names)
+  Art/Town/tower_windows.png   tower block window units (4x4): nets, curtains, blinds, dark, boarded, balcony doors,
+                               stair glazing, frosted, lit, Crittall, tin foil; alpha = smoothness
+  Art/Town/brown_brick*.png    70s brown brick, stretcher bond (albedo, normal)
+  Art/Town/pebbledash*.png     beige pebble-dash render (albedo, normal)
+  Art/Town/water_normal.png    tileable ripples for the river;  water_foam.png  scum and foam
+  Art/Town/reeds.png           reed bed card (alpha cut-out)
+  Art/Town/graffiti.png        spray-painted tags (4x4: a row per gang, a row of general scrawl), alpha
+  Art/Town/chainlink.png       ball court mesh fence (alpha cut-out)
+  Art/Town/notice.png          a lobby notice board
 """
-import sys, os, math
+import sys, os, math, random
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from scipy.ndimage import gaussian_filter
 
-A = sys.argv[1]
-SURF = os.path.join(A, 'Textures', 'Surfaces', 'red_brick_vic'); OUT = os.path.join(A, 'Art', 'Town')
-os.makedirs(SURF, exist_ok=True); os.makedirs(OUT, exist_ok=True)
-F = '/usr/share/fonts/truetype/liberation/'
-SANS, SANSR, SERIF, NARROW = F + 'LiberationSans-Bold.ttf', F + 'LiberationSans-Regular.ttf', F + 'LiberationSerif-Bold.ttf', F + 'LiberationSansNarrow-Bold.ttf'
+ASSETS = sys.argv[1]
+OUT = os.path.join(ASSETS, 'Art', 'Town'); os.makedirs(OUT, exist_ok=True)
+BOLD = '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'
+REG = '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'
+rng = np.random.default_rng(2026)
 
 def tile_noise(n, scale, seed):
     g = np.random.default_rng(seed).standard_normal((n, n))
     f = np.fft.fftfreq(n)[:, None] ** 2 + np.fft.fftfreq(n)[None, :] ** 2
-    out = np.real(np.fft.ifft2(np.fft.fft2(g) * np.exp(-f * (n / scale) ** 2 * 6.0)))
-    out -= out.min(); return out / (out.max() + 1e-9)
+    k = np.exp(-f * (n / scale) ** 2 * 6.0)
+    out = np.real(np.fft.ifft2(np.fft.fft2(g) * k)); out -= out.min(); out /= out.max() + 1e-9
+    return out
 
-def normal_from_height(h, s):
-    dx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) * s; dy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) * s
+def normal_from_height(h, strength):
+    dx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) * strength
+    dy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) * strength
     n = np.stack([-dx, dy, np.ones_like(h)], -1); n /= np.linalg.norm(n, axis=-1, keepdims=True)
     return ((n * 0.5 + 0.5) * 255).astype(np.uint8)
 
-def red_brick():
-    N = 1024; mod = N / 8.0; rows = 36; bh = N / rows; joint = 3.6
+def save(img, name):
+    p = os.path.join(OUT, name); img.save(p); print('wrote', name)
+
+# ------------------------------------------------------------------ signal lamps
+def signal_lamps():
+    N = 512; C = N // 4; img = Image.new('RGB', (N, N), (8, 8, 8)); d = ImageDraw.Draw(img)
+    def cell(i): return (i % 4) * C, (i // 4) * C
+    def lens(i, col):
+        x0, y0 = cell(i); cx, cy = x0 + C / 2, y0 + C / 2; R = C * 0.46
+        for r in range(int(R), 0, -1):
+            t = r / R; k = (1 - t) ** 0.6
+            c = tuple(int(min(255, col[j] * (0.55 + 0.75 * k) + 255 * max(0, 0.35 - t) * 0.9)) for j in range(3))
+            d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=c)
+        # the fresnel rings of a real lens
+        for r in np.linspace(R * 0.2, R * 0.95, 7):
+            d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=tuple(int(c * 0.82) for c in col), width=2)
+    lens(0, (255, 30, 20)); lens(1, (255, 150, 10)); lens(2, (40, 255, 140))
+    def man(i, col, walking):
+        x0, y0 = cell(i); s = C / 100.0
+        d.rectangle([x0 + 4, y0 + 4, x0 + C - 4, y0 + C - 4], fill=(10, 10, 10))
+        def P(x, y): return (x0 + x * s, y0 + y * s)
+        d.ellipse([*P(42, 10), *P(58, 26)], fill=col)
+        if walking:
+            d.line([P(50, 28), P(46, 58)], fill=col, width=int(9 * s))
+            d.line([P(48, 34), P(30, 50)], fill=col, width=int(7 * s)); d.line([P(48, 34), P(66, 46)], fill=col, width=int(7 * s))
+            d.line([P(46, 58), P(32, 88)], fill=col, width=int(8 * s)); d.line([P(46, 58), P(64, 86)], fill=col, width=int(8 * s))
+        else:
+            d.rectangle([*P(42, 28), *P(58, 60)], fill=col)
+            d.rectangle([*P(34, 30), *P(40, 56)], fill=col); d.rectangle([*P(60, 30), *P(66, 56)], fill=col)
+            d.rectangle([*P(43, 60), *P(49, 90)], fill=col); d.rectangle([*P(51, 60), *P(57, 90)], fill=col)
+    man(3, (255, 40, 30), False); man(4, (60, 255, 150), True)
+    lens(5, (255, 175, 30))
+    img = img.filter(ImageFilter.GaussianBlur(0.6))
+    save(img, 'signal_lamps.png')
+
+# ------------------------------------------------------------------ signs (2 x 8 cells of 512 x 128)
+SIGNS = [('KESTREL ROAD', None, 'plate'), ('NORTHWAY', None, 'plate'), ('THORNBURY ROAD', None, 'plate'), ('MILL LANE', None, 'plate'),
+         ('LONG ROAD', None, 'plate'), ('KESTREL FIELDS', 'ESTATE', 'estate'), ('THORNBURY', 'ESTATE', 'estate'), ('HAWTHORN HEIGHTS', 'FLATS 1-96', 'estate'),
+         ('41', 'BUS STOP', 'bus'), ('TELEPHONE', None, 'phone'), ('ABBOTS WEND', 'PRECINCT', 'estate'), ('TOWPATH', 'RIVER WEND', 'green'),
+         ('NO BALL GAMES', 'BY ORDER', 'red'), ('POLICE', None, 'police'), ('FIRE STATION', None, 'fire'), ('A&E', 'EMERGENCY', 'nhs')]
+def signs():
+    W, H = 512, 128; img = Image.new('RGB', (1024, 1024), (255, 255, 255)); d = ImageDraw.Draw(img)
+    for i, (t, sub, kind) in enumerate(SIGNS):
+        x0, y0 = (i % 2) * W, (i // 2) * H
+        bg, fg, border = (250, 250, 248), (12, 12, 12), (12, 12, 12)
+        if kind == 'estate': bg, fg, border = (20, 60, 40), (245, 245, 240), (245, 245, 240)
+        if kind == 'green': bg, fg, border = (25, 85, 45), (255, 255, 255), (255, 255, 255)
+        if kind == 'red': bg, fg, border = (250, 250, 248), (190, 20, 20), (190, 20, 20)
+        if kind == 'police': bg, fg, border = (20, 40, 120), (255, 255, 255), (255, 255, 255)
+        if kind == 'fire': bg, fg, border = (190, 20, 20), (255, 255, 255), (255, 255, 255)
+        if kind == 'nhs': bg, fg, border = (0, 94, 184), (255, 255, 255), (255, 255, 255)
+        if kind == 'phone': bg, fg, border = (30, 30, 34), (255, 255, 255), (30, 30, 34)
+        d.rectangle([x0 + 2, y0 + 2, x0 + W - 3, y0 + H - 3], fill=bg)
+        d.rectangle([x0 + 8, y0 + 8, x0 + W - 9, y0 + H - 9], outline=border, width=4)
+        if kind == 'bus':
+            d.rectangle([x0 + 2, y0 + 2, x0 + W - 3, y0 + H - 3], fill=(250, 250, 248))
+            # a plain bus pictogram (not any operator's symbol)
+            d.rounded_rectangle([x0 + 18, y0 + 22, x0 + 122, y0 + 96], radius=10, fill=(20, 110, 60))
+            for wx in range(x0 + 26, x0 + 116, 24): d.rectangle([wx, y0 + 32, wx + 18, y0 + 56], fill=(225, 235, 240))
+            d.ellipse([x0 + 30, y0 + 88, x0 + 50, y0 + 108], fill=(20, 20, 20)); d.ellipse([x0 + 92, y0 + 88, x0 + 112, y0 + 108], fill=(20, 20, 20))
+            f = ImageFont.truetype(BOLD, 64); d.text((x0 + 300, y0 + 64), t, font=f, fill=(12, 12, 12), anchor='mm')
+            f2 = ImageFont.truetype(BOLD, 24); d.text((x0 + 300, y0 + 24), sub, font=f2, fill=(12, 12, 12), anchor='mm')
+            continue
+        size = 70 if sub is None else 56
+        f = ImageFont.truetype(BOLD, size)
+        while d.textlength(t, font=f) > W - 50 and size > 20: size -= 2; f = ImageFont.truetype(BOLD, size)
+        d.text((x0 + W / 2, y0 + (H / 2 if sub is None else H * 0.42)), t, font=f, fill=fg, anchor='mm')
+        if sub: d.text((x0 + W / 2, y0 + H * 0.8), sub, font=ImageFont.truetype(BOLD, 22), fill=fg, anchor='mm')
+    save(img, 'town_signs.png')
+
+# ------------------------------------------------------------------ tower windows (4 x 4 cells of 256)
+def tower_windows():
+    N = 1024; C = 256; rgb = np.zeros((N, N, 3), np.float32); smooth = np.zeros((N, N), np.float32)
+    def glass(x0, y0, x1, y1, seed, tint=(0.2, 0.25, 0.3)):
+        # darkish glass with the sky in it (brighter towards the top) and a soft diagonal sheen
+        h, w = y1 - y0, x1 - x0
+        yy = np.linspace(0, 1, h)[:, None]; xx = np.linspace(0, 1, w)[None, :]
+        sheen = np.clip(1 - np.abs((xx * 0.8 + yy * 0.6) - (0.55 + (seed % 5) * 0.06)) * 6, 0, 1) * 0.12
+        sky = np.array(tint) * (0.6 + 0.6 * (1 - yy))[..., None] * np.ones((1, w, 1)) + sheen[..., None]
+        n = tile_noise(256, 18, seed)[:h % 256 if h <= 256 else 256, :w] if h <= 256 and w <= 256 else 0
+        rgb[y0:y1, x0:x1] = sky + (n[..., None] * 0.06 if isinstance(n, np.ndarray) and n.shape[:2] == (h, w) else 0)
+        smooth[y0:y1, x0:x1] = 0.92
+    def fill(x0, y0, x1, y1, col, sm=0.25, noise=0.04, seed=1):
+        h, w = y1 - y0, x1 - x0
+        n = np.random.default_rng(seed).standard_normal((h, w)) * noise
+        rgb[y0:y1, x0:x1] = np.array(col)[None, None, :] + n[..., None]; smooth[y0:y1, x0:x1] = sm
+    def frame(x0, y0, x1, y1, col=(0.92, 0.92, 0.9), t=10, mullions=(), transom=None):
+        fill(x0, y0, x1, y0 + t, col, 0.45, 0.01); fill(x0, y1 - t, x1, y1, col, 0.45, 0.01)
+        fill(x0, y0, x0 + t, y1, col, 0.45, 0.01); fill(x1 - t, y0, x1, y1, col, 0.45, 0.01)
+        for m in mullions: mx = int(x0 + (x1 - x0) * m); fill(mx - t // 2, y0, mx + t // 2, y1, col, 0.45, 0.01)
+        if transom: ty = int(y0 + (y1 - y0) * transom); fill(x0, ty - t // 2, x1, ty + t // 2, col, 0.45, 0.01)
+    for c in range(16):
+        x0, y0 = (c % 4) * C + 4, (c // 4) * C + 4; x1, y1 = x0 + C - 8, y0 + C - 8
+        glass(x0, y0, x1, y1, c)
+        mx = (x0 + x1) // 2
+        if c == 0:  # nets
+            fill(x0 + 10, y0 + 70, x1 - 10, y1 - 10, (0.86, 0.86, 0.84), 0.1, 0.03, c)
+            for x in range(x0 + 10, x1 - 10, 6): rgb[y0 + 70:y1 - 10, x:x + 2] *= 0.92
+        elif c in (1, 2, 14, 5):  # curtains, mostly drawn back to the sides (muted, faded colours), nets behind on some
+            col = {1: (0.45, 0.24, 0.22), 2: (0.27, 0.3, 0.38), 14: (0.36, 0.4, 0.32), 5: (0.58, 0.5, 0.4)}[c]
+            w = x1 - x0; side = int(w * (0.2 if c != 5 else 0.42))
+            # the room behind: a dim interior, a lamp glow on one
+            rgb[y0 + 10:y1 - 10, x0 + 10:x1 - 10] = rgb[y0 + 10:y1 - 10, x0 + 10:x1 - 10] * 0.7 + 0.03
+            if c in (1, 14): fill(x0 + side, y0 + 110, x1 - side, y1 - 10, (0.84, 0.84, 0.8), 0.1, 0.03, c + 3)  # nets on the bottom half
+            for (a, b, sd) in ((x0 + 10, x0 + side, c), (x1 - side, x1 - 10, c + 7)):
+                fill(a, y0 + 10, b, y1 - 10, col, 0.08, 0.03, sd)
+                for x in range(a, b, 12): rgb[y0 + 10:y1 - 10, x:x + 4] *= 0.8   # folds
+                for x in range(a + 6, b, 12): rgb[y0 + 10:y1 - 10, x:x + 2] *= 1.12
+        elif c == 3:  # blinds
+            for y in range(y0 + 10, y1 - 10, 12): fill(x0 + 10, y, x1 - 10, y + 8, (0.82, 0.8, 0.74), 0.15, 0.02, y)
+        elif c == 4: rgb[y0:y1, x0:x1] *= 0.45
+        elif c == 6:  # boarded up: council grey steel or ply
+            fill(x0, y0, x1, y1, (0.62, 0.52, 0.36), 0.05, 0.08, c)
+            for y in range(y0, y1, 40): rgb[y:y + 2, x0:x1] *= 0.7
+        elif c == 7:
+            fill(x0 + 10, y0 + 70, x1 - 10, y1 - 10, (0.86, 0.86, 0.84), 0.1, 0.03, c)
+            fill(x0 + 40, y1 - 70, x0 + 90, y1 - 12, (0.18, 0.4, 0.15), 0.1, 0.1, c)
+        elif c in (8, 9):  # balcony door: tall glazed door and side light
+            if c == 9: fill(x0 + 10, y0 + 10, mx, y1 - 10, (0.45, 0.2, 0.3), 0.08, 0.05, c)
+            frame(x0, y0, x1, y1, mullions=(0.5,), transom=None)
+            fill(x0 + 12, y1 - 60, mx - 4, y1 - 12, (0.92, 0.92, 0.9), 0.45, 0.01)
+            continue
+        elif c == 10:  # wired stair glass
+            rgb[y0:y1, x0:x1] = rgb[y0:y1, x0:x1] * 0.5 + 0.35
+            for k in range(y0, y1, 16): rgb[k, x0:x1] *= 0.6
+            for k in range(x0, x1, 16): rgb[y0:y1, k] *= 0.6
+            frame(x0, y0, x1, y1, (0.3, 0.3, 0.3), 8); continue
+        elif c == 11:  # frosted
+            fill(x0, y0, x1, y1, (0.72, 0.76, 0.78), 0.5, 0.05, c)
+        elif c == 12:  # lit warm room, curtains open
+            fill(x0 + 10, y0 + 10, x1 - 10, y1 - 10, (0.86, 0.7, 0.45), 0.6, 0.04, c)
+            w = x1 - x0; side = int(w * 0.18)
+            fill(x0 + 10, y0 + 10, x0 + side, y1 - 10, (0.5, 0.36, 0.26), 0.1, 0.03, c + 1); fill(x1 - side, y0 + 10, x1 - 10, y1 - 10, (0.5, 0.36, 0.26), 0.1, 0.03, c + 2)
+        elif c == 13:  # Crittall steel windows
+            frame(x0, y0, x1, y1, (0.15, 0.17, 0.16), 6, mullions=(0.25, 0.5, 0.75), transom=0.3); continue
+        elif c == 15:  # tin foil
+            fill(x0 + 10, y0 + 10, x1 - 10, y1 - 10, (0.78, 0.78, 0.8), 0.95, 0.15, c)
+        frame(x0, y0, x1, y1, mullions=(0.5,) if c in (0, 1, 2, 3, 4, 5, 7, 12, 14, 15) else (), transom=0.28 if c in (0, 1, 2, 3, 4, 5, 7, 12, 14) else None)
+    out = np.dstack([np.clip(rgb, 0, 1) * 255, np.clip(smooth, 0, 1) * 255]).astype(np.uint8)
+    save(Image.fromarray(out, 'RGBA'), 'tower_windows.png')
+
+# ------------------------------------------------------------------ brown brick (2.7 m repeat: 12 x 36 bricks)
+def brick(name, pal, joint_col):
+    N = 1024; cols, rows = 12, 36; bw, bh = N / cols, N / rows; joint = 4.5
     yy, xx = np.mgrid[0:N, 0:N].astype(np.float32)
-    row = np.floor(yy / bh).astype(int); ly = yy - row * bh
-    off = (row % 2) * (mod * 0.75)          # Flemish bond: stretcher + header, courses offset by a quarter brick
-    xs = (xx + off) % N
-    m = np.floor(xs / mod).astype(int); lm = xs - m * mod
-    header = lm >= mod * (2.0 / 3.0)
-    lx = np.where(header, lm - mod * (2.0 / 3.0), lm); bw = np.where(header, mod / 3.0, mod * (2.0 / 3.0))
+    row = np.floor(yy / bh).astype(int); off = (row % 2) * (bw / 2); xs = (xx + off) % N
+    col = np.floor(xs / bw).astype(int); lx = xs - col * bw; ly = yy - row * bh
     d = np.minimum(np.minimum(lx, bw - lx), np.minimum(ly, bh - ly))
-    mortar = d < joint / 2 + tile_noise(N, 40, 3) * 1.2
-    bid = (row * 211 + m * 37 + header * 7) % 9973
-    pal = np.array([[150, 62, 42], [162, 72, 48], [138, 56, 40], [170, 84, 56], [128, 52, 38], [156, 76, 52], [146, 66, 50]], np.float32)
-    base = pal[(bid * 7919) % len(pal)]
-    base = np.where(header[..., None], base * np.array([0.72, 0.66, 0.68]), base)   # burnt headers, darker and bluer
-    br = np.random.default_rng(5).uniform(0.9, 1.08, 9973)[bid][..., None]
-    img = base * br * (0.9 + tile_noise(N, 3, 11)[..., None] * 0.18) * (0.92 + tile_noise(N, 70, 12)[..., None] * 0.14)
-    soot = tile_noise(N, 120, 13)[..., None]; img *= 1 - np.clip(soot - 0.55, 0, 1) * 0.6   # sooty patches from coal-fire years
-    mcol = np.array([176, 170, 156], np.float32) * (0.85 + tile_noise(N, 4, 21)[..., None] * 0.2)
-    img = np.where(mortar[..., None], mcol, img)
-    Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).save(os.path.join(SURF, 'red_brick_vic_albedo.jpg'), quality=92)
-    h = gaussian_filter(np.where(mortar, 0.0, 1.0).astype(np.float32), 1.0, mode='wrap')
-    h += (tile_noise(N, 2.5, 41) - 0.5) * 0.1 * (~mortar)
-    Image.fromarray(normal_from_height(h, 3.0)).save(os.path.join(SURF, 'red_brick_vic_normal.png'))
-    mask = np.zeros((N, N, 4), np.uint8); mask[..., 1] = 255; mask[..., 3] = np.where(mortar, 14, 40)
-    Image.fromarray(mask, 'RGBA').save(os.path.join(SURF, 'red_brick_vic_mask.png'))
+    mortar = d < joint / 2 + tile_noise(N, 50, 4) * 1.2
+    bid = (row * 131 + col * 17) % 9973
+    pal = np.array(pal, np.float32); pick = pal[bid % len(pal)]
+    vary = (np.random.default_rng(5).random(9973)[bid] - 0.5)[..., None] * 18
+    tex = tile_noise(N, 160, 6)[..., None] * 26 - 13 + tile_noise(N, 20, 7)[..., None] * 14
+    rgb = pick + vary + tex
+    rgb[mortar] = np.array(joint_col, np.float32) + tile_noise(N, 40, 8)[mortar][:, None] * 18
+    grime = tile_noise(N, 6, 9)[..., None]; rgb = rgb * (0.88 + 0.12 * grime)
+    save(Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8)), name + '.png')
+    h = np.where(mortar, 0.0, 1.0) * 0.8 + tile_noise(N, 30, 10) * 0.2
+    save(Image.fromarray(normal_from_height(gaussian_filter(h, 1.0, mode='wrap'), 2.6)), name + '_normal.png')
 
-def glass(w, h, seed):
-    y = np.linspace(0, 1, h)[:, None]; x = np.linspace(0, 1, w)[None, :]
-    t = np.clip(0.6 - y * 0.8 + (x - 0.5) * 0.06, 0, 1)[..., None]
-    img = np.array([30, 34, 40], np.float32) + (np.array([120, 136, 155], np.float32) - [30, 34, 40]) * t * 0.8
-    img += np.exp(-((x * 1.3 + y * 0.7 - 0.6) ** 2) / 0.006)[..., None] * 35
-    return img
+def pebbledash():
+    N = 1024; base = np.array([186, 172, 146], np.float32)
+    pebbles = np.random.default_rng(11).random((N, N)); h = gaussian_filter((pebbles > 0.7).astype(np.float32), 1.6, mode='wrap')
+    h += gaussian_filter(np.random.default_rng(12).random((N, N)), 0.8, mode='wrap') * 0.5
+    stain = tile_noise(N, 5, 13)[..., None]; streak = gaussian_filter(np.random.default_rng(14).random((N, 1)), 3, mode='wrap') * np.ones((1, N))
+    rgb = base * (0.82 + 0.28 * h[..., None] / h.max()) * (0.9 + 0.1 * stain) * (0.93 + 0.12 * streak[..., None])
+    save(Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8)), 'pebbledash.png')
+    save(Image.fromarray(normal_from_height(h, 3.0)), 'pebbledash_normal.png')
 
-def sash():
-    W, H = 1024, 512; img = np.full((H, W, 3), 236, np.float32); sm = np.full((H, W), 90, np.uint8)
-    white = np.array([238, 238, 232], np.float32)
-    for v in range(4):
-        x0 = v * 256
-        img[:, x0:x0 + 256] = white
-        bars = 12
-        for half in range(2):   # top sash, bottom sash
-            y0, y1 = 14 + half * 246, 252 + half * 246 - (4 if half else 0)
-            for pane in range(2):
-                a = x0 + bars + pane * 116 + (6 if pane else 0); b = a + 110
-                g = glass(b - a, y1 - y0, v * 10 + half * 3 + pane)
-                if v == 0: g = g * 0.35 + np.array([224, 224, 218]) * 0.65 * (0.92 + 0.08 * np.sin(np.arange(b - a) / 4.0))[None, :, None]
-                if v == 1 and pane in (0, 1):
-                    side = 30
-                    col = np.array([[110, 30, 36], [60, 74, 120], [150, 130, 80]][half % 3], np.float32)
-                    if pane == 0: g[:, :side] = col
-                    else: g[:, -side:] = col
-                if v == 2 and half == 0: g[: int((y1 - y0) * 0.75)] = np.array([220, 214, 196], np.float32) * (0.9 + 0.1 * np.cos(np.arange(int((y1 - y0) * 0.75)) / 3.0))[:, None, None]
-                if v == 3: g *= 0.55
-                img[y0:y1, a:b] = g; sm[y0:y1, a:b] = 205
-        img[250:262, x0:x0 + 256] = white * 0.95   # meeting rail
-    Image.fromarray(np.dstack([np.clip(img, 0, 255).astype(np.uint8), sm]), 'RGBA').save(os.path.join(OUT, 'sash.png'))
+# ------------------------------------------------------------------ water
+def water():
+    N = 512
+    h = sum(tile_noise(N, s, 20 + i) * w for i, (s, w) in enumerate([(4, 1.0), (9, 0.55), (19, 0.3), (40, 0.14)]))
+    # stretch along the flow (x) a little: ripples are longer than they are wide
+    h = gaussian_filter(h, (0.6, 2.2), mode='wrap')
+    save(Image.fromarray(normal_from_height(h / h.max(), 7.0)), 'water_normal.png')
+    f = tile_noise(N, 26, 30); f2 = tile_noise(N, 70, 31)
+    foam = np.clip((f * 0.7 + f2 * 0.5 - 0.62) * 4.0, 0, 1) * 255
+    save(Image.fromarray(foam.astype(np.uint8)).convert('RGB'), 'water_foam.png')
 
-SHOPS = [
-    # name, sub, fascia colour, text colour, window kind
-    ("RAJ'S MINI MARKET", 'Groceries  ·  Beers & Wines  ·  Open 7 till 11', (22, 110, 60), (255, 255, 255), 'posters'),
-    ('GOLDEN DRAGON', 'Chinese Takeaway  ·  Collection & Delivery', (170, 22, 24), (250, 210, 70), 'lanterns'),
-    ('THE CODFATHER', 'Traditional Fish & Chips', (24, 60, 130), (255, 255, 255), 'counter'),
-    ('WINNERS CORNER', 'Bets  ·  Racing  ·  Football', (20, 70, 40), (250, 220, 60), 'frosted'),
-    ('SPIN CITY', 'Launderette  ·  Service Washes', (40, 140, 190), (255, 255, 255), 'machines'),
-    ('KUTZ', 'Barbers  ·  Walk-ins welcome', (20, 20, 22), (230, 230, 230), 'chairs'),
-    ('TO LET', 'Retail unit available  ·  enquiries on 01632 960 000', (210, 210, 205), (40, 40, 40), 'whitewash'),
-    ('WEND HOSPICE SHOP', 'Every penny helps', (110, 40, 120), (255, 255, 255), 'clothes'),
-    ('POST & PARCELS', 'Parcels  ·  Bills  ·  Cash withdrawals', (30, 50, 110), (255, 255, 255), 'posters'),
-    ('WEND PHARMACY', 'Prescriptions  ·  Advice  ·  Health', (245, 245, 242), (20, 120, 60), 'shelves'),
-    ('POUND PALACE', 'Everything a pound  ·  and more', (250, 210, 30), (200, 20, 30), 'crammed'),
-    ('CLOUD NINE VAPES', 'Liquids  ·  Kits  ·  Coils', (70, 30, 110), (240, 240, 255), 'shelves'),
-    ('NAILED IT', 'Nails  ·  Brows  ·  Lashes', (230, 120, 170), (255, 255, 255), 'chairs'),
-    ("CRUSTY'S BAKERY", 'Fresh bread  ·  Pasties  ·  Cakes', (120, 72, 36), (250, 236, 200), 'bread'),
-    ('THE EGGY DUCK', 'Free House  ·  Real Ales  ·  Live Football', (22, 60, 40), (226, 190, 100), 'pub'),
-    # empty units (to let) in different states, and the estate parade's two shops
-    ('', '', (150, 120, 80), (40, 40, 40), 'boarded'),                                   # 15 boarded up
-    ('', '', (90, 92, 96), (40, 40, 40), 'shutter'),                                     # 16 shutter down
-    ('VIDEO WORLD', 'New releases  ·  Games  ·  Hire', (60, 40, 70), (150, 140, 120), 'empty'),  # 17 old fascia, gone bust
-    ('BUTCHERS', 'Quality meats  ·  Family butchers', (120, 30, 30), (200, 170, 150), 'butchers'),  # 18 old fascia, tiled and empty
-    ('', '', (220, 220, 214), (60, 60, 60), 'closed'),                                   # 19 closed down, whitewashed, notices
-    ('HAWTHORN STORES', 'Groceries  ·  Off Licence  ·  Papers', (30, 90, 150), (255, 255, 255), 'crammed'),   # 20
-    ('TASTY KEBAB', 'Kebabs  ·  Pizza  ·  Burgers  ·  Open late', (200, 60, 20), (255, 240, 200), 'kebab'),  # 21
-    ('CARPETS & BEDS', 'Clearance  ·  Everything must go', (40, 70, 110), (170, 170, 160), 'empty'),     # 22 old fascia
-    ('', '', (30, 30, 34), (220, 220, 220), 'available'),                                # 23 empty, AVAILABLE banner
-]
-FADED = {17, 18, 22}
+def reeds():
+    W, H = 256, 512; img = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    r = random.Random(3)
+    for i in range(70):
+        x = r.uniform(10, W - 10); top = r.uniform(30, 260); lean = r.uniform(-25, 25)
+        g = r.uniform(0.5, 1.0); col = (int(70 * g + 30), int(100 * g + 40), int(40 * g + 10), 255)
+        d.line([(x, H), (x + lean * 0.5, (H + top) / 2), (x + lean, top)], fill=col, width=r.choice([2, 3, 3, 4]))
+        if r.random() < 0.18:  # a bulrush head
+            d.ellipse([x + lean - 4, top - 6, x + lean + 4, top + 34], fill=(84, 52, 28, 255))
+    save(img, 'reeds.png')
 
-def window_fill(d, img, x0, y0, x1, y1, kind, rng):
-    w, h = x1 - x0, y1 - y0
-    g = glass(w, h, int(rng.integers(1000)))
-    img[y0:y1, x0:x1] = g
-    pil = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)); dd = ImageDraw.Draw(pil)
-    if kind == 'posters':
-        for i in range(6):
-            px = x0 + 10 + int(rng.integers(0, max(1, w - 90))); py = y0 + 10 + int(rng.integers(0, max(1, h - 110)))
-            col = tuple(int(c) for c in rng.integers(120, 255, 3)); dd.rectangle([px, py, px + 70, py + 95], fill=col)
-            dd.rectangle([px + 8, py + 10, px + 62, py + 30], fill=(250, 250, 250)); dd.rectangle([px + 8, py + 40, px + 50, py + 48], fill=(40, 40, 40))
-        for i in range(4): dd.rectangle([x0 + 6, y0 + h - 40 - i * 34, x1 - 6, y0 + h - 36 - i * 34], fill=(150, 150, 150))
-    elif kind == 'lanterns':
-        for i in range(4):
-            cx = x0 + 30 + i * (w - 60) // 3; dd.line([cx, y0, cx, y0 + 30], fill=(40, 20, 10), width=2)
-            dd.ellipse([cx - 22, y0 + 30, cx + 22, y0 + 80], fill=(200, 30, 30)); dd.rectangle([cx - 10, y0 + 78, cx + 10, y0 + 84], fill=(240, 200, 60))
-        dd.rectangle([x0 + 20, y0 + 110, x1 - 20, y0 + 190], fill=(30, 20, 18)); 
-        for r in range(5): dd.rectangle([x0 + 30, y0 + 118 + r * 14, x1 - 60, y0 + 124 + r * 14], fill=(240, 220, 160))
-    elif kind == 'counter':
-        dd.rectangle([x0, y1 - 80, x1, y1], fill=(170, 175, 180)); dd.rectangle([x0, y1 - 84, x1, y1 - 78], fill=(220, 225, 230))
-        dd.rectangle([x0 + 20, y0 + 20, x1 - 20, y0 + 90], fill=(20, 30, 70))
-        for r in range(4): dd.rectangle([x0 + 30, y0 + 28 + r * 15, x1 - 80, y0 + 34 + r * 15], fill=(255, 255, 255))
-    elif kind == 'frosted':
-        img2 = np.asarray(pil).astype(np.float32); img2[y0:y1, x0:x1] = img2[y0:y1, x0:x1] * 0.3 + 160
-        pil = Image.fromarray(np.clip(img2, 0, 255).astype(np.uint8)); dd = ImageDraw.Draw(pil)
-        dd.rectangle([x0 + 20, y0 + 30, x1 - 20, y0 + 110], fill=(20, 70, 40)); dd.text((x0 + 34, y0 + 48), 'TODAY\'S RACING', font=ImageFont.truetype(SANS, 26), fill=(250, 220, 60))
-    elif kind == 'machines':
-        for c in range(max(2, w // 80)):
-            for r in range(2):
-                cx = x0 + 45 + c * 80; cy = y0 + 60 + r * 90
-                if cx + 35 > x1: continue
-                dd.rectangle([cx - 36, cy - 40, cx + 36, cy + 40], fill=(230, 232, 235)); dd.ellipse([cx - 26, cy - 26, cx + 26, cy + 26], fill=(60, 70, 90)); dd.ellipse([cx - 18, cy - 18, cx + 18, cy + 18], fill=(110, 130, 160))
-    elif kind == 'chairs':
-        for c in range(3):
-            cx = x0 + 50 + c * (w - 100) // 2
-            dd.rectangle([cx - 25, y1 - 110, cx + 25, y1 - 60], fill=(30, 30, 32)); dd.rectangle([cx - 25, y1 - 160, cx + 25, y1 - 110], fill=(140, 20, 20))
-            dd.rectangle([cx - 30, y0 + 20, cx + 30, y0 + 90], fill=(200, 210, 220))
-    elif kind == 'whitewash':
-        img2 = np.asarray(pil).astype(np.float32); img2[y0:y1, x0:x1] = img2[y0:y1, x0:x1] * 0.15 + 205 + rng.normal(0, 12, (h, w, 1))
-        pil = Image.fromarray(np.clip(img2, 0, 255).astype(np.uint8)); dd = ImageDraw.Draw(pil)
-        dd.rectangle([x0 + w // 4, y0 + h // 4, x0 + 3 * w // 4, y0 + h // 4 + 70], fill=(220, 40, 30)); dd.text((x0 + w // 4 + 20, y0 + h // 4 + 14), 'TO LET', font=ImageFont.truetype(SANS, 36), fill=(255, 255, 255))
-    elif kind == 'clothes':
-        for c in range(3):
-            cx = x0 + 50 + c * (w - 100) // 2; col = tuple(int(v) for v in rng.integers(60, 230, 3))
-            dd.ellipse([cx - 12, y0 + 40, cx + 12, y0 + 64], fill=(210, 190, 170)); dd.polygon([(cx - 30, y0 + 70), (cx + 30, y0 + 70), (cx + 36, y0 + 190), (cx - 36, y0 + 190)], fill=col)
-    elif kind == 'shelves':
-        for r in range(4):
-            yy = y0 + 30 + r * 50; dd.rectangle([x0 + 10, yy + 34, x1 - 10, yy + 38], fill=(200, 200, 200))
-            for i in range(0, w - 30, 14): dd.rectangle([x0 + 14 + i, yy + 8 + (i % 3) * 3, x0 + 24 + i, yy + 34], fill=tuple(int(v) for v in rng.integers(60, 255, 3)))
-    elif kind == 'crammed':
-        for i in range(60):
-            px = x0 + int(rng.integers(0, w - 30)); py = y0 + int(rng.integers(0, h - 30)); s = int(rng.integers(14, 40))
-            dd.rectangle([px, py, px + s, py + s], fill=tuple(int(v) for v in rng.integers(40, 255, 3)))
-        dd.rectangle([x0 + 10, y0 + 10, x0 + 150, y0 + 60], fill=(250, 220, 40)); dd.text((x0 + 18, y0 + 18), '£1', font=ImageFont.truetype(SANS, 34), fill=(200, 20, 30))
-    elif kind == 'bread':
-        for r in range(3):
-            yy = y0 + 50 + r * 60; dd.rectangle([x0 + 10, yy + 40, x1 - 10, yy + 44], fill=(150, 110, 70))
-            for i in range(0, w - 60, 46): dd.ellipse([x0 + 16 + i, yy + 10, x0 + 56 + i, yy + 40], fill=(200, 150, 80))
-    elif kind in ('boarded',):
-        img2 = np.asarray(pil).astype(np.float32); ply = np.array([170, 140, 96], np.float32)
-        img2[y0:y1, x0:x1] = ply * (0.85 + 0.15 * rng.random((h, 1, 1))) * (0.95 + 0.05 * np.sin(np.arange(w) / 3.0))[None, :, None]
-        pil = Image.fromarray(np.clip(img2, 0, 255).astype(np.uint8)); dd = ImageDraw.Draw(pil)
-        for i in range(3): dd.line([x0 + 10, y0 + (i + 1) * h // 4, x1 - 10, y0 + (i + 1) * h // 4], fill=(120, 96, 64), width=2)
-        tag(dd, x0 + 30, y0 + h // 2, rng); posters(dd, x0 + w - 120, y0 + 20, rng)
-        agent(dd, x0 + 20, y0 + 20)
-    elif kind == 'shutter':
-        img2 = np.asarray(pil).astype(np.float32)
-        for yy in range(y0, y1): img2[yy, x0:x1] = 130 + 25 * math.sin(yy / 3.0) + rng.normal(0, 3)
-        pil = Image.fromarray(np.clip(img2, 0, 255).astype(np.uint8)); dd = ImageDraw.Draw(pil)
-        tag(dd, x0 + 40, y0 + h // 3, rng); tag(dd, x0 + w // 2, y0 + 2 * h // 3, rng); agent(dd, x0 + w - 170, y0 + 20)
-    elif kind in ('empty', 'butchers', 'available'):
-        img2 = np.asarray(pil).astype(np.float32)
-        img2[y0:y1, x0:x1] = img2[y0:y1, x0:x1] * 0.45 + (np.array([235, 235, 230]) * 0.25 if kind == 'butchers' else 8)
-        pil = Image.fromarray(np.clip(img2, 0, 255).astype(np.uint8)); dd = ImageDraw.Draw(pil)
-        if kind == 'butchers':
-            for i in range(0, w, 24): dd.line([x0 + i, y0, x0 + i, y1], fill=(170, 170, 165), width=1)
-            for i in range(0, h, 24): dd.line([x0, y0 + i, x1, y0 + i], fill=(170, 170, 165), width=1)
-        if kind == 'available':
-            dd.rectangle([x0 + 20, y0 + h // 3, x1 - 20, y0 + h // 3 + 60], fill=(250, 200, 20)); dd.text((x0 + 36, y0 + h // 3 + 12), 'AVAILABLE NOW', font=ImageFont.truetype(SANS, 30), fill=(20, 20, 20))
-        if kind == 'available': agent(dd, x1 - 170, y1 - 110)
-        else: agent(dd, x0 + 24, y0 + 24)
-        for i in range(3): dd.rectangle([x0 + 40 + i * 70, y1 - 30, x0 + 90 + i * 70, y1 - 22], fill=(200, 200, 190))   # post piled up behind the door
-    elif kind == 'closed':
-        img2 = np.asarray(pil).astype(np.float32); img2[y0:y1, x0:x1] = img2[y0:y1, x0:x1] * 0.15 + 200 + rng.normal(0, 14, (h, w, 1))
-        pil = Image.fromarray(np.clip(img2, 0, 255).astype(np.uint8)); dd = ImageDraw.Draw(pil)
-        dd.text((x0 + 30, y0 + 30), 'CLOSED', font=ImageFont.truetype(SANS, 44), fill=(160, 30, 30))
-        for i in range(3): dd.rectangle([x0 + 30 + i * 70, y0 + 110, x0 + 90 + i * 70, y0 + 190], fill=(250, 250, 245)); dd.rectangle([x0 + 36 + i * 70, y0 + 118, x0 + 84 + i * 70, y0 + 124], fill=(30, 30, 30))
-        agent(dd, x1 - 170, y1 - 110)
-    elif kind == 'kebab':
-        dd.rectangle([x0, y1 - 70, x1, y1], fill=(180, 180, 185)); dd.rectangle([x0 + 30, y0 + 70, x0 + 70, y1 - 70], fill=(150, 90, 50))
-        dd.rectangle([x0 + 20, y0 + 60, x0 + 80, y0 + 70], fill=(80, 80, 80)); dd.rectangle([x0 + 100, y0 + 20, x1 - 20, y0 + 90], fill=(20, 20, 20))
-        for r in range(4): dd.rectangle([x0 + 110, y0 + 28 + r * 15, x1 - 60, y0 + 34 + r * 15], fill=(250, 200, 60))
-    elif kind == 'pub':
-        img2 = np.asarray(pil).astype(np.float32)
-        img2[y0 + h // 2:y1, x0:x1] = img2[y0 + h // 2:y1, x0:x1] * 0.35 + np.array([170, 120, 60]) * 0.4   # warm light behind half curtains
-        pil = Image.fromarray(np.clip(img2, 0, 255).astype(np.uint8)); dd = ImageDraw.Draw(pil)
-        dd.rectangle([x0, y0 + h // 2 - 4, x1, y0 + h // 2], fill=(120, 80, 40))
-        for i in range(0, w, 10): dd.line([x0 + i, y0 + h // 2, x0 + i + 4, y1], fill=(150, 30, 30), width=3)
-    return np.asarray(pil).astype(np.float32)
+# ------------------------------------------------------------------ graffiti (4 x 4 cells of 256)
+def graffiti():
+    N = 1024; C = 256; img = Image.new('RGBA', (N, N), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    rows = [('HWY', [(220, 30, 30), (250, 250, 250), (30, 30, 30)]), ('KCR', [(40, 110, 230), (250, 250, 250), (20, 20, 20)]), ('TBL', [(240, 190, 20), (30, 30, 30), (250, 250, 250)])]
+    scrawl = ['DAZ 4 SHAZ', 'GRASSES', '5-0', 'BOMBS']
+    r = random.Random(9)
+    def tag(cx, cy, text, fill, outline, style):
+        size = 92 if len(text) <= 3 else 44
+        f = ImageFont.truetype(BOLD, size)
+        if style == 0:  # bubble letters with a fat outline and drop shadow
+            for dx, dy in [(6, 6)]: d.text((cx + dx, cy + dy), text, font=f, fill=(0, 0, 0, 160), anchor='mm', stroke_width=10, stroke_fill=(0, 0, 0, 160))
+            d.text((cx, cy), text, font=f, fill=fill + (255,), anchor='mm', stroke_width=9, stroke_fill=outline + (255,))
+        elif style == 1:  # quick tag: thin, skewed
+            t = Image.new('RGBA', (C, C), (0, 0, 0, 0)); td = ImageDraw.Draw(t)
+            td.text((C / 2, C / 2), text, font=ImageFont.truetype(BOLD, size // 2 + 10), fill=fill + (255,), anchor='mm')
+            t = t.transform((C, C), Image.AFFINE, (1, 0.35, -40, 0, 1, 0)); img.alpha_composite(t, (int(cx - C / 2), int(cy - C / 2)))
+            d.line([(cx - 80, cy + 40), (cx + 90, cy + 34)], fill=fill + (255,), width=4)
+        elif style == 2:  # drippy throw-up
+            d.text((cx, cy), text, font=f, fill=fill + (230,), anchor='mm')
+            for k in range(8):
+                x = cx + r.uniform(-80, 80); y = cy + r.uniform(10, 30); d.line([(x, y), (x, y + r.uniform(15, 55))], fill=fill + (230,), width=3)
+        else:  # crown and letters
+            d.polygon([(cx - 50, cy - 30), (cx - 30, cy - 70), (cx - 10, cy - 40), (cx + 10, cy - 75), (cx + 30, cy - 40), (cx + 50, cy - 70), (cx + 60, cy - 30)], outline=fill + (255,), width=5)
+            d.text((cx, cy + 25), text, font=ImageFont.truetype(BOLD, 64), fill=fill + (255,), anchor='mm', stroke_width=4, stroke_fill=outline + (255,))
+    for ri, (txt, (a, b, c)) in enumerate(rows):
+        for k in range(4): tag(k * C + C / 2, ri * C + C / 2, txt, a if k != 2 else c, b if k != 2 else a, k)
+    for k, s in enumerate(scrawl): tag(k * C + C / 2, 3 * C + C / 2, s, [(30, 30, 30), (200, 30, 160), (250, 250, 250), (30, 160, 60)][k], (0, 0, 0), 1 if k % 2 else 2)
+    save(img, 'graffiti.png')
 
-def tag(dd, x, y, rng):
-    """A spray-painted tag: a loopy scribble with a drip or two (no words)."""
-    col = [(30, 30, 30), (200, 30, 40), (40, 90, 200), (30, 160, 80)][int(rng.integers(4))]
-    pts = [(x + i * 9, y + int(18 * math.sin(i * 1.3 + rng.random() * 2))) for i in range(14)]
-    dd.line(pts, fill=col, width=5); dd.line([(px, py + 6) for px, py in pts[::3]], fill=col, width=3)
-    for px, py in pts[2::5]: dd.line([px, py, px, py + 18], fill=col, width=2)
+def chainlink():
+    N = 256; img = Image.new('RGBA', (N, N), (0, 0, 0, 0)); d = ImageDraw.Draw(img); s = 32
+    for k in range(-N, 2 * N, s):
+        d.line([(k, 0), (k + N, N)], fill=(70, 90, 70, 255), width=3); d.line([(k, N), (k + N, 0)], fill=(70, 90, 70, 255), width=3)
+    save(img, 'chainlink.png')
 
-def posters(dd, x, y, rng):
-    for i in range(3):
-        c = tuple(int(v) for v in rng.integers(100, 255, 3)); dd.rectangle([x, y + i * 70, x + 90, y + i * 70 + 64], fill=c)
-        dd.rectangle([x + 8, y + i * 70 + 8, x + 82, y + i * 70 + 22], fill=(20, 20, 20))
+def notice():
+    W, H = 512, 340; img = Image.new('RGB', (W, H), (150, 110, 70)); d = ImageDraw.Draw(img)
+    r = random.Random(4)
+    papers = [('RESIDENTS MEETING', 'TUES 7PM COMMUNITY ROOM'), ('LIFTS OUT OF ORDER', 'ENGINEER BOOKED'), ('NO BALL GAMES', ''), ('BINS WEDS', 'NOT IN THE LOBBY'), ('LOST CAT', 'ANSWERS TO DAVE'), ('FOOD BANK', 'ST MARY\'S HALL SAT')]
+    for i, (a, b) in enumerate(papers):
+        x, y = 20 + (i % 3) * 165, 20 + (i // 3) * 160
+        col = r.choice([(250, 250, 245), (255, 245, 170), (200, 230, 255), (255, 210, 210)])
+        d.rectangle([x, y, x + 150, y + 140], fill=col); d.ellipse([x + 70, y + 4, x + 80, y + 14], fill=(200, 30, 30))
+        d.text((x + 75, y + 50), a, font=ImageFont.truetype(BOLD, 15), fill=(20, 20, 20), anchor='mm')
+        d.text((x + 75, y + 85), b, font=ImageFont.truetype(REG, 12), fill=(40, 40, 40), anchor='mm')
+    save(img, 'notice.png')
 
-def agent(dd, x, y):
-    """The letting agent's board (made-up agent, an Ofcom drama-range number)."""
-    dd.rectangle([x, y, x + 150, y + 96], fill=(250, 250, 248)); dd.rectangle([x, y, x + 150, y + 30], fill=(200, 30, 40))
-    dd.text((x + 22, y + 3), 'TO LET', font=ImageFont.truetype(SANS, 24), fill=(255, 255, 255))
-    dd.text((x + 8, y + 40), 'WEND PROPERTY', font=ImageFont.truetype(SANS, 15), fill=(30, 30, 30))
-    dd.text((x + 8, y + 64), '01632 960 000', font=ImageFont.truetype(SANSR, 15), fill=(30, 30, 30))
-
-def shopfronts():
-    CW, CH, cols = 512, 340, 4
-    W, H = CW * cols, 2048
-    img = np.full((H, W, 3), 200, np.float32); rng = np.random.default_rng(77)
-    for i, (name, sub, fcol, tcol, kind) in enumerate(SHOPS):
-        cx, cy = (i % cols) * CW, (i // cols) * CH
-        # fascia (top 72 px): name and a smaller line under it
-        pil = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)); d = ImageDraw.Draw(pil)
-        d.rectangle([cx, cy, cx + CW - 1, cy + 71], fill=fcol)
-        if name:
-            font = ImageFont.truetype(SERIF if kind in ('pub', 'bread') else SANS, 40)
-            while d.textlength(name, font=font) > CW - 30: font = ImageFont.truetype(font.path, font.size - 2)
-            d.text((cx + (CW - d.textlength(name, font=font)) / 2, cy + 6), name, font=font, fill=tcol)
-            f2 = ImageFont.truetype(SANSR, 15); d.text((cx + (CW - d.textlength(sub, font=f2)) / 2, cy + 50), sub, font=f2, fill=tcol)
-        img = np.asarray(pil).astype(np.float32)
-        if i in FADED or not name:
-            # sun-faded, peeling, grubby: the old business's board (or a bare one)
-            band = img[cy:cy + 72, cx:cx + CW]
-            band[:] = band * 0.55 + np.array([150, 145, 135]) * 0.45
-            for _ in range(9):
-                px, py = int(rng.integers(0, CW - 60)), int(rng.integers(0, 50)); band[py:py + int(rng.integers(8, 22)), px:px + int(rng.integers(20, 70))] = (120, 105, 85)
-            band *= (0.8 + 0.2 * rng.random((72, 1, 1)))
-        # below: stallriser, shop window on the left two thirds, glazed door on the right
-        y0 = cy + 72; frame = np.array([60, 60, 64], np.float32) if kind != 'pub' else np.array([30, 60, 40], np.float32)
-        img[y0:cy + CH, cx:cx + CW] = frame
-        wx0, wx1, wy0, wy1 = cx + 12, cx + int(CW * 0.66), y0 + 10, cy + CH - 52
-        img[cy + CH - 46:cy + CH, cx:cx + CW] = frame * 0.8 + 20   # stallriser
-        img = window_fill(None, img, wx0, wy0, wx1, wy1, kind, rng)
-        dx0, dx1 = cx + int(CW * 0.70), cx + CW - 14
-        img[wy0:cy + CH, dx0:dx1] = frame * 1.3
-        img[wy0 + 12:cy + CH - 140, dx0 + 12:dx1 - 12] = glass(dx1 - dx0 - 24, cy + CH - 140 - wy0 - 12, i)
-        img[cy + CH - 120:cy + CH - 112, dx1 - 30:dx1 - 16] = (200, 190, 150)
-    Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).save(os.path.join(OUT, 'shopfronts.png'))
-
-def pub_tiles():
-    N = 512; img = Image.new('RGB', (N, N), (24, 80, 52)); d = ImageDraw.Draw(img)
-    for y in range(0, N, 64):
-        for x in range(0, N, 32):
-            c = (24 + (x * 7 + y) % 12, 84 + (x + y * 3) % 18, 54 + (x * 3) % 10); d.rectangle([x + 1, y + 1, x + 30, y + 62], fill=c)
-            d.line([x + 4, y + 4, x + 4, y + 58], fill=(70, 140, 100), width=2)
-    d.rectangle([0, N - 70, N, N], fill=(12, 34, 24)); d.rectangle([0, N - 76, N, N - 70], fill=(180, 150, 80))
-    img.save(os.path.join(OUT, 'pub_tiles.png'))
-
-def pub_sign():
-    W, H = 512, 640; img = Image.new('RGB', (W, H), (26, 50, 36)); d = ImageDraw.Draw(img)
-    d.rectangle([12, 12, W - 13, H - 13], outline=(200, 160, 70), width=10)
-    d.rectangle([40, 40, W - 41, 470], fill=(140, 180, 210))   # sky
-    d.rectangle([40, 360, W - 41, 470], fill=(70, 120, 60))    # grass
-    # the duck: body, neck, head, beak, eye, wing, and the egg it's very proud of
-    d.ellipse([110, 250, 360, 400], fill=(250, 250, 245)); d.ellipse([290, 150, 390, 250], fill=(250, 250, 245)); d.rectangle([300, 210, 350, 300], fill=(250, 250, 245))
-    d.polygon([(385, 195), (450, 205), (385, 222)], fill=(240, 150, 30)); d.ellipse([348, 178, 362, 192], fill=(20, 20, 20))
-    d.chord([150, 270, 300, 370], 180, 360, fill=(225, 225, 220)); d.ellipse([90, 360, 160, 450], fill=(245, 236, 210)); d.ellipse([110, 380, 125, 395], fill=(255, 255, 250))
-    f = ImageFont.truetype(SERIF, 64); t = 'THE EGGY'; d.text(((W - d.textlength(t, font=f)) / 2, 488), t, font=f, fill=(226, 190, 100))
-    t = 'DUCK'; d.text(((W - d.textlength(t, font=f)) / 2, 556), t, font=f, fill=(226, 190, 100))
-    img.save(os.path.join(OUT, 'pub_sign.png'))
-
-red_brick(); sash(); shopfronts(); pub_tiles(); pub_sign(); print('town textures done')
+signal_lamps(); signs(); tower_windows()
+brick('brown_brick', [[112, 62, 44], [98, 54, 38], [124, 70, 48], [88, 50, 36], [132, 80, 56], [104, 60, 46], [80, 46, 34]], [150, 140, 125])
+pebbledash(); water(); reeds(); graffiti(); chainlink(); notice()

@@ -51,13 +51,15 @@ namespace ASBO.Slice
             {
                 var data = cam.GetComponent<UniversalAdditionalCameraData>() ?? cam.gameObject.AddComponent<UniversalAdditionalCameraData>();
                 data.renderPostProcessing = true;
-                data.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
+                // phones already smooth edges with MSAA in the render settings, so no second (FXAA) pass on top
+                data.antialiasing = Application.isMobilePlatform ? AntialiasingMode.None : AntialiasingMode.FastApproximateAntialiasing;
             }
             var go = new GameObject("PostFX"); go.transform.SetParent(root, false);
             var vol = go.AddComponent<Volume>(); vol.isGlobal = true; vol.priority = 10;
             var prof = ScriptableObject.CreateInstance<VolumeProfile>();
             var tm = prof.Add<Tonemapping>(true); tm.mode.Override(TonemappingMode.ACES);
-            var bl = prof.Add<Bloom>(true); bl.intensity.Override(0.35f); bl.threshold.Override(1.05f); bl.scatter.Override(0.6f); bl.highQualityFiltering.Override(false);
+            // bloom: phones render without HDR, so nothing is bright enough to bloom; it would only cost several blur passes
+            { var bl = prof.Add<Bloom>(true); bl.intensity.Override(Application.isMobilePlatform ? 0f : 0.35f); bl.threshold.Override(1.05f); bl.scatter.Override(0.6f); bl.highQualityFiltering.Override(false); } // 0 also overrides the scene's own volume
             var ca = prof.Add<ColorAdjustments>(true); ca.postExposure.Override(0.35f); ca.contrast.Override(12f); ca.saturation.Override(8f);
             var wb = prof.Add<WhiteBalance>(true); wb.temperature.Override(6f);
             var vg = prof.Add<Vignette>(true); vg.intensity.Override(0.18f); vg.smoothness.Override(0.5f);

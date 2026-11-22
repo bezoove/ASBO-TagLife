@@ -16,7 +16,7 @@ namespace ASBO.EditorTools
     public static class ASBOMixamo
     {
         public const string Dir = "Assets/Mixamo/XBot";
-        static string F(string n) => $"{Dir}/X Bot@{n}.fbx";
+        public static string F(string n) => $"{Dir}/X Bot@{n}.fbx";
 
         // which clips loop, and what each file is cut into (name, from s, to s, loop); null range = whole take
         static readonly Dictionary<string, (string name, float a, float b, bool loop)[]> Cuts = new Dictionary<string, (string, float, float, bool)[]>
@@ -275,7 +275,18 @@ namespace ASBO.EditorTools
             Cut("Falling Down", "MX_FallDown", -1f, -1f, false);
             Cut("Zombie Stand Up", "MX_StandUp", -1f, -1f, false);
             Cut("Walk Backwards", "MX_WalkBack", -1f, -1f, true);
+            Cut("Honking Horn", "MX_Drive", 3.0f, 4.3f, true); // sat at the wheel, hands on it (between the toots)
             Drop("Uppercut", "MX_Uppercut"); // the whole take again under another name: Unity refuses the copy (now cut as a Hay version)
+            // cuts left in a file from an older list of takes (a take moved to another file keeps its old copy here,
+            // and Unity drops the newer cut if it's the same stretch of the same take): out they go
+            foreach (var file in ASBO.Slice.FightSet.Takes.Select(t => t.file).Distinct())
+            {
+                var mi = (ModelImporter)AssetImporter.GetAtPath(F(file)); if (mi == null) continue;
+                var stale = mi.clipAnimations.Where(x => x.name.StartsWith("MXF_") && !Enumerable.Range(0, ASBO.Slice.FightSet.Takes.Length).Any(k => ASBO.Slice.FightSet.Takes[k].file == file && FightClipName(k) == x.name)).Select(x => x.name).ToList();
+                if (stale.Count == 0) continue;
+                mi.clipAnimations = mi.clipAnimations.Where(x => !stale.Contains(x.name)).ToArray(); mi.SaveAndReimport();
+                Debug.Log($"[ASBO] mixamo: dropped old cuts from {file}: {string.Join(", ", stale)}");
+            }
             // every version of every fight move and hit reaction (FightSet.Takes): cut round the blow
             for (int k = 0; k < ASBO.Slice.FightSet.Takes.Length; k++) { var t = ASBO.Slice.FightSet.Takes[k]; if (File.Exists(F(t.file))) Cut(t.file, FightClipName(k), t.a, t.b, false); }
             cache = null;

@@ -40,7 +40,7 @@ namespace ASBO.Slice
             {
                 // no saved scene: build the static world procedurally (fallback / sandbox)
                 Look.Apply(Root);
-                GameAudio.Create(Root); Perf.Create(Root); Social.Create(Root); GameClock.Create(Root); Tag.Create(Root);
+                GameAudio.Create(Root); Perf.Create(Root); Social.Create(Root); GameClock.Create(Root); Tag.Create(Root); LightBudget.Create(Root);
                 BuildGround(Root); BuildStatic(Root);
                 Physics.SyncTransforms();
                 Dressing.Place(Root);
@@ -50,7 +50,7 @@ namespace ASBO.Slice
             {
                 // the Abbots Wend scene holds the static world (prefabs, terrain, baked lighting, baked NavMesh)
                 Look.ApplyPost(Root);
-                GameAudio.Create(Root); Perf.Create(Root); Social.Create(Root); GameClock.Create(Root); Tag.Create(Root);
+                GameAudio.Create(Root); Perf.Create(Root); Social.Create(Root); GameClock.Create(Root); Tag.Create(Root); LightBudget.Create(Root);
                 Estate.Attach(); TudorManor.Attach();
                 Dressing.Place(Root);
                 Nav.UseBaked();
@@ -200,9 +200,11 @@ namespace ASBO.Slice
         string hud1 = "", hud3 = ""; float hudT;
         static Fighter pfCache;
         static Fighter PlayerFighter { get { if (pfCache == null) { var pc = FindFirstObjectByType<PlayerCtl>(); if (pc != null) pfCache = pc.GetComponent<Fighter>(); } return pfCache; } }
+        string cashText; float cashShown = float.NaN;
+        void Awake() { useGUILayout = false; }
         void OnGUI()
         {
-            if (Event.current.type == EventType.Repaint)
+            if (Event.current.type != EventType.Repaint) return; // labels only: no layout or input passes needed
             {
                 if (fadeHoldUntil > 0f && Time.unscaledTime > fadeHoldUntil) { fadeTarget = 0f; fadeHoldUntil = -1f; }
                 fade = Mathf.MoveTowards(fade, fadeTarget, fadeSpeed * Time.unscaledDeltaTime);
@@ -232,7 +234,7 @@ namespace ASBO.Slice
             }
             // money, top left
             cashStyle ??= new GUIStyle(GUI.skin.label) { fontSize = Mathf.Max(18, Screen.height / 30), fontStyle = FontStyle.Bold };
-            { var cr = new Rect(14, Mathf.Max(Screen.height * 0.075f, 76f), 300, cashStyle.fontSize * 1.5f); /* below the debug lines */ cashStyle.normal.textColor = new Color(0, 0, 0, 0.7f); GUI.Label(new Rect(cr.x + 2, cr.y + 2, cr.width, cr.height), Econ.Fmt(Econ.Cash), cashStyle); cashStyle.normal.textColor = new Color(1f, 0.93f, 0.7f); GUI.Label(cr, Econ.Fmt(Econ.Cash), cashStyle);
+            { var cr = new Rect(14, Mathf.Max(Screen.height * 0.075f, 76f), 300, cashStyle.fontSize * 1.5f); /* below the debug lines */ cashStyle.normal.textColor = new Color(0, 0, 0, 0.7f); if (cashShown != Econ.Cash || cashText == null) { cashShown = Econ.Cash; cashText = Econ.Fmt(Econ.Cash); } GUI.Label(new Rect(cr.x + 2, cr.y + 2, cr.width, cr.height), cashText, cashStyle); cashStyle.normal.textColor = new Color(1f, 0.93f, 0.7f); GUI.Label(cr, cashText, cashStyle);
               var tr = new Rect(16, cr.yMax - 4, 300, cashStyle.fontSize * 1.2f); int fs = cashStyle.fontSize; cashStyle.fontSize = Mathf.RoundToInt(fs * 0.62f);
               cashStyle.normal.textColor = new Color(0, 0, 0, 0.7f); GUI.Label(new Rect(tr.x + 2, tr.y + 2, tr.width, tr.height), GameClock.Text, cashStyle); cashStyle.normal.textColor = new Color(0.85f, 0.9f, 1f); GUI.Label(tr, GameClock.Text, cashStyle); cashStyle.fontSize = fs; }
             // the tag: how close to the edge, or the violation

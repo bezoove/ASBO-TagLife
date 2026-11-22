@@ -160,7 +160,7 @@ namespace ASBO.EditorTools
             // the first version of each move (MoCap Central / Kevin Iglesias): clip, play speed, when it lands and when you can go again (s at that speed), how close the bodies are
             var old = new (string trig, AnimationClip c, float speed, float imp, float dur, float contact)[] {
                 ("Punch", KOClip("ASBO_Punch"), 2.1f, 0.29f, 0.40f, 0.85f), ("Cross", KOClip("ASBO_Cross"), 1.6f, 0.21f, 0.42f, 0.88f), ("Hook", KOClip("ASBO_Hook"), 1.9f, 0.27f, 0.51f, 0.80f),
-                ("Body", KOClip("ASBO_Body"), 1.55f, 0.14f, 0.39f, 0.75f), ("Hay", KOClip("ASBO_Over"), 1.7f, 0.36f, 0.62f, 0.85f), ("Kick", KOClip("ASBO_Kick"), 1.8f, 0.50f, 0.69f, 1.05f),
+                ("Body", KOClip("ASBO_Body"), 1.55f, 0.14f, 0.39f, 0.75f), ("Hay", (AnimationClip)null, 1.7f, 0.36f, 0.62f, 0.85f), ("Kick", KOClip("ASBO_Kick"), 1.8f, 0.50f, 0.69f, 1.05f),
                 ("Shove", AnyClip(KevBase + "Male/Combat/Shield/HumanM@AttackShield01.fbx"), 1.5f, 0.26f, 0.60f, 0.80f),
                 ("Struck", AnyClip(KevBase + "Male/Combat/HumanM@CombatDamage01.fbx"), 1.4f, 0f, 0f, 0f), ("StruckBody", KOClip("ASBO_Buckle"), 1.5f, 0f, 0f, 0f) };
             var vars = new List<ASBO.Slice.FightSet.Var>();
@@ -308,7 +308,7 @@ namespace ASBO.EditorTools
             if (File.Exists(ctrlPath)) AssetDatabase.DeleteAsset(ctrlPath);
             var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
             foreach (var n in new[] { "MoveX", "MoveZ", "Variant", "Gait", "IdleVar" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
-            foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
+            foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded", "Seated" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
             foreach (var n in new[] { "Jump", "TurnL", "TurnR" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
             var sm = ac.layers[0].stateMachine;
 
@@ -396,6 +396,15 @@ namespace ASBO.EditorTools
                 var a = move.AddTransition(st); a.AddCondition(AnimatorConditionMode.If, 0, nm); a.hasExitTime = false; a.duration = 0.35f;
                 var b = st.AddTransition(move); b.AddCondition(AnimatorConditionMode.IfNot, 0, nm); b.hasExitTime = false; b.duration = 0.35f;
             }
+            // sat at the wheel of a car (Mixamo's driver, between toots of the horn)
+            var driveClip = ASBOMixamo.ClipFrom("Honking Horn", "MX_Drive");
+            if (driveClip != null)
+            {
+                var ds = St("Drive", driveClip, new Vector3(300, 380));
+                var a = sm.AddAnyStateTransition(ds); a.AddCondition(AnimatorConditionMode.If, 0, "Seated"); a.hasExitTime = false; a.duration = 0.2f; a.canTransitionToSelf = false;
+                var b = ds.AddTransition(move); b.AddCondition(AnimatorConditionMode.IfNot, 0, "Seated"); b.hasExitTime = false; b.duration = 0.25f;
+            }
+            else Debug.LogWarning("[ASBO] no MX_Drive clip (ASBO/Mixamo/2 Cut Clips)");
             // Foot IK on every state: feet go back to where the original mocap put them (fixes wide stance after retargeting onto UMA)
             foreach (var cs in sm.states) cs.state.iKOnFeet = ik;
             if (ik) { var ls = ac.layers; ls[0].iKPass = true; ac.layers = ls; } // ground-aware feet (FootGround.OnAnimatorIK)

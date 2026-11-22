@@ -32,6 +32,7 @@ namespace ASBO.EditorTools
         {
             ASBOSurfaces.ImportAndMake();
             Materials();
+            ASBOTown.Materials();
             var scene = EditorSceneManager.GetActiveScene();
             if (scene.path != TestScene) scene = EditorSceneManager.OpenScene(TestScene, OpenSceneMode.Single);
             var world = Object.FindFirstObjectByType<BakedWorld>();
@@ -42,9 +43,10 @@ namespace ASBO.EditorTools
             var oldHigh = world.transform.Find(HighStreet.RootName); if (oldHigh != null) Object.DestroyImmediate(oldHigh.gameObject);
             var oldCasino = world.transform.Find(CasinoHall.RootName); if (oldCasino != null) Object.DestroyImmediate(oldCasino.gameObject);
             var oldManor = world.transform.Find(TudorManor.RootName); if (oldManor != null) Object.DestroyImmediate(oldManor.gameObject);
+            foreach (var n in new[] { Roads.RootName, River.RootName, Estates.RootName }) { var o = world.transform.Find(n); if (o != null) Object.DestroyImmediate(o.gameObject); }
             CasinoMaterials();
             var terrain = Object.FindFirstObjectByType<Terrain>();
-            if (terrain != null) Ground(terrain);
+            if (terrain != null) { ASBOTown.Deepen(terrain); Ground(terrain); ASBOTown.Ground(terrain); }
             var root = CouncilEstate.Build(world.transform);
             if (root == null) return;
             var site = ConstructionSite.Build(world.transform);
@@ -52,17 +54,23 @@ namespace ASBO.EditorTools
             var high = HighStreet.Build(world.transform);
             var casino = CasinoHall.Build(world.transform);
             var manor = TudorManor.Build(world.transform);
+            var roads = Roads.Build(world.transform);
+            var river = River.Build(world.transform); ASBOTown.RiverNav(river);
+            var estates = Estates.Build(world.transform);
+            if (estates != null) SaveMeshes(estates, "Assets/Art/Generated/Estates");
+            if (roads != null) SaveMeshes(roads, "Assets/Art/Generated/Roads");
+            if (river != null) SaveMeshes(river, "Assets/Art/Generated/River");
             SaveMeshes(root, MeshDir);
             if (manor != null) SaveMeshes(manor, "Assets/Art/Generated/Manor");
             if (site != null) SaveMeshes(site, SiteMeshes);
             if (castle != null) SaveMeshes(castle, "Assets/Art/Generated/Castle");
             if (high != null) SaveMeshes(high, "Assets/Art/Generated/HighStreet");
             if (casino != null) SaveMeshes(casino, "Assets/Art/Generated/Casino");
-            var built = new List<Transform> { root }; if (site != null) built.Add(site); if (castle != null) built.Add(castle); if (high != null) built.Add(high); if (casino != null) built.Add(casino); if (manor != null) built.Add(manor);
+            var built = new List<Transform> { root }; if (roads != null) built.Add(roads); if (river != null) built.Add(river); if (estates != null) built.Add(estates); if (site != null) built.Add(site); if (castle != null) built.Add(castle); if (high != null) built.Add(high); if (casino != null) built.Add(casino); if (manor != null) built.Add(manor);
             foreach (var t in built)
                 foreach (var r in t.GetComponentsInChildren<MeshRenderer>(true))
                 {
-                    bool moves = r.GetComponentInParent<Transform>() != null && r.transform.parent != null && r.transform.parent.name == "CraneTop";
+                    bool moves = r.GetComponentInParent<Transform>() != null && r.transform.parent != null && r.transform.parent.name == "CraneTop" || r.name.StartsWith("Live"); // "Live": lit at runtime (traffic lights)
                     GameObjectUtility.SetStaticEditorFlags(r.gameObject, moves ? 0 : StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic | StaticEditorFlags.ReflectionProbeStatic);
                     r.receiveGI = ReceiveGI.LightProbes; r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.BlendProbes;
                 }
@@ -78,6 +86,7 @@ namespace ASBO.EditorTools
                 AssetDatabase.CreateAsset(surf.navMeshData, navPath);
                 EditorUtility.SetDirty(surf);
             }
+            ASBOOptimize.Run(true); // shadows, mesh LODs, occlusion culling: kept up with every rebuild
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();

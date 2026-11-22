@@ -393,8 +393,12 @@ namespace ASBO.Slice
                 if (GameAudio.I != null && (M.heavy || dmg > 12f || Random.value < 0.35f)) GameAudio.I.Pain(at, p.male, 0.06f);
                 if (Gore.Level > 0 && (M.heavy || Random.value < 0.2f)) Gore.Burst(at, -toMe + Vector3.up * 0.5f, M.heavy ? 18 : 6);
             }
+            // winding up your big punch: you ride the blow (less damage, no flinch) and the swing carries on through
+            bool armoured = p.isPlayer && !blocked && mode == Mode.Atk && MV[(int)cur].heavy && t < curImp + 0.05f;
+            if (armoured) dmg *= 0.55f;
             hp = Mathf.Max(0f, hp - dmg);
             OnHit?.Invoke(from, this, dmg);
+            if (armoured && hp > 0f) { if (p.isPlayer) Session.Feel(0.05f, 0.04f); return; }
             if (p.isPlayer && !blocked && head) { if (M.heavy || dmg > 14f) Social.Mark("eye", 420f); else if (Random.value < 0.3f) Social.Mark(Random.value < 0.4f ? "lip" : Random.value < 0.5f ? "nose" : "brow", 240f); } // people notice
             MoveBy(toMe * M.knock * (blocked ? 0.3f : 1f) * 0.5f);
             if (p.isPlayer || (from != null && from.p != null && from.p.isPlayer)) Session.Feel(blocked ? 0f : M.heavy ? 0.09f : 0.05f, blocked ? 0.015f : 0.03f + Mathf.Clamp01(dmg / 12f) * 0.05f);

@@ -44,7 +44,7 @@ namespace ASBO.Slice
             {
                 t.heightmapPixelError = 8f; t.basemapDistance = 70f;
                 t.detailObjectDistance = 45f; t.detailObjectDensity = 0.6f; t.treeBillboardDistance = 70f; t.treeDistance = 400f;
-                t.shadowCastingMode = ShadowCastingMode.Off;
+                t.shadowCastingMode = ShadowCastingMode.Off; t.drawInstanced = true;
             }
             var cam = Camera.main; if (cam != null) cam.farClipPlane = Mathf.Min(cam.farClipPlane, 380f);
             QualitySettings.lodBias = 0.7f;

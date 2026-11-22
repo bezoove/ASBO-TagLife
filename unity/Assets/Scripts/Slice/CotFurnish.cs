@@ -196,7 +196,7 @@ namespace ASBO.Slice
                                 for (float td = R.d0 + 1.7f; td < R.d1 - 3.3f; td += 2.6f)
                                 {
                                     var tp = new Vector3(tx + (float)trng.NextDouble() * 0.5f, rm.y + (rm.lv == 0 ? 0.04f : 0f), td + (float)trng.NextDouble() * 0.4f);
-                                    if (FireNear(rm, tp, 1.4f)) continue;
+                                    if (FireNear(rm, tp, 1.4f) || DoorNear(rm, tp, 1.6f)) continue;
                                     float yaw = (float)trng.NextDouble() * 20f - 10f;
                                     furn.Push(tp, yaw); deco.Push(tp, yaw); PubTable(trng.Next(3)); furn.Pop(); deco.Pop();
                                 }
@@ -505,6 +505,18 @@ namespace ASBO.Slice
             furn.Box(CotMats.oak, new Vector3(-0.85f, 0f, -0.27f), new Vector3(0.85f, 1.25f, -0.2f));
             foreach (float x in new[] { -0.85f, 0.81f }) furn.Box(CotMats.oak, new Vector3(x, 0f, -0.27f), new Vector3(x + 0.04f, 0.75f, 0.25f));
             deco.Box(CotMats.cushion, new Vector3(-0.8f, 0.47f, -0.2f), new Vector3(0.8f, 0.53f, 0.22f));
+        }
+
+        /// <summary>Is p within r of a doorway on this floor (tables and chairs keep the way through clear)?</summary>
+        bool DoorNear(CRoom rm, Vector3 p, float r)
+        {
+            foreach (var D in P.doors)
+            {
+                if (D.lv != rm.lv) continue;
+                Vector3 c = D.line == "X" ? new Vector3(D.at, 0, (D.a + D.b) * 0.5f) : new Vector3((D.a + D.b) * 0.5f, 0, D.at);
+                if (new Vector2(p.x - c.x, p.z - c.z).sqrMagnitude < r * r) return true;
+            }
+            return false;
         }
 
         bool FireNear(CRoom rm, Vector3 p, float r)

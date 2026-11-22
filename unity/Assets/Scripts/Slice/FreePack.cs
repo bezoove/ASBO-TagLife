@@ -117,6 +117,9 @@ namespace ASBO.Slice
             // hair, clothes), 1024 square at full size. Forty-odd people at that was gigabytes of graphics memory, which brought even
             // the laptop down to single figures; a quarter size is plenty for someone across the street (the player gets half)
             dca.AtlasResolutionScale = isPlayer ? 0.5f : 0.25f;
+            // fewer triangles the further off they are (each person is ~55,000 at full detail): UMA's own LOD levels, chosen
+            // by distance without rebuilding the character (no texture resizing, no slot swapping)
+            // (added once the character exists: see CharacterCreated below; added earlier it threw on enable)
             bool stock = PlayerPrefs.GetInt("asbo_stock", 0) == 1; // before/after comparison: UMA defaults, no foot IK
             string k = (isMale ? "M" : "F") + (stock ? "_Stock" : p != null && p.drunk && isMale ? "_Drunk" : PlayerPrefs.GetInt("asbo_sa", 1) == 1 ? "_SA" : "");
             if (!ctrls.TryGetValue(k, out var ctrl)) { ctrl = Resources.Load<RuntimeAnimatorController>("Anim/Loco" + k); if (ctrl == null && k.EndsWith("_Drunk")) ctrl = Resources.Load<RuntimeAnimatorController>("Anim/LocoM_SA"); ctrls[k] = ctrl; }
@@ -270,6 +273,13 @@ namespace ASBO.Slice
                 if (a != null && a.GetComponent<FootGround>() == null) a.gameObject.AddComponent<FootGround>().Bind(a);
                 TintHair(d, hairCol);
                 TintOverlays(d, tints); // rebuilds the textures once with the garment colours
+                if (!isPlayer && d.GetComponent<UMA.Examples.UMASimpleLOD>() == null)
+                {
+                    var lod = d.gameObject.AddComponent<UMA.Examples.UMASimpleLOD>();
+                    lod.useInternalMeshLOD = true; lod.swapSlots = false; lod.useSlotDropping = false; lod.useTextureResize = false;
+                    lod.lodDistance = Application.isMobilePlatform ? 6f : 9f; lod.distanceMultiplier = 2f; lod.maxLOD = 4;
+                    lod.MinCheck = 0.6f; lod.CheckRange = 0.4f;
+                }
                 onReady?.Invoke(d);
             });
             if (dca.CharacterUpdated == null) dca.CharacterUpdated = new UMADataEvent();

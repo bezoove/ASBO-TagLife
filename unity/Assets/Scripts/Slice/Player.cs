@@ -32,7 +32,9 @@ namespace ASBO.Slice
             car = c;
             rcc = FindFirstObjectByType<RccVehicle>();
             cc = gameObject.AddComponent<CharacterController>();
-            cc.height = 1.76f; cc.radius = 0.28f; cc.center = new Vector3(0, 0.89f, 0); cc.stepOffset = 0.35f; cc.slopeLimit = 50f; cc.skinWidth = 0.03f;
+            // the collision capsule stops short of the top of the head: old cottage and pub doorways are under 2 m and their
+            // floors sit a little proud, so a full-height capsule caught the lintels and you couldn't get through
+            cc.height = 1.6f; cc.radius = 0.28f; cc.center = new Vector3(0, 0.81f, 0); cc.stepOffset = 0.35f; cc.slopeLimit = 50f; cc.skinWidth = 0.03f;
             person = GetComponent<Person>();
             if (FreePackTest.On) sp = UmaBody.Speeds(true);
             else sp = new LocoSpeeds { walk = 1.55f, run = 3.95f, sprint = 5.0f };
@@ -124,10 +126,14 @@ namespace ASBO.Slice
             }
             if (inCar && VehT != null)
             {
-                transform.position = VehT.position + Vector3.up * 0.2f; transform.rotation = VehT.rotation;
-                // stay hidden while driving (the character system can switch renderers back on when it rebuilds)
-                if (hidden == null) hidden = GetComponentsInChildren<Renderer>(true);
-                foreach (var r in hidden) if (r != null && r.enabled) r.enabled = false;
+                if (seated) Sit();
+                else
+                {
+                    transform.position = VehT.position + Vector3.up * 0.2f; transform.rotation = VehT.rotation;
+                    // stay hidden while driving (the character system can switch renderers back on when it rebuilds)
+                    if (hidden == null) hidden = GetComponentsInChildren<Renderer>(true);
+                    foreach (var r in hidden) if (r != null && r.enabled) r.enabled = false;
+                }
             }
             else if (person != null && person.state != Person.State.Walking) { vel = Vector3.zero; bodyYaw = transform.eulerAngles.y; } // floored: wait to get up
             else
@@ -297,7 +303,11 @@ namespace ASBO.Slice
                 PCar.Door(1f); Vector3 to = (PCar.ExitPoint - transform.position).WithY(0); if (to.sqrMagnitude > 0.04f) bodyYaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
                 yield return new WaitForSeconds(0.32f);
             }
-            inCar = true; cc.enabled = false; SetVisible(false);
+            inCar = true; cc.enabled = false;
+            // you at the wheel: your own body sat in the driver's seat, hands on the wheel (cars without a seat: out of sight)
+            seated = PCar != null && person != null && person.anim != null && HasParam(person.anim, "Seated");
+            if (seated) { person.SetMove(Vector2.zero); person.anim.SetBool("Seated", true); fg ??= GetComponentInChildren<FootGround>(); if (fg != null) fg.off = true; Sit(); }
+            else SetVisible(false);
             if (PCar != null) PCar.driven = true;
             else if (rcc != null && rcc.Car != null) { RCCP.RegisterPlayerVehicle(rcc.Car, true, true); rcc.driven = true; }
             else if (car != null) car.occupied = true;
@@ -316,6 +326,7 @@ namespace ASBO.Slice
             float spd = VehSpeed; Vector3 carVel = VehVel;
             if (PCar != null) { PCar.Door(1f); yield return new WaitForSeconds(spd > 2.5f ? 0.14f : 0.3f); spd = VehSpeed; carVel = VehVel; }
             inCar = false;
+            if (seated) { seated = false; if (person != null && person.anim != null) person.anim.SetBool("Seated", false); fg ??= GetComponentInChildren<FootGround>(); if (fg != null) { fg.off = false; fg.sat = false; } }
             Vector3 exit;
             if (PCar != null) { PCar.driven = false; TouchCar.Clear(); exit = PCar.ExitPoint; }
             else if (rcc != null && rcc.Car != null) { rcc.driven = false; RCCP.SetControl(rcc.Car, false); RCCP.DeRegisterPlayerVehicle(); exit = vt.position - vt.right * 1.9f; }
@@ -333,6 +344,19 @@ namespace ASBO.Slice
             if (PCar != null) { yield return new WaitForSeconds(spd > 2.5f ? 0.9f : 0.55f); PCar.Door(0f); }
             doorBusy = false;
         }
+
+        bool seated;
+        static bool HasParam(Animator a, string n) { foreach (var p in a.parameters) if (p.name == n) return true; return false; }
+        /// <summary>Into the driver's seat (every frame, and again after the animation so the pose's own drift can't move you).</summary>
+        void Sit()
+        {
+            if (PCar == null || !PCar.Seat(out var root, out var hips, out var fl, out var fr, out var hl, out var hr, out var q)) return;
+            transform.SetPositionAndRotation(root, q); bodyYaw = q.eulerAngles.y;
+            fg ??= GetComponentInChildren<FootGround>();
+            if (fg != null) { fg.sat = true; fg.satBody = hips; fg.satFootL = fl; fg.satFootR = fr; fg.satHandL = hl; fg.satHandR = hr; fg.satRot = q; }
+        }
+        FootGround fg;
+        void LateUpdate() { if (inCar && seated) Sit(); }
 
         /// <summary>How far behind the car the camera sits: the same at every speed. The custom view setting will change it (saved).</summary>
         public static float CarView

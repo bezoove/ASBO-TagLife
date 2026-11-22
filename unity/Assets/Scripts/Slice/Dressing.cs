@@ -32,6 +32,7 @@ namespace ASBO.Slice
             Outcrop(new Vector3(-92f, 0f, -60f), 0.8f);
             Debug.Log($"[ASBO] dressing: {root.childCount} pieces placed");
             CouncilEstate.Dress(parent);
+            Estates.Dress(parent); // cars in the new estates' car parks
             CraneSlew.Attach();
             Crows.Attach();
         }

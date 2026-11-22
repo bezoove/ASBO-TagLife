@@ -13,6 +13,11 @@ namespace ASBO.Slice
     public class FootGround : MonoBehaviour
     {
         public float rayUp = 0.55f, rayDown = 0.75f, maxDrop = 0.32f;
+        /// <summary>Sat down (in a car): leave the feet where the pose puts them.</summary>
+        public bool off;
+        /// <summary>Sat in a car's seat: where the body, feet and hands go (world space; set every frame by whoever sat us down).</summary>
+        public bool sat; public Vector3 satBody, satFootL, satFootR, satHandL, satHandR; public Quaternion satRot = Quaternion.identity;
+        void Goal(AvatarIKGoal g, Vector3 p, float w, float rw) { anim.SetIKPositionWeight(g, w); anim.SetIKPosition(g, p); anim.SetIKRotationWeight(g, rw); if (rw > 0f) anim.SetIKRotation(g, satRot * Quaternion.Euler(-25f, 0f, 0f)); }
         public float lift = 0.025f; // stand a touch taller than the clips: straighter legs, less of a crouch
         float rootFix;
         const int Mask = ~((1 << 2) | (1 << 31) | (1 << 28) | (1 << 29)); // not cars or ragdolls
@@ -73,7 +78,15 @@ namespace ASBO.Slice
 
         void OnAnimatorIK(int layer)
         {
-            if (anim == null || !anim.enabled || !anim.isHuman || layer != 0) return;
+            if (sat && anim != null && anim.isHuman && layer == 0)
+            {
+                // sat in a car: hips down on the seat, feet out on the pedals, hands on the wheel
+                anim.bodyPosition = satBody;
+                Goal(AvatarIKGoal.LeftFoot, satFootL, 1f, 0.6f); Goal(AvatarIKGoal.RightFoot, satFootR, 1f, 0.6f);
+                Goal(AvatarIKGoal.LeftHand, satHandL, 0.9f, 0f); Goal(AvatarIKGoal.RightHand, satHandR, 0.9f, 0f);
+                return;
+            }
+            if (off || anim == null || !anim.enabled || !anim.isHuman || layer != 0) return;
             float k = 1f - Mathf.Exp(-16f * Time.deltaTime);
             bool lok = Probe(AvatarIKGoal.LeftFoot, anim.leftFeetBottomHeight, out var lp, out var lr, out var lo);
             bool rok = Probe(AvatarIKGoal.RightFoot, anim.rightFeetBottomHeight, out var rp, out var rr, out var ro);

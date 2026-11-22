@@ -139,6 +139,7 @@ namespace ASBO.Slice
         {
             yield return null; // RCC may put the car on its own layers when it starts: the body goes back on ours (ragdolls pass through, ground probes skip it)
             foreach (var t in vis.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = Person.VehicleLayer;
+            CarRig.FixDebris(gameObject);
             // and drawn smoothly between physics steps (without it the car judders against the camera, worse the faster it goes)
             if (rb != null) { if (rb.interpolation != RigidbodyInterpolation.Interpolate) Debug.Log("[ASBO] RCC car had interpolation " + rb.interpolation + ": put back"); rb.interpolation = RigidbodyInterpolation.Interpolate; }
             yield return new WaitForSeconds(0.5f);
@@ -429,6 +430,22 @@ namespace ASBO.Slice
             if (doorLooked || vis == null) return; doorLooked = true;
             foreach (var t in vis.GetComponentsInChildren<Transform>(true))
                 if (t.name.StartsWith("DoorHinge")) { doorHinge = t; var bits = t.name.Split('|'); if (bits.Length > 1) float.TryParse(bits[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out doorLen); break; }
+        }
+        /// <summary>
+        /// The driver's seat for the player's own body: where the hips go, the feet on the pedals and the hands on the
+        /// wheel (world space), and which way the car faces. The body is sat there by IK (a car seat is lower and laid
+        /// back further than the chair the animation was made on).
+        /// </summary>
+        public bool Seat(out Vector3 root, out Vector3 hips, out Vector3 footL, out Vector3 footR, out Vector3 handL, out Vector3 handR, out Quaternion rot)
+        {
+            root = hips = footL = footR = handL = handR = default; rot = transform.rotation; if (vis == null || spec == null) return false;
+            var m = spec.m; var h = Driver.HipLocal(m); float floor = m.floor > 0.2f ? m.floor : 0.36f;
+            root = vis.TransformPoint(new Vector3(h.x, floor, h.z - 0.05f));
+            hips = vis.TransformPoint(h + new Vector3(0f, 0.1f, 0.06f));
+            footL = vis.TransformPoint(new Vector3(h.x - 0.11f, floor + 0.09f, h.z + 0.8f)); footR = vis.TransformPoint(new Vector3(h.x + 0.11f, floor + 0.09f, h.z + 0.8f));
+            var wc = h + Driver.WheelFromHip;
+            handL = vis.TransformPoint(wc + new Vector3(-0.16f, 0.06f, -0.02f)); handR = vis.TransformPoint(wc + new Vector3(0.16f, 0.06f, -0.02f));
+            rot = vis.rotation; return true;
         }
         /// <summary>Open (1) or shut (0) the driver's door.</summary>
         public void Door(float open) { FindDoor(); doorWant = open; }

@@ -16,7 +16,7 @@ namespace ASBO.Slice
             bool near = dist < 42f;
             if (deco != null && deco.activeSelf != near) deco.SetActive(near);
             if (furn != null && furn.activeSelf != near) furn.SetActive(near);
-            foreach (var l in lights) if (l != null) l.enabled = dist < 30f;
+            if (LightBudget.I == null) foreach (var l in lights) if (l != null) l.enabled = dist < 30f; // otherwise the light budget picks the nearest lights town-wide
         }
     }
 }
