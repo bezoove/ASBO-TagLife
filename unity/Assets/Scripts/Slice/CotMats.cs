@@ -14,19 +14,22 @@ namespace ASBO.Slice
 
         static Material T(Material m, float tile) { MeshKit.Tile[m] = tile; return m; }
 
+        /// <summary>Forget the made materials so the next Init makes them again (editor tools use this).</summary>
+        public static void Reset() { plaster = null; lime.Clear(); paint.Clear(); straw.Clear(); limeTex = null; }
+
         public static void Init()
         {
             if (plaster != null) return;
             stoneTex = Gfx.StoneTex(21); strawTex = Gfx.StrawTex(5);
-            plaster = T(Gfx.Mat(new Color(0.95f, 0.92f, 0.86f), Noise(64, 0.06f, 3), 0.08f), 1.5f);
+            plaster = T(Surfaces.Mat("plaster_smooth", 1.5f, new Color(0.95f, 0.92f, 0.86f), 0.8f) ?? Gfx.Mat(new Color(0.95f, 0.92f, 0.86f), Noise(64, 0.06f, 3), 0.08f), 1.5f);
             oak = T(Gfx.Mat(new Color(0.62f, 0.5f, 0.4f), Gfx.PlankTex(7), 0.25f), 1.2f);
             boards = T(Gfx.Mat(new Color(1.15f, 1.0f, 0.86f), Gfx.PlankTex(3), 0.3f), 2f);
-            flag = T(Gfx.Mat(new Color(0.95f, 0.93f, 0.9f), FlagTex(9), 0.18f), 2.4f);
-            stone = T(Gfx.Mat(Color.white, stoneTex, 0.06f), 2.2f);
-            brick = T(Gfx.Mat(Color.white, BrickTex(4), 0.08f), 1.2f);
+            flag = T(Surfaces.Mat("large_grey_tiles", 2.4f, new Color(0.96f, 0.95f, 0.93f)) ?? Gfx.Mat(new Color(0.95f, 0.93f, 0.9f), FlagTex(9), 0.18f), 2.4f);
+            stone = T(Surfaces.Mat("rustic_stone_wall_02", 2.2f, new Color(0.95f, 0.93f, 0.9f)) ?? Gfx.Mat(Color.white, stoneTex, 0.06f), 2.2f);
+            brick = T(Surfaces.Mat("red_brick_plaster_patch_02", 1.2f) ?? Gfx.Mat(Color.white, BrickTex(4), 0.08f), 1.2f);
             terracotta = T(Gfx.Mat(new Color(0.72f, 0.36f, 0.22f), null, 0.15f), 1f);
             tiles = T(Gfx.Mat(Color.white, TileTex(6), 0.12f), 1.6f);
-            slate = T(Gfx.Mat(new Color(0.75f, 0.8f, 0.88f), TileTex(12, true), 0.35f), 1.6f);
+            slate = T(Surfaces.Mat("roof_slates_03", 1.6f, new Color(0.9f, 0.92f, 0.96f)) ?? Gfx.Mat(new Color(0.75f, 0.8f, 0.88f), TileTex(12, true), 0.35f), 1.6f);
             glassLead = T(Transparent(new Color(0.85f, 0.92f, 0.95f, 1f), LeadTex(), 0.92f), 0.6f);
             glassFrost = T(Transparent(new Color(0.92f, 0.94f, 0.95f, 0.85f), null, 0.5f), 1f);
             glassClear = T(Transparent(new Color(0.8f, 0.9f, 0.95f, 0.22f), null, 0.95f), 1f);
@@ -45,7 +48,7 @@ namespace ASBO.Slice
             books = T(Gfx.Mat(Color.white, BookTex(3), 0.2f), 0.9f);
             leaf = Gfx.Mat(new Color(0.18f, 0.38f, 0.14f), Noise(64, 0.25f, 8), 0.1f);
             soil = Gfx.Mat(new Color(0.24f, 0.15f, 0.08f), Noise(64, 0.2f, 2), 0.05f);
-            gravel = T(Gfx.Mat(Color.white, Gfx.GravelTex(4), 0.05f), 2f);
+            gravel = T(Surfaces.Mat("rocky_trail", 2f) ?? Gfx.Mat(Color.white, Gfx.GravelTex(4), 0.05f), 2f);
             hedge = T(Gfx.Mat(new Color(0.12f, 0.3f, 0.1f), Noise(64, 0.35f, 6), 0.05f), 1.2f);
             cushion = Gfx.Mat(new Color(0.55f, 0.18f, 0.16f), null, 0.15f);
             velvet = Gfx.Mat(new Color(0.18f, 0.28f, 0.2f), null, 0.3f);
@@ -66,7 +69,7 @@ namespace ASBO.Slice
                 for (int i = 0; i < src.Length; i++) { var q = (Color)src[i]; float v = (q.r + q.g + q.b) / 3f; float l = Mathf.Lerp(0.78f, 1.0f, Mathf.Clamp01(v * 1.6f)); dst[i] = new Color(l, l * 0.99f, l * 0.97f, 1f); }
                 limeTex = new Texture2D(stoneTex.width, stoneTex.height, TextureFormat.RGBA32, true); limeTex.SetPixels32(dst); limeTex.wrapMode = TextureWrapMode.Repeat; limeTex.anisoLevel = 4; limeTex.Apply(true);
             }
-            m = T(Gfx.Mat(c, limeTex, 0.04f), 2.2f); lime[c] = m; return m;
+            m = T(Surfaces.Mat("limewash_stone", 2.2f, c, 0.7f) ?? Gfx.Mat(c, limeTex, 0.04f), 2.2f); lime[c] = m; return m;
         }
         public static Material Paint(Color c)
         {

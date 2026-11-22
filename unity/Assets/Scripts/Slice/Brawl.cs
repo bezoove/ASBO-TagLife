@@ -242,6 +242,7 @@ namespace ASBO.Slice
             float dmg = M.dmg * Random.Range(0.88f, 1.12f) * DmgMul() * (exhausted ? 0.65f : 1f);
             var tgt = aim != null && !aim.Down && InReach(aim, M) ? aim : Best(M);
             if (tgt != null) tgt.TakeHitFrom(this, M, dmg);
+            else if (p.isPlayer) Knockable.Strike(transform.position + Vector3.up * 0.4f, transform.forward, M.reach + 0.3f, (M.trig == "Kick" ? 26f : M.trig == "Shove" ? 18f : 9f) + M.dmg * 0.4f); // a bin or a gnome in the way gets it
             if (p.anim != null) p.anim.speed = 1f;
         }
 

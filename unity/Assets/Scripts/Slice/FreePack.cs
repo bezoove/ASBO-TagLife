@@ -110,6 +110,7 @@ namespace ASBO.Slice
             var rng = new System.Random(seed);
             var go = new GameObject("Body"); go.SetActive(false);
             go.transform.SetParent(p.transform, false);
+            go.AddComponent<AnimEventSink>(); // the walk clips carry footstep events
             var dca = go.AddComponent<DynamicCharacterAvatar>();
             dca.RacePreset = race.raceName;
             bool stock = PlayerPrefs.GetInt("asbo_stock", 0) == 1; // before/after comparison: UMA defaults, no foot IK

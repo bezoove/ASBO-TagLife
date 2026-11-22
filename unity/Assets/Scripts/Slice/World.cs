@@ -41,6 +41,7 @@ namespace ASBO.Slice
                 GameAudio.Create(Root); Perf.Create(Root); Social.Create(Root); GameClock.Create(Root); Tag.Create(Root);
                 BuildGround(Root); BuildStatic(Root);
                 Physics.SyncTransforms();
+                Dressing.Place(Root);
                 Nav.Build(new Bounds(new Vector3(0, 4f, 10f), new Vector3(240f, 12f, 96f)));
             }
             else
@@ -49,6 +50,7 @@ namespace ASBO.Slice
                 Look.ApplyPost(Root);
                 GameAudio.Create(Root); Perf.Create(Root); Social.Create(Root); GameClock.Create(Root); Tag.Create(Root);
                 Estate.Attach();
+                Dressing.Place(Root);
                 Nav.UseBaked();
             }
             Traffic.Spawn(Root);
@@ -72,17 +74,20 @@ namespace ASBO.Slice
             var asphalt = Gfx.Mat(new Color(0.13f, 0.13f, 0.14f), null, 0.15f);
             var line = Gfx.Mat(new Color(0.9f, 0.9f, 0.85f), null, 0.1f);
             var kerb = Gfx.Mat(new Color(0.55f, 0.55f, 0.55f), null, 0.1f);
-            Gfx.Box(Root, new Vector3(0, 0.02f, RoadZ), new Vector3(500, 0.04f, 9f), asphalt, 0, "LongRoad");
+            Surfaces.Box(Root, new Vector3(0, 0.02f, RoadZ), new Vector3(500, 0.04f, 9f), "asphalt_02", asphalt, "LongRoad", true, new Color(0.78f, 0.78f, 0.8f));
             for (float x = -240; x < 240; x += 6f) Gfx.Box(Root, new Vector3(x, 0.05f, RoadZ), new Vector3(2.5f, 0.01f, 0.15f), line, 0, "Dash", false);
             foreach (int s in new[] { -1, 1 })
             {
                 Gfx.Box(Root, new Vector3(0, 0.05f, RoadZ + s * 4.3f), new Vector3(500, 0.01f, 0.12f), line, 0, "EdgeLine", false);
-                Gfx.Box(Root, new Vector3(0, 0.06f, RoadZ + s * 6.1f), new Vector3(500, 0.12f, 3f), kerb, 0, "Pavement");
+                Surfaces.Box(Root, new Vector3(0, 0.06f, RoadZ + s * 6.1f), new Vector3(500, 0.12f, 3f), "large_grey_tiles", kerb, "Pavement", true, new Color(0.9f, 0.9f, 0.88f));
+                // concrete kerb stones along the road edge
+                var k = Surfaces.Box(Root, new Vector3(0, 0.065f, RoadZ + s * 4.68f), new Vector3(500, 0.13f, 0.16f), "concrete_layers", kerb, "Kerb", false, new Color(1.25f, 1.24f, 1.22f));
+                k.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
             // zebra crossing at x=16..20
             for (int i = 0; i < 9; i++) Gfx.Box(Root, new Vector3(18f, 0.05f, RoadZ - 3.6f + i * 0.9f), new Vector3(3f, 0.01f, 0.45f), line, 0, "Zebra", false);
             // approach road to the estate gate
-            Gfx.Box(Root, new Vector3(0, 0.065f, -23.75f), new Vector3(6f, 0.13f, 3.6f), asphalt, 0, "Approach");
+            Surfaces.Box(Root, new Vector3(0, 0.065f, -23.75f), new Vector3(6f, 0.13f, 3.6f), "asphalt_02", asphalt, "Approach", true, new Color(0.78f, 0.78f, 0.8f));
         }
 
         void BuildCars()
@@ -222,12 +227,12 @@ namespace ASBO.Slice
             }
             // money, top left
             cashStyle ??= new GUIStyle(GUI.skin.label) { fontSize = Mathf.Max(18, Screen.height / 30), fontStyle = FontStyle.Bold };
-            { var cr = new Rect(14, Screen.height * 0.075f, 300, cashStyle.fontSize * 1.5f); cashStyle.normal.textColor = new Color(0, 0, 0, 0.7f); GUI.Label(new Rect(cr.x + 2, cr.y + 2, cr.width, cr.height), Econ.Fmt(Econ.Cash), cashStyle); cashStyle.normal.textColor = new Color(1f, 0.93f, 0.7f); GUI.Label(cr, Econ.Fmt(Econ.Cash), cashStyle);
+            { var cr = new Rect(14, Mathf.Max(Screen.height * 0.075f, 76f), 300, cashStyle.fontSize * 1.5f); /* below the debug lines */ cashStyle.normal.textColor = new Color(0, 0, 0, 0.7f); GUI.Label(new Rect(cr.x + 2, cr.y + 2, cr.width, cr.height), Econ.Fmt(Econ.Cash), cashStyle); cashStyle.normal.textColor = new Color(1f, 0.93f, 0.7f); GUI.Label(cr, Econ.Fmt(Econ.Cash), cashStyle);
               var tr = new Rect(16, cr.yMax - 4, 300, cashStyle.fontSize * 1.2f); int fs = cashStyle.fontSize; cashStyle.fontSize = Mathf.RoundToInt(fs * 0.62f);
               cashStyle.normal.textColor = new Color(0, 0, 0, 0.7f); GUI.Label(new Rect(tr.x + 2, tr.y + 2, tr.width, tr.height), GameClock.Text, cashStyle); cashStyle.normal.textColor = new Color(0.85f, 0.9f, 1f); GUI.Label(tr, GameClock.Text, cashStyle); cashStyle.fontSize = fs; }
             // the tag: how close to the edge, or the violation
             { string tl = Tag.HudLine; if (tl != null) { toastStyle ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Mathf.Max(16, Screen.height / 38), fontStyle = FontStyle.Bold };
-                var r2 = new Rect(0, 44, Screen.width, toastStyle.fontSize * 1.5f); var keep = toastStyle.normal.textColor; toastStyle.normal.textColor = new Color(0, 0, 0, 0.75f); GUI.Label(new Rect(2, r2.y + 2, r2.width, r2.height), tl, toastStyle);
+                var r2 = new Rect(0, Mathf.Max(Screen.height * 0.12f, 80f), Screen.width, toastStyle.fontSize * 1.5f); var keep = toastStyle.normal.textColor; toastStyle.normal.textColor = new Color(0, 0, 0, 0.75f); GUI.Label(new Rect(2, r2.y + 2, r2.width, r2.height), tl, toastStyle);
                 toastStyle.normal.textColor = Tag.Outside ? new Color(1f, 0.35f, 0.3f) : new Color(1f, 0.75f, 0.35f); GUI.Label(r2, tl, toastStyle); toastStyle.normal.textColor = keep; } }
             // stamina, while you're fighting or getting your breath back
             if (pf != null && (Fighter.Session.Hot || pf.Stam01 < 0.995f))

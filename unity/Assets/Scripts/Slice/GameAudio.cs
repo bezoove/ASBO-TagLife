@@ -118,6 +118,18 @@ namespace ASBO.Slice
             if (severity > 5f) StartCoroutine(Later(0.15f, () => Play3D(AudioSynth.Squelch(), pos, 0.7f, Random.Range(0.9f, 1.1f), 40f, 3f)));
         }
 
+        /// <summary>A dustbin, gnome or pot knocked over or hitting something: a tinny clatter for bins, a dull knock otherwise.</summary>
+        public void Knock(Vector3 pos, float speed, bool metal)
+        {
+            float v = Mathf.Clamp01(speed / 8f);
+            if (metal)
+            {
+                var c = SfxBank.Pick("crashMetal");
+                if (c != null) { Play3D(c, pos, 0.15f + 0.35f * v, Random.Range(1.55f, 1.95f), 40f, 2f); return; }
+            }
+            Play3D(AudioSynth.Thud(), pos, 0.3f + 0.4f * v, metal ? Random.Range(1.4f, 1.7f) : Random.Range(0.9f, 1.2f), 35f, 2f);
+        }
+
         /// <summary>Car into car (or wall): crumpling metal, breaking glass when it's a big one.</summary>
         public void CarCrash(Vector3 pos, float severity)
         {

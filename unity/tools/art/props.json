@@ -1,0 +1,778 @@
+{
+ "assets": [
+  {
+   "name": "garden_gnome",
+   "kind": "prop",
+   "variants": [
+    {
+     "name": "garden_gnome",
+     "fbx": "garden_gnome.fbx",
+     "tris0": 3000,
+     "tris1": 1050
+    }
+   ],
+   "materials": [
+    {
+     "key": "garden_gnome_01",
+     "name": "garden_gnome_01",
+     "albedo": "garden_gnome_01_albedo.jpg",
+     "normal": "garden_gnome_01_normal.png",
+     "mask": "garden_gnome_01_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "metal_trash_can",
+   "kind": "prop",
+   "variants": [
+    {
+     "name": "metal_trash_can",
+     "fbx": "metal_trash_can.fbx",
+     "tris0": 4180,
+     "tris1": 1458
+    },
+    {
+     "name": "metal_trash_can_rust",
+     "fbx": "metal_trash_can_rust.fbx",
+     "tris0": 4403,
+     "tris1": 1538
+    }
+   ],
+   "materials": [
+    {
+     "key": "metal_trash_can",
+     "name": "metal_trash_can",
+     "albedo": "metal_trash_can_albedo.jpg",
+     "normal": "metal_trash_can_normal.png",
+     "mask": "metal_trash_can_mask.png",
+     "alpha": false
+    },
+    {
+     "key": "metal_trash_can_rust",
+     "name": "metal_trash_can_rust",
+     "albedo": "metal_trash_can_rust_albedo.jpg",
+     "normal": "metal_trash_can_rust_normal.png",
+     "mask": "metal_trash_can_rust_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "planter_pot_clay",
+   "kind": "prop",
+   "variants": [
+    {
+     "name": "planter_pot_clay",
+     "fbx": "planter_pot_clay.fbx",
+     "tris0": 1500,
+     "tris1": 524
+    }
+   ],
+   "materials": [
+    {
+     "key": "planter_pot_clay",
+     "name": "planter_pot_clay",
+     "albedo": "planter_pot_clay_albedo.jpg",
+     "normal": "planter_pot_clay_normal.png",
+     "mask": "planter_pot_clay_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "potted_plant_04",
+   "kind": "prop",
+   "variants": [
+    {
+     "name": "potted_plant_04",
+     "fbx": "potted_plant_04.fbx",
+     "tris0": 4791,
+     "tris1": 1672
+    }
+   ],
+   "materials": [
+    {
+     "key": "potted_plant_04",
+     "name": "potted_plant_04",
+     "albedo": "potted_plant_04_albedo.jpg",
+     "normal": "potted_plant_04_normal.png",
+     "mask": "potted_plant_04_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "potted_plant_01",
+   "kind": "prop",
+   "variants": [
+    {
+     "name": "potted_plant_01",
+     "fbx": "potted_plant_01.fbx",
+     "tris0": 10012,
+     "tris1": 4161
+    }
+   ],
+   "materials": [
+    {
+     "key": "potted_plant_01_leaves",
+     "name": "potted_plant_01_leaves",
+     "albedo": "potted_plant_01_leaves_albedo.png",
+     "normal": "potted_plant_01_leaves_normal.png",
+     "mask": "potted_plant_01_leaves_mask.png",
+     "alpha": true
+    },
+    {
+     "key": "potted_plant_01_pot",
+     "name": "potted_plant_01_pot",
+     "albedo": "potted_plant_01_pot_albedo.jpg",
+     "normal": "potted_plant_01_pot_normal.png",
+     "mask": "potted_plant_01_pot_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "potted_plant_02",
+   "kind": "prop",
+   "variants": [
+    {
+     "name": "potted_plant_02",
+     "fbx": "potted_plant_02.fbx",
+     "tris0": 7454,
+     "tris1": 3228
+    }
+   ],
+   "materials": [
+    {
+     "key": "potted_plant_02_pot",
+     "name": "potted_plant_02_pot",
+     "albedo": "potted_plant_02_pot_albedo.jpg",
+     "normal": "potted_plant_02_pot_normal.png",
+     "mask": "potted_plant_02_pot_mask.png",
+     "alpha": false
+    },
+    {
+     "key": "potted_plant_02_leaves",
+     "name": "potted_plant_02_leaves",
+     "albedo": "potted_plant_02_leaves_albedo.png",
+     "normal": "potted_plant_02_leaves_normal.png",
+     "mask": "potted_plant_02_leaves_mask.png",
+     "alpha": true
+    }
+   ]
+  },
+  {
+   "name": "garden_hose_wall_mounted_01",
+   "kind": "prop",
+   "variants": [
+    {
+     "name": "garden_hose_wall_mounted_01",
+     "fbx": "garden_hose_wall_mounted_01.fbx",
+     "tris0": 3544,
+     "tris1": 1240
+    }
+   ],
+   "materials": [
+    {
+     "key": "garden_hose_wall_mounted_01",
+     "name": "garden_hose_wall_mounted_01",
+     "albedo": "garden_hose_wall_mounted_01_albedo.jpg",
+     "normal": "garden_hose_wall_mounted_01_normal.png",
+     "mask": "garden_hose_wall_mounted_01_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "dandelion_01",
+   "kind": "foliage",
+   "variants": [
+    {
+     "name": "dandelion_01_a",
+     "fbx": "dandelion_01_a.fbx",
+     "tris0": 629,
+     "tris1": 260
+    },
+    {
+     "name": "dandelion_01_b",
+     "fbx": "dandelion_01_b.fbx",
+     "tris0": 619,
+     "tris1": 265
+    },
+    {
+     "name": "dandelion_01_c",
+     "fbx": "dandelion_01_c.fbx",
+     "tris0": 326,
+     "tris1": 156
+    },
+    {
+     "name": "dandelion_01_d",
+     "fbx": "dandelion_01_d.fbx",
+     "tris0": 302,
+     "tris1": 154
+    },
+    {
+     "name": "dandelion_01_e",
+     "fbx": "dandelion_01_e.fbx",
+     "tris0": 280,
+     "tris1": 140
+    }
+   ],
+   "materials": [
+    {
+     "key": "dandelion_01",
+     "name": "dandelion_01",
+     "albedo": "dandelion_01_albedo.png",
+     "normal": "dandelion_01_normal.png",
+     "mask": "dandelion_01_mask.png",
+     "alpha": true
+    }
+   ]
+  },
+  {
+   "name": "celandine_01",
+   "kind": "foliage",
+   "variants": [
+    {
+     "name": "celandine_01_a",
+     "fbx": "celandine_01_a.fbx",
+     "tris0": 414,
+     "tris1": 232
+    },
+    {
+     "name": "celandine_01_b",
+     "fbx": "celandine_01_b.fbx",
+     "tris0": 365,
+     "tris1": 207
+    },
+    {
+     "name": "celandine_01_c",
+     "fbx": "celandine_01_c.fbx",
+     "tris0": 694,
+     "tris1": 319
+    },
+    {
+     "name": "celandine_01_d",
+     "fbx": "celandine_01_d.fbx",
+     "tris0": 519,
+     "tris1": 250
+    },
+    {
+     "name": "celandine_01_e",
+     "fbx": "celandine_01_e.fbx",
+     "tris0": 207,
+     "tris1": 138
+    }
+   ],
+   "materials": [
+    {
+     "key": "celandine_01",
+     "name": "celandine_01",
+     "albedo": "celandine_01_albedo.png",
+     "normal": "celandine_01_normal.png",
+     "mask": "celandine_01_mask.png",
+     "alpha": true
+    }
+   ]
+  },
+  {
+   "name": "periwinkle_plant",
+   "kind": "foliage",
+   "variants": [
+    {
+     "name": "periwinkle_plant_01",
+     "fbx": "periwinkle_plant_01.fbx",
+     "tris0": 755,
+     "tris1": 267
+    },
+    {
+     "name": "periwinkle_plant_02",
+     "fbx": "periwinkle_plant_02.fbx",
+     "tris0": 606,
+     "tris1": 208
+    },
+    {
+     "name": "periwinkle_plant_03",
+     "fbx": "periwinkle_plant_03.fbx",
+     "tris0": 332,
+     "tris1": 112
+    },
+    {
+     "name": "periwinkle_plant_04",
+     "fbx": "periwinkle_plant_04.fbx",
+     "tris0": 256,
+     "tris1": 81
+    },
+    {
+     "name": "periwinkle_plant_05",
+     "fbx": "periwinkle_plant_05.fbx",
+     "tris0": 182,
+     "tris1": 60
+    },
+    {
+     "name": "periwinkle_plant_06",
+     "fbx": "periwinkle_plant_06.fbx",
+     "tris0": 103,
+     "tris1": 28
+    }
+   ],
+   "materials": [
+    {
+     "key": "periwinkle_plant",
+     "name": "periwinkle_plant",
+     "albedo": "periwinkle_plant_albedo.png",
+     "normal": "periwinkle_plant_normal.png",
+     "mask": "periwinkle_plant_mask.png",
+     "alpha": true
+    }
+   ]
+  },
+  {
+   "name": "weed_plant_02",
+   "kind": "foliage",
+   "variants": [
+    {
+     "name": "weed_plant_02_a",
+     "fbx": "weed_plant_02_a.fbx",
+     "tris0": 1031,
+     "tris1": 153
+    },
+    {
+     "name": "weed_plant_02_b",
+     "fbx": "weed_plant_02_b.fbx",
+     "tris0": 848,
+     "tris1": 140
+    },
+    {
+     "name": "weed_plant_02_c",
+     "fbx": "weed_plant_02_c.fbx",
+     "tris0": 651,
+     "tris1": 110
+    },
+    {
+     "name": "weed_plant_02_d",
+     "fbx": "weed_plant_02_d.fbx",
+     "tris0": 680,
+     "tris1": 94
+    },
+    {
+     "name": "weed_plant_02_e",
+     "fbx": "weed_plant_02_e.fbx",
+     "tris0": 725,
+     "tris1": 115
+    }
+   ],
+   "materials": [
+    {
+     "key": "weed_plant_02",
+     "name": "weed_plant_02",
+     "albedo": "weed_plant_02_albedo.png",
+     "normal": "weed_plant_02_normal.png",
+     "mask": "weed_plant_02_mask.png",
+     "alpha": true
+    }
+   ]
+  },
+  {
+   "name": "rock_09",
+   "kind": "rock",
+   "variants": [
+    {
+     "name": "rock_09",
+     "fbx": "rock_09.fbx",
+     "tris0": 500,
+     "tris1": 150
+    }
+   ],
+   "materials": [
+    {
+     "key": "rock_09",
+     "name": "rock_09",
+     "albedo": "rock_09_albedo.jpg",
+     "normal": "rock_09_normal.png",
+     "mask": "rock_09_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "stone_01",
+   "kind": "rock",
+   "variants": [
+    {
+     "name": "stone_01",
+     "fbx": "stone_01.fbx",
+     "tris0": 400,
+     "tris1": 150
+    }
+   ],
+   "materials": [
+    {
+     "key": "stone_01",
+     "name": "stone_01",
+     "albedo": "stone_01_albedo.jpg",
+     "normal": "stone_01_normal.png",
+     "mask": "stone_01_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "namaqualand_boulder_02",
+   "kind": "rock",
+   "variants": [
+    {
+     "name": "namaqualand_boulder_02",
+     "fbx": "namaqualand_boulder_02.fbx",
+     "tris0": 2499,
+     "tris1": 799
+    }
+   ],
+   "materials": [
+    {
+     "key": "namaqualand_boulder_02",
+     "name": "namaqualand_boulder_02",
+     "albedo": "namaqualand_boulder_02_albedo.jpg",
+     "normal": "namaqualand_boulder_02_normal.png",
+     "mask": "namaqualand_boulder_02_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "namaqualand_boulder_03",
+   "kind": "rock",
+   "variants": [
+    {
+     "name": "namaqualand_boulder_03",
+     "fbx": "namaqualand_boulder_03.fbx",
+     "tris0": 2500,
+     "tris1": 800
+    }
+   ],
+   "materials": [
+    {
+     "key": "namaqualand_boulder_03",
+     "name": "namaqualand_boulder_03",
+     "albedo": "namaqualand_boulder_03_albedo.jpg",
+     "normal": "namaqualand_boulder_03_normal.png",
+     "mask": "namaqualand_boulder_03_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "namaqualand_boulder_04",
+   "kind": "rock",
+   "variants": [
+    {
+     "name": "namaqualand_boulder_04",
+     "fbx": "namaqualand_boulder_04.fbx",
+     "tris0": 2500,
+     "tris1": 800
+    }
+   ],
+   "materials": [
+    {
+     "key": "namaqualand_boulder_04",
+     "name": "namaqualand_boulder_04",
+     "albedo": "namaqualand_boulder_04_albedo.jpg",
+     "normal": "namaqualand_boulder_04_normal.png",
+     "mask": "namaqualand_boulder_04_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "coastal_cliff_02",
+   "kind": "rock",
+   "variants": [
+    {
+     "name": "coastal_cliff_02",
+     "fbx": "coastal_cliff_02.fbx",
+     "tris0": 12000,
+     "tris1": 4000
+    }
+   ],
+   "materials": [
+    {
+     "key": "coastal_cliff_02",
+     "name": "coastal_cliff_02",
+     "albedo": "coastal_cliff_02_albedo.jpg",
+     "normal": "coastal_cliff_02_normal.png",
+     "mask": "coastal_cliff_02_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "mountainside",
+   "kind": "rock",
+   "variants": [
+    {
+     "name": "mountainside",
+     "fbx": "mountainside.fbx",
+     "tris0": 8000,
+     "tris1": 2499
+    }
+   ],
+   "materials": [
+    {
+     "key": "mountainside",
+     "name": "mountainside",
+     "albedo": "mountainside_albedo.jpg",
+     "normal": "mountainside_normal.png",
+     "mask": "mountainside_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "fern_02",
+   "kind": "foliage",
+   "variants": [
+    {
+     "name": "fern_02_a",
+     "fbx": "fern_02_a.fbx",
+     "tris0": 784,
+     "tris1": 274
+    },
+    {
+     "name": "fern_02_b",
+     "fbx": "fern_02_b.fbx",
+     "tris0": 1200,
+     "tris1": 419
+    },
+    {
+     "name": "fern_02_c",
+     "fbx": "fern_02_c.fbx",
+     "tris0": 1199,
+     "tris1": 420
+    },
+    {
+     "name": "fern_02_d",
+     "fbx": "fern_02_d.fbx",
+     "tris0": 816,
+     "tris1": 284
+    }
+   ],
+   "materials": [
+    {
+     "key": "fern_02",
+     "name": "fern_02",
+     "albedo": "fern_02_albedo.png",
+     "normal": "fern_02_normal.png",
+     "mask": "fern_02_mask.png",
+     "alpha": true
+    }
+   ]
+  },
+  {
+   "name": "rock_moss_set_01",
+   "kind": "rock",
+   "variants": [
+    {
+     "name": "rock_moss_set_01_rock01",
+     "fbx": "rock_moss_set_01_rock01.fbx",
+     "tris0": 2000,
+     "tris1": 700
+    },
+    {
+     "name": "rock_moss_set_01_rock02",
+     "fbx": "rock_moss_set_01_rock02.fbx",
+     "tris0": 2000,
+     "tris1": 700
+    },
+    {
+     "name": "rock_moss_set_01_rock03",
+     "fbx": "rock_moss_set_01_rock03.fbx",
+     "tris0": 2000,
+     "tris1": 700
+    },
+    {
+     "name": "rock_moss_set_01_rock04",
+     "fbx": "rock_moss_set_01_rock04.fbx",
+     "tris0": 1999,
+     "tris1": 699
+    },
+    {
+     "name": "rock_moss_set_01_rock05",
+     "fbx": "rock_moss_set_01_rock05.fbx",
+     "tris0": 2000,
+     "tris1": 700
+    },
+    {
+     "name": "rock_moss_set_01_rock06",
+     "fbx": "rock_moss_set_01_rock06.fbx",
+     "tris0": 2000,
+     "tris1": 700
+    }
+   ],
+   "materials": [
+    {
+     "key": "rock_moss_set_01",
+     "name": "rock_moss_set_01",
+     "albedo": "rock_moss_set_01_albedo.jpg",
+     "normal": "rock_moss_set_01_normal.png",
+     "mask": "rock_moss_set_01_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "grass_medium_01",
+   "kind": "foliage",
+   "variants": [
+    {
+     "name": "grass_medium_01_large_a",
+     "fbx": "grass_medium_01_large_a.fbx",
+     "tris0": 1011,
+     "tris1": 0
+    },
+    {
+     "name": "grass_medium_01_large_b",
+     "fbx": "grass_medium_01_large_b.fbx",
+     "tris0": 890,
+     "tris1": 0
+    },
+    {
+     "name": "grass_medium_01_large_c",
+     "fbx": "grass_medium_01_large_c.fbx",
+     "tris0": 1032,
+     "tris1": 0
+    },
+    {
+     "name": "grass_medium_01_mid_a",
+     "fbx": "grass_medium_01_mid_a.fbx",
+     "tris0": 659,
+     "tris1": 0
+    },
+    {
+     "name": "grass_medium_01_mid_b",
+     "fbx": "grass_medium_01_mid_b.fbx",
+     "tris0": 334,
+     "tris1": 0
+    },
+    {
+     "name": "grass_medium_01_mid_c",
+     "fbx": "grass_medium_01_mid_c.fbx",
+     "tris0": 348,
+     "tris1": 0
+    },
+    {
+     "name": "grass_medium_01_small_a",
+     "fbx": "grass_medium_01_small_a.fbx",
+     "tris0": 493,
+     "tris1": 0
+    },
+    {
+     "name": "grass_medium_01_small_b",
+     "fbx": "grass_medium_01_small_b.fbx",
+     "tris0": 283,
+     "tris1": 0
+    },
+    {
+     "name": "grass_medium_01_tall_a",
+     "fbx": "grass_medium_01_tall_a.fbx",
+     "tris0": 121,
+     "tris1": 0
+    },
+    {
+     "name": "grass_medium_01_tall_b",
+     "fbx": "grass_medium_01_tall_b.fbx",
+     "tris0": 164,
+     "tris1": 0
+    },
+    {
+     "name": "grass_medium_01_tall_c",
+     "fbx": "grass_medium_01_tall_c.fbx",
+     "tris0": 162,
+     "tris1": 0
+    }
+   ],
+   "materials": [
+    {
+     "key": "grass_medium_01",
+     "name": "grass_medium_01",
+     "albedo": "grass_medium_01_albedo.png",
+     "normal": "grass_medium_01_normal.png",
+     "mask": "grass_medium_01_mask.png",
+     "alpha": true
+    }
+   ]
+  },
+  {
+   "name": "rock_07",
+   "kind": "rock",
+   "variants": [
+    {
+     "name": "rock_07",
+     "fbx": "rock_07.fbx",
+     "tris0": 500,
+     "tris1": 150
+    }
+   ],
+   "materials": [
+    {
+     "key": "rock_07",
+     "name": "rock_07",
+     "albedo": "rock_07_albedo.jpg",
+     "normal": "rock_07_normal.png",
+     "mask": "rock_07_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "fir_sapling_medium",
+   "kind": "tree",
+   "variants": [
+    {
+     "name": "fir_sapling_medium_a",
+     "fbx": "fir_sapling_medium_a.fbx",
+     "tris0": 14752,
+     "tris1": 0
+    },
+    {
+     "name": "fir_sapling_medium_b",
+     "fbx": "fir_sapling_medium_b.fbx",
+     "tris0": 8761,
+     "tris1": 0
+    },
+    {
+     "name": "fir_sapling_medium_c",
+     "fbx": "fir_sapling_medium_c.fbx",
+     "tris0": 8393,
+     "tris1": 0
+    }
+   ],
+   "materials": [
+    {
+     "key": "fir_sapling_medium_branches",
+     "name": "fir_sapling_medium_branches",
+     "albedo": "fir_sapling_medium_branches_albedo.jpg",
+     "normal": "fir_sapling_medium_branches_normal.png",
+     "mask": "fir_sapling_medium_branches_mask.png",
+     "alpha": false
+    },
+    {
+     "key": "fir_sapling_medium_twigs",
+     "name": "fir_sapling_medium_twigs",
+     "albedo": "fir_sapling_medium_twigs_albedo.png",
+     "normal": "fir_sapling_medium_twigs_normal.png",
+     "mask": "fir_sapling_medium_twigs_mask.png",
+     "alpha": true
+    },
+    {
+     "key": "fir_sapling_medium_branches_dead",
+     "name": "fir_sapling_medium_branches_dead",
+     "albedo": "fir_sapling_medium_branches_dead_albedo.jpg",
+     "normal": "fir_sapling_medium_branches_dead_normal.png",
+     "mask": "fir_sapling_medium_branches_dead_mask.png",
+     "alpha": false
+    }
+   ]
+  }
+ ]
+}

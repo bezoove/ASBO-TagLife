@@ -78,6 +78,14 @@ namespace ASBO.Slice
         Renderer[] hidden;
         void SetVisible(bool v) { hidden = null; foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = v; }
 
+        // walking into a bin or a gnome barges it along
+        void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            if (hit.rigidbody == null || hit.rigidbody.isKinematic || hit.moveDirection.y < -0.3f) return;
+            var k = hit.collider.GetComponentInParent<Knockable>();
+            if (k != null) k.Nudge(hit.moveDirection, cc.velocity.magnitude);
+        }
+
         void Update()
         {
             var kb = Keyboard.current; var ms = Mouse.current; var gp = Gamepad.current;

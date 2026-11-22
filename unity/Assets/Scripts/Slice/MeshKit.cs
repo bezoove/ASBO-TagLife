@@ -147,7 +147,7 @@ namespace ASBO.Slice
             mesh.subMeshCount = order.Count;
             for (int i = 0; i < order.Count; i++) mesh.SetTriangles(subs[order[i]], i, false);
             if (recalcNormals) mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
+            mesh.RecalculateBounds(); mesh.RecalculateTangents(); // the scanned surfaces carry normal maps
             g.AddComponent<MeshFilter>().sharedMesh = mesh;
             var r = g.AddComponent<MeshRenderer>();
             r.sharedMaterials = order.ToArray();
