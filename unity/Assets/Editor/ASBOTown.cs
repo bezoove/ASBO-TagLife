@@ -32,8 +32,8 @@ namespace ASBO.EditorTools
                     imp.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
                     imp.sRGBTexture = !normal; imp.mipmapEnabled = true; imp.filterMode = FilterMode.Trilinear; imp.anisoLevel = n.Contains("brick") || n.Contains("pebble") ? 4 : 2;
                     imp.alphaSource = alpha ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None; imp.alphaIsTransparency = alpha && n != "tower_windows";
-                    imp.wrapMode = n == "town_signs" || n == "signal_lamps" || n == "tower_windows" || n == "graffiti" || n == "notice" || n == "precinct_shops" || n == "service_signs" ? TextureWrapMode.Clamp : TextureWrapMode.Repeat;
-                    int max = n == "precinct_shops" || n == "service_signs" ? 2048 : n == "town_signs" || n == "tower_windows" || n == "graffiti" ? 1024 : n.Contains("water") ? 512 : 1024;
+                    imp.wrapMode = n == "town_signs" || n == "signal_lamps" || n == "tower_windows" || n == "graffiti" || n == "notice" || n == "precinct_shops" || n == "service_signs" || n.StartsWith("street_") || n.Contains("shopfronts") ? TextureWrapMode.Clamp : TextureWrapMode.Repeat;
+                    int max = n == "precinct_shops" || n == "service_signs" || n.Contains("shopfronts") ? 2048 : n == "town_signs" || n == "tower_windows" || n == "graffiti" || n == "street_signs" ? 1024 : n.Contains("water") ? 512 : 1024;
                     imp.SetPlatformTextureSettings(new TextureImporterPlatformSettings { name = "Android", overridden = true, maxTextureSize = max, format = TextureImporterFormat.ASTC_6x6 });
                     imp.SaveAndReimport();
                 }
@@ -202,6 +202,8 @@ namespace ASBO.EditorTools
                         if (map[y, x] == 0) continue;
                         float wx = tp.x + (x + 0.5f) / dr2 * size.x, wz = tp.z + (y + 0.5f) / dr2 * size.z; var p = new Vector3(wx, 0, wz);
                         if (TownPlan.RoadDist(p, out _) < TownPlan.Half + TownPlan.KerbW + TownPlan.Pave + 0.6f) { map[y, x] = 0; continue; }
+                        bool built = false; foreach (var r in TownPlan.Infill) if (r.Contains(new Vector2(wx, wz))) { built = true; break; }
+                        if (built) { map[y, x] = 0; continue; }
                         if (wz > 150f) { float dr = TownPlan.RiverDist(p, out float s, out float side); float hw = TownPlan.RiverHalfWidth(s); if (dr < hw + 0.5f || side < 0 && Mathf.Abs(dr - (hw + 8.2f)) < 1.6f) map[y, x] = 0; }
                     }
                 td.SetDetailLayer(0, 0, layer, map);

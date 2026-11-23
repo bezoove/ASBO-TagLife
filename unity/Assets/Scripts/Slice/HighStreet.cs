@@ -72,16 +72,23 @@ namespace ASBO.Slice
         static Material T(string n) => Resources.Load<Material>("Town/" + n);
         static Material E(string n) => Resources.Load<Material>("Estate/" + n);
 
-        public static Transform Build(Transform parent)
+        static bool LoadMats()
         {
+            if (M != null && M.brick != null && M.shops != null) return true;
             M = new Mats
             {
                 brick = T("TownBrick"), stone = T("TownStone"), render = T("TownRender"), slate = T("TownSlate"), sash = T("TownSash"), shops = T("TownShops"), tiles = T("TownPubTiles"),
                 sign = T("TownPubSign"), paint = T("TownPaint"), frame = T("TownFrame"), pot = T("TownPot"), buff = E("EstateBrick"), concrete = E("EstateConcrete"), windows = E("EstateWindows"),
                 black = E("EstateBlack"), white = E("EstateWhite"), felt = E("EstateFelt"), timber = E("EstateFence"), iron = Resources.Load<Material>("Castle/CastleIron"),
             };
-            if (M.brick == null || M.shops == null) { Debug.LogWarning("[ASBO] high street: materials missing"); return null; }
+            if (M.brick == null || M.shops == null) { Debug.LogWarning("[ASBO] high street: materials missing"); M = null; return false; }
             MeshKit.Tile[M.brick] = 2.7f; MeshKit.Tile[M.stone] = 2f; MeshKit.Tile[M.render] = 2f; MeshKit.Tile[M.slate] = 3f; MeshKit.Tile[M.tiles] = 1f;
+            return true;
+        }
+
+        public static Transform Build(Transform parent)
+        {
+            M = null; if (!LoadMats()) return null;
             var root = new GameObject(RootName).transform; root.SetParent(parent, false);
             Parade(root, "North parade", North, new Vector3(NorthStartX, 0f, NorthFront), 180f);
             Parade(root, "South parade", South, new Vector3(SouthEndX - Length(South), 0f, SouthFront), 0f);
@@ -90,7 +97,22 @@ namespace ASBO.Slice
             return root;
         }
 
-        static void Parade(Transform root, string name, Unit[] units, Vector3 origin, float yaw)
+        /// <summary>
+        /// Another parade in the same styles, for the streets that fill the gaps (<see cref="Infill"/>): its own
+        /// shopfront atlas (same cell layout) and its own brick. Units run along the parade's +x from origin, fronts face +z.
+        /// </summary>
+        public static Transform ExtraParade(Transform root, string name, Unit[] units, Vector3 origin, float yaw, Material shops, Material brick, float brickTile)
+        {
+            if (!LoadMats()) return null;
+            Material s0 = M.shops, b0 = M.brick;
+            if (shops != null) M.shops = shops;
+            if (brick != null) { M.brick = brick; MeshKit.Tile[brick] = brickTile; }
+            try { return Parade(root, name, units, origin, yaw); }
+            finally { M.shops = s0; M.brick = b0; }
+        }
+        public static Unit Shop(int cell, float w, Era e, int storeys) => U(cell, w, e, storeys);
+
+        static Transform Parade(Transform root, string name, Unit[] units, Vector3 origin, float yaw)
         {
             var g = new GameObject(name).transform; g.SetParent(root, false); g.localPosition = origin; g.localRotation = Quaternion.Euler(0, yaw, 0);
             var k = new MeshKit(); var rng = new System.Random(name.GetHashCode());
@@ -111,6 +133,7 @@ namespace ASBO.Slice
             var body = k.Build("Buildings", g, false);
             foreach (var (c, s) in cols) { var bc = body.AddComponent<BoxCollider>(); bc.center = c; bc.size = s; }
             if (units[0].era == Era.Pub) BeerGarden(g, 0f, units[0].w);
+            return g;
         }
 
         // ------------------------------------------------------------------------------------------ shared pieces

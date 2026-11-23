@@ -43,7 +43,7 @@ namespace ASBO.EditorTools
             var oldHigh = world.transform.Find(HighStreet.RootName); if (oldHigh != null) Object.DestroyImmediate(oldHigh.gameObject);
             var oldCasino = world.transform.Find(CasinoHall.RootName); if (oldCasino != null) Object.DestroyImmediate(oldCasino.gameObject);
             var oldManor = world.transform.Find(TudorManor.RootName); if (oldManor != null) Object.DestroyImmediate(oldManor.gameObject);
-            foreach (var n in new[] { Roads.RootName, River.RootName, Estates.RootName, Services.RootName, Precinct.RootName, Industrial.RootName }) { var o = world.transform.Find(n); if (o != null) Object.DestroyImmediate(o.gameObject); }
+            foreach (var n in new[] { Roads.RootName, River.RootName, Estates.RootName, Services.RootName, Precinct.RootName, Industrial.RootName, Infill.RootName }) { var o = world.transform.Find(n); if (o != null) Object.DestroyImmediate(o.gameObject); }
             CasinoMaterials();
             var terrain = Object.FindFirstObjectByType<Terrain>();
             if (terrain != null) { ASBOTown.Deepen(terrain); Ground(terrain); ASBOTown.Ground(terrain); }
@@ -64,6 +64,8 @@ namespace ASBO.EditorTools
             if (precinct != null) SaveMeshes(precinct, "Assets/Art/Generated/Precinct");
             var industrial = Industrial.Build(world.transform);
             if (industrial != null) SaveMeshes(industrial, "Assets/Art/Generated/Industrial");
+            var infill = Infill.Build(world.transform);
+            if (infill != null) SaveMeshes(infill, "Assets/Art/Generated/Infill");
             if (roads != null) SaveMeshes(roads, "Assets/Art/Generated/Roads");
             if (river != null) SaveMeshes(river, "Assets/Art/Generated/River");
             SaveMeshes(root, MeshDir);
@@ -72,7 +74,7 @@ namespace ASBO.EditorTools
             if (castle != null) SaveMeshes(castle, "Assets/Art/Generated/Castle");
             if (high != null) SaveMeshes(high, "Assets/Art/Generated/HighStreet");
             if (casino != null) SaveMeshes(casino, "Assets/Art/Generated/Casino");
-            var built = new List<Transform> { root }; if (roads != null) built.Add(roads); if (river != null) built.Add(river); if (estates != null) built.Add(estates); if (services != null) built.Add(services); if (precinct != null) built.Add(precinct); if (industrial != null) built.Add(industrial); if (site != null) built.Add(site); if (castle != null) built.Add(castle); if (high != null) built.Add(high); if (casino != null) built.Add(casino); if (manor != null) built.Add(manor);
+            var built = new List<Transform> { root }; if (roads != null) built.Add(roads); if (river != null) built.Add(river); if (estates != null) built.Add(estates); if (services != null) built.Add(services); if (precinct != null) built.Add(precinct); if (industrial != null) built.Add(industrial); if (site != null) built.Add(site); if (castle != null) built.Add(castle); if (high != null) built.Add(high); if (casino != null) built.Add(casino); if (manor != null) built.Add(manor); if (infill != null) built.Add(infill);
             foreach (var t in built)
                 foreach (var r in t.GetComponentsInChildren<MeshRenderer>(true))
                 {
@@ -234,7 +236,7 @@ namespace ASBO.EditorTools
                     imp.textureType = TextureImporterType.Default; imp.sRGBTexture = true; imp.mipmapEnabled = true; imp.filterMode = FilterMode.Trilinear; imp.anisoLevel = 4;
                     imp.alphaSource = sash ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None; imp.alphaIsTransparency = false;
                     imp.wrapMode = tiles ? TextureWrapMode.Repeat : TextureWrapMode.Clamp; imp.maxTextureSize = 2048;
-                    imp.SetPlatformTextureSettings(new TextureImporterPlatformSettings { name = "Android", overridden = true, maxTextureSize = big ? 2048 : 512, format = TextureImporterFormat.ASTC_6x6 });
+                    imp.SetPlatformTextureSettings(new TextureImporterPlatformSettings { name = "Android", overridden = true, maxTextureSize = big ? 2048 : f.Contains("street_signs") ? 1024 : 512, format = TextureImporterFormat.ASTC_6x6 });
                     imp.SaveAndReimport();
                 }
             Texture2D T(string n) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{tex}/{n}.png");
@@ -249,6 +251,9 @@ namespace ASBO.EditorTools
                 m.SetFloat("_SmoothnessTextureChannel", 1f); m.EnableKeyword("_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A");
             }, dir);
             Plain("TownShops", Color.white, 0.6f, 0f, T("shopfronts"));
+            Plain("TownStreetShops", Color.white, 0.6f, 0f, T("street_shopfronts"));     // the streets that fill the gaps (tools/art/town/street_tex.py)
+            Plain("TownStreetShops2", Color.white, 0.6f, 0f, T("street_shopfronts2"));
+            Plain("TownStreetSigns", Color.white, 0.3f, 0f, T("street_signs"));
             Plain("TownPubTiles", Color.white, 0.8f, 0f, T("pub_tiles"));
             Plain("TownPubSign", Color.white, 0.35f, 0f, T("pub_sign"));
             Plain("TownPaint", new Color(0.07f, 0.2f, 0.13f), 0.7f);

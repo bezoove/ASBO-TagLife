@@ -58,6 +58,8 @@ namespace ASBO.Slice
             new Access { road = "Mill Lane", name = "Scrapyard gate", side = -1, at = -134f, w = 8f },
             new Access { road = "Mill Lane", name = "Swap Shop", side = 1, at = -55f, w = 12f },
             new Access { road = "Mill Lane", name = "Mill Lane East", side = 1, at = -90f, w = 7.2f },
+            new Access { road = "Kestrel Road", name = "Mill Street", side = -1, at = 57f, w = 6f },
+            new Access { road = "Northway", name = "Car park entrance", side = 1, at = -85f, w = 7.2f },
         };
 
         public enum JKind { Cross, Tee, Pelican }
@@ -188,8 +190,22 @@ namespace ASBO.Slice
         public static readonly Rect FireStation = new Rect(226f, -22f, 46f, 42f);
         public static readonly Rect Industrial = new Rect(160f, -152f, 132f, 108f);
 
+        // the streets that fill the gaps (Infill): what was bare hill and field between the districts
+        /// <summary>Between Kestrel Road, Northway, the high street and Abbots Wend: shops on both main roads, a terrace, the mill and Mill Street.</summary>
+        public static readonly Rect InfillKestrel = new Rect(-152.5f, 8f, 104.5f, 109.5f);
+        /// <summary>North of Northway from Kestrel Road to the hospital: Kestrel Chambers, the multi-storey car park, Kestrel House flats.</summary>
+        public static readonly Rect InfillNorthwayWest = new Rect(-152.5f, 132.5f, 85f, 55f);
+        /// <summary>North of Northway from the hospital to Thornbury Road: a parade, the gospel hall, a terrace.</summary>
+        public static readonly Rect InfillNorthwayEast = new Rect(74f, 132.5f, 46.5f, 61.5f);
+        /// <summary>The Long Road / Thornbury Road corner by the manor: a parade and a few houses.</summary>
+        public static readonly Rect InfillThornburyCorner = new Rect(97.5f, -22.5f, 23f, 44f);
+        /// <summary>Thornbury Road's east side before the casino: a parade.</summary>
+        public static readonly Rect InfillThornburyEast = new Rect(135.5f, -21f, 20f, 45f);
+        public static readonly Rect[] Infill = { InfillKestrel, InfillNorthwayWest, InfillNorthwayEast, InfillThornburyCorner, InfillThornburyEast };
+
         /// <summary>Every new area the ground is levelled for (with the road corridors on top).</summary>
-        public static readonly Rect[] Levelled = { KestrelFields, KestrelNorth, Thornbury, ThornburyNorth, HawthornHeights, Precinct, PrecinctYard, Hospital, Police, FireStation, Industrial };
+        public static readonly Rect[] Levelled = { KestrelFields, KestrelNorth, Thornbury, ThornburyNorth, HawthornHeights, Precinct, PrecinctYard, Hospital, Police, FireStation, Industrial,
+            InfillKestrel, InfillNorthwayWest, InfillNorthwayEast, InfillThornburyCorner, InfillThornburyEast };
 
         // ---------------------------------------------------------------- gangs
         public struct Turf { public string gang, estate, tag; public Rect[] area; public Color colour; }
