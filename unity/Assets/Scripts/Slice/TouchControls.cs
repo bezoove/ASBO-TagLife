@@ -34,7 +34,17 @@ namespace ASBO.Slice
         readonly List<Ctl> ctls = new List<Ctl>();
         Layout foot, car; bool carSet;
         bool editing; bool editCar; Ctl selected; int presetIdx;
-        GameObject dim, editBar, sizeBar, editBtn; Text editTitle, sizeTitle, hideLabel, presetLabel;
+        GameObject dim, editBar, sizeBar, editBtn, credits; Text editTitle, sizeTitle, hideLabel, presetLabel;
+
+        /// <summary>Who made what (shown from the layout editor). The CC BY textures must be credited wherever the game ships.</summary>
+        public const string CreditsText =
+            "ASBO: LIFE ON TAG\n\n" +
+            "Surface and building-front textures (facades, brick, tiles, carpets, fabrics, metals):\n" +
+            "Julio Sillet, licensed CC BY 4.0 (creativecommons.org/licenses/by/4.0), resized and repacked for the game\n\n" +
+            "Scanned models, surfaces and skies: Poly Haven (CC0)\n" +
+            "Animation: Adobe Mixamo; CMU Graphics Lab Motion Capture Database\n" +
+            "Characters: UMA and other Unity Asset Store packs (Standard Unity Asset Store EULA)\n\n" +
+            "Everything else, every name, shop and sign: made for this game. Any likeness is coincidence.";
 
         public static TouchControls Create(PlayerCtl pc)
         {
@@ -183,13 +193,20 @@ namespace ASBO.Slice
             Img((RectTransform)editBar.transform, null, new Color(0.02f, 0.02f, 0.03f, 0.8f));
             editTitle = Label(Rect("Title", editBar.transform, new Vector2(0.5f, 1f), new Vector2(0, -28), new Vector2(1500, 44)), "", 27);
             float bx = -540;
-            foreach (var (txt, act) in new (string, Action)[] { ("Switch layout", SwitchEditSet), ("Preset: Default", NextPreset), ("Reset", ResetLayout), ("Done", ToggleEdit) })
+            bx = -600;
+            foreach (var (txt, act) in new (string, Action)[] { ("Switch layout", SwitchEditSet), ("Preset: Default", NextPreset), ("Reset", ResetLayout), ("Credits", ToggleCredits), ("Done", ToggleEdit) })
             {
-                UiButton(editBar.transform, txt, new Vector2(0.5f, 0f), new Vector2(bx, 36), new Vector2(330, 56), act, out var lbl);
+                UiButton(editBar.transform, txt, new Vector2(0.5f, 0f), new Vector2(bx, 36), new Vector2(280, 56), act, out var lbl);
                 if (txt.StartsWith("Preset")) presetLabel = lbl;
-                bx += 360;
+                bx += 300;
             }
             editBar.SetActive(false);
+            var cr = Rect("Credits", root, new Vector2(0.5f, 0.5f), new Vector2(0, -40), new Vector2(1500, 560));
+            Img(cr, null, new Color(0.02f, 0.02f, 0.03f, 0.92f));
+            var ct = Label(cr, CreditsText, 26); ct.horizontalOverflow = HorizontalWrapMode.Wrap; ct.fontStyle = FontStyle.Normal;
+            ((RectTransform)ct.transform).sizeDelta = new Vector2(1400, 520);
+            UiButton(cr, "Close", new Vector2(0.5f, 0f), new Vector2(0, 40), new Vector2(240, 56), ToggleCredits, out _);
+            credits = cr.gameObject; credits.SetActive(false);
             sizeBar = Rect("SizeBar", root, new Vector2(0.5f, 1f), new Vector2(0, -340), new Vector2(760, 110)).gameObject;
             Img((RectTransform)sizeBar.transform, null, new Color(0.02f, 0.02f, 0.03f, 0.8f));
             sizeTitle = Label(Rect("Title", sizeBar.transform, new Vector2(0.5f, 1f), new Vector2(0, -24), new Vector2(760, 40)), "", 26);
@@ -301,9 +318,10 @@ namespace ASBO.Slice
             editing = !editing;
             if (editing) { editCar = pc != null && pc.InCar; carSet = editCar; }
             else { Save(); carSet = pc != null && pc.InCar; selected = null; }
-            dim.SetActive(editing); editBar.SetActive(editing); sizeBar.SetActive(false); editBtn.SetActive(!editing);
+            dim.SetActive(editing); editBar.SetActive(editing); sizeBar.SetActive(false); editBtn.SetActive(!editing); if (!editing && credits != null) credits.SetActive(false);
             RefreshTitle(); Apply();
         }
+        public void ToggleCredits() { if (credits != null) credits.SetActive(!credits.activeSelf); }
         public void SwitchEditSet() { Save(); editCar = !editCar; carSet = editCar; selected = null; sizeBar.SetActive(false); RefreshTitle(); Apply(); }
         public void NextPreset()
         {

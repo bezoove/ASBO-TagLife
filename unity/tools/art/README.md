@@ -21,6 +21,14 @@ Copy `<out>` to `Assets/Art/Props/`, then run **ASBO/Art/Build Props**: material
 LOD distances by kind, colliders, and rigid bodies + `Knockable` for things you can knock over.
 `Dressing.cs` places them round the estate at start-up.
 
+Street furniture from the Drive (Poly Haven, CC0): `barrel_stove`, `concrete_road_barrier(_02)`, `covered_car`,
+`electric_stove`, `football`, `industrial_wall_lamp`, `large_iron_gate`, `modular_electricity_poles` (three made-up
+poles), `old_tyre`, `rollershutter_window_02` (graffiti), `rusted_wheel_rim_01`, `security_camera_01/02`,
+`utility_box_02`, `water_manhole_cover`. Kinds in `props.json`: `prop` (knock it about), `fixture` (solid, stays put),
+`wall` (on a wall, no collider), `flat` (in the ground). `Dressing.Street()` places them round town.
+Not converted: `modular_fort_01` (647 MB, not the setting), `modular_pipes`, `modular_fire_escape`,
+`modular_chainlink_fence`, `large_castle_door` (modular kits that need assembling).
+
 Not converted yet: `island_tree_01` (half a million triangles even at its lowest level: needs a billboard
 version for phones) and `moss_01` (tiny geometry strands; better as a texture on rocks).
 

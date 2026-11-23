@@ -773,6 +773,418 @@
      "alpha": false
     }
    ]
+  },
+  {
+   "name": "barrel_stove",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "barrel_stove",
+     "fbx": "barrel_stove.fbx",
+     "tris0": 2499,
+     "tris1": 875
+    }
+   ],
+   "materials": [
+    {
+     "key": "barrel_stove",
+     "name": "barrel_stove",
+     "albedo": "barrel_stove_albedo.jpg",
+     "normal": "barrel_stove_normal.png",
+     "mask": "barrel_stove_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "concrete_road_barrier",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "concrete_road_barrier",
+     "fbx": "concrete_road_barrier.fbx",
+     "tris0": 2312,
+     "tris1": 674
+    }
+   ],
+   "materials": [
+    {
+     "key": "concrete_road_barrier",
+     "name": "concrete_road_barrier",
+     "albedo": "concrete_road_barrier_albedo.jpg",
+     "normal": "concrete_road_barrier_normal.png",
+     "mask": "concrete_road_barrier_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "concrete_road_barrier_02",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "concrete_road_barrier_02",
+     "fbx": "concrete_road_barrier_02.fbx",
+     "tris0": 2500,
+     "tris1": 1250
+    }
+   ],
+   "materials": [
+    {
+     "key": "concrete_road_barrier_02",
+     "name": "concrete_road_barrier_02",
+     "albedo": "concrete_road_barrier_02_albedo.jpg",
+     "normal": "concrete_road_barrier_02_normal.png",
+     "mask": "concrete_road_barrier_02_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "covered_car",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "covered_car",
+     "fbx": "covered_car.fbx",
+     "tris0": 6497,
+     "tris1": 2274
+    }
+   ],
+   "materials": [
+    {
+     "key": "covered_car",
+     "name": "covered_car",
+     "albedo": "covered_car_albedo.jpg",
+     "normal": "covered_car_normal.png",
+     "mask": "covered_car_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "electric_stove",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "electric_stove",
+     "fbx": "electric_stove.fbx",
+     "tris0": 8730,
+     "tris1": 3242
+    }
+   ],
+   "materials": [
+    {
+     "key": "electric_stove",
+     "name": "electric_stove",
+     "albedo": "electric_stove_albedo.jpg",
+     "normal": "electric_stove_normal.png",
+     "mask": "electric_stove_mask.png",
+     "alpha": false
+    },
+    {
+     "key": "electric_stove_glass",
+     "name": "electric_stove_glass",
+     "albedo": "electric_stove_glass_albedo.png",
+     "normal": "electric_stove_glass_normal.png",
+     "mask": "electric_stove_glass_mask.png",
+     "alpha": true
+    }
+   ]
+  },
+  {
+   "name": "football",
+   "kind": "prop",
+   "variants": [
+    {
+     "name": "football",
+     "fbx": "football.fbx",
+     "tris0": 1200,
+     "tris1": 420
+    }
+   ],
+   "materials": [
+    {
+     "key": "football",
+     "name": "football",
+     "albedo": "football_albedo.jpg",
+     "normal": "football_normal.png",
+     "mask": "football_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "industrial_wall_lamp",
+   "kind": "wall",
+   "variants": [
+    {
+     "name": "industrial_wall_lamp",
+     "fbx": "industrial_wall_lamp.fbx",
+     "tris0": 1500,
+     "tris1": 524
+    }
+   ],
+   "materials": [
+    {
+     "key": "industrial_wall_lamp",
+     "name": "industrial_wall_lamp",
+     "albedo": "industrial_wall_lamp_albedo.jpg",
+     "normal": "industrial_wall_lamp_normal.png",
+     "mask": "industrial_wall_lamp_mask.png",
+     "alpha": false
+    },
+    {
+     "key": "industrial_wall_lamp_glass",
+     "name": "industrial_wall_lamp_glass",
+     "albedo": "industrial_wall_lamp_glass_albedo.png",
+     "normal": "industrial_wall_lamp_glass_normal.png",
+     "mask": "industrial_wall_lamp_glass_mask.png",
+     "alpha": true
+    }
+   ]
+  },
+  {
+   "name": "large_iron_gate",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "large_iron_gate",
+     "fbx": "large_iron_gate.fbx",
+     "tris0": 6800,
+     "tris1": 2380
+    }
+   ],
+   "materials": [
+    {
+     "key": "large_iron_gate",
+     "name": "large_iron_gate",
+     "albedo": "large_iron_gate_albedo.jpg",
+     "normal": "large_iron_gate_normal.png",
+     "mask": "large_iron_gate_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "modular_electricity_poles",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "electricity_pole_01",
+     "fbx": "electricity_pole_01.fbx",
+     "tris0": 7868,
+     "tris1": 2992
+    },
+    {
+     "name": "electricity_pole_02",
+     "fbx": "electricity_pole_02.fbx",
+     "tris0": 4438,
+     "tris1": 1546
+    },
+    {
+     "name": "electricity_pole_03",
+     "fbx": "electricity_pole_03.fbx",
+     "tris0": 6070,
+     "tris1": 2161
+    }
+   ],
+   "materials": [
+    {
+     "key": "modular_electricity_poles_pieces",
+     "name": "modular_electricity_poles_pieces",
+     "albedo": "modular_electricity_poles_pieces_albedo.jpg",
+     "normal": "modular_electricity_poles_pieces_normal.png",
+     "mask": "modular_electricity_poles_pieces_mask.png",
+     "alpha": false
+    },
+    {
+     "key": "modular_electricity_poles",
+     "name": "modular_electricity_poles",
+     "albedo": "modular_electricity_poles_albedo.jpg",
+     "normal": "modular_electricity_poles_normal.png",
+     "mask": "modular_electricity_poles_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "old_tyre",
+   "kind": "prop",
+   "variants": [
+    {
+     "name": "old_tyre",
+     "fbx": "old_tyre.fbx",
+     "tris0": 1200,
+     "tris1": 420
+    }
+   ],
+   "materials": [
+    {
+     "key": "tire_r13_01",
+     "name": "tire_r13_01",
+     "albedo": "tire_r13_01_albedo.jpg",
+     "normal": "tire_r13_01_normal.png",
+     "mask": "tire_r13_01_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "rollershutter_window_02",
+   "kind": "wall",
+   "variants": [
+    {
+     "name": "rollershutter_window_02_graffiti",
+     "fbx": "rollershutter_window_02_graffiti.fbx",
+     "tris0": 560,
+     "tris1": 196
+    }
+   ],
+   "materials": [
+    {
+     "key": "rollershutter_window_02",
+     "name": "rollershutter_window_02",
+     "albedo": "rollershutter_window_02_albedo.jpg",
+     "normal": "rollershutter_window_02_normal.png",
+     "mask": "rollershutter_window_02_mask.png",
+     "alpha": false
+    },
+    {
+     "key": "rollershutter_window_02_graffiti",
+     "name": "rollershutter_window_02_graffiti",
+     "albedo": "rollershutter_window_02_graffiti_albedo.jpg",
+     "normal": "rollershutter_window_02_graffiti_normal.png",
+     "mask": "rollershutter_window_02_graffiti_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "rusted_wheel_rim_01",
+   "kind": "prop",
+   "variants": [
+    {
+     "name": "rusted_wheel_rim_01",
+     "fbx": "rusted_wheel_rim_01.fbx",
+     "tris0": 1500,
+     "tris1": 524
+    }
+   ],
+   "materials": [
+    {
+     "key": "rusted_wheel_rim_01",
+     "name": "rusted_wheel_rim_01",
+     "albedo": "rusted_wheel_rim_01_albedo.jpg",
+     "normal": "rusted_wheel_rim_01_normal.png",
+     "mask": "rusted_wheel_rim_01_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "security_camera_01",
+   "kind": "wall",
+   "variants": [
+    {
+     "name": "security_camera_01",
+     "fbx": "security_camera_01.fbx",
+     "tris0": 1999,
+     "tris1": 699
+    }
+   ],
+   "materials": [
+    {
+     "key": "security_camera_01",
+     "name": "security_camera_01",
+     "albedo": "security_camera_01_albedo.png",
+     "normal": "security_camera_01_normal.png",
+     "mask": "security_camera_01_mask.png",
+     "alpha": true
+    },
+    {
+     "key": "security_camera_01_glass",
+     "name": "security_camera_01_glass",
+     "albedo": "security_camera_01_glass_albedo.png",
+     "normal": "security_camera_01_glass_normal.png",
+     "mask": "security_camera_01_glass_mask.png",
+     "alpha": true
+    }
+   ]
+  },
+  {
+   "name": "security_camera_02",
+   "kind": "wall",
+   "variants": [
+    {
+     "name": "security_camera_02",
+     "fbx": "security_camera_02.fbx",
+     "tris0": 3000,
+     "tris1": 1049
+    }
+   ],
+   "materials": [
+    {
+     "key": "security_camera_02",
+     "name": "security_camera_02",
+     "albedo": "security_camera_02_albedo.jpg",
+     "normal": "security_camera_02_normal.png",
+     "mask": "security_camera_02_mask.png",
+     "alpha": false
+    },
+    {
+     "key": "security_camera_02_glass",
+     "name": "security_camera_02_glass",
+     "albedo": "security_camera_02_glass_albedo.png",
+     "normal": "security_camera_02_glass_normal.png",
+     "mask": "security_camera_02_glass_mask.png",
+     "alpha": true
+    }
+   ]
+  },
+  {
+   "name": "utility_box_02",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "utility_box_02",
+     "fbx": "utility_box_02.fbx",
+     "tris0": 1499,
+     "tris1": 524
+    }
+   ],
+   "materials": [
+    {
+     "key": "utility_box_02",
+     "name": "utility_box_02",
+     "albedo": "utility_box_02_albedo.jpg",
+     "normal": "utility_box_02_normal.png",
+     "mask": "utility_box_02_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "water_manhole_cover",
+   "kind": "flat",
+   "variants": [
+    {
+     "name": "water_manhole_cover",
+     "fbx": "water_manhole_cover.fbx",
+     "tris0": 1100,
+     "tris1": 384
+    }
+   ],
+   "materials": [
+    {
+     "key": "water_manhole_cover",
+     "name": "water_manhole_cover",
+     "albedo": "water_manhole_cover_albedo.jpg",
+     "normal": "water_manhole_cover_normal.png",
+     "mask": "water_manhole_cover_mask.png",
+     "alpha": false
+    }
+   ]
   }
  ]
 }

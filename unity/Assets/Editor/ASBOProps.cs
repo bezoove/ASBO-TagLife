@@ -135,7 +135,7 @@ namespace ASBO.EditorTools
             if (r1 != null) lg.SetLODs(new[] { new LOD(h0, new Renderer[] { r0 }), new LOD(h1, new Renderer[] { r1 }) });
             else lg.SetLODs(new[] { new LOD(h1, new Renderer[] { r0 }) });
             lg.RecalculateBounds();
-            bool smallLeaf = a.kind == "foliage";
+            bool smallLeaf = a.kind == "foliage" || a.kind == "flat";
             foreach (var r in rs)
             {
                 r.shadowCastingMode = smallLeaf || r == r1 && a.kind != "rock" ? ShadowCastingMode.Off : ShadowCastingMode.On;
@@ -150,10 +150,17 @@ namespace ASBO.EditorTools
                 if (n.StartsWith("garden_hose")) return; // a wall fixture: nothing to bump into
                 var bc = go.AddComponent<BoxCollider>(); bc.center = lc; bc.size = ls;
                 var rb = go.AddComponent<Rigidbody>();
-                rb.mass = n.Contains("trash") ? 7f : n.Contains("gnome") ? 3f : n.Contains("potted_plant_01") ? 9f : n.Contains("potted_plant_02") ? 6f : 2.5f;
+                rb.mass = n.Contains("trash") ? 7f : n.Contains("gnome") ? 3f : n.Contains("potted_plant_01") ? 9f : n.Contains("potted_plant_02") ? 6f
+                    : n.Contains("football") ? 0.43f : n.Contains("tyre") ? 8f : n.Contains("rim") ? 6.5f : 2.5f;
                 rb.linearDamping = 0.2f; rb.angularDamping = 0.6f; rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
                 rb.sleepThreshold = 0.05f;
                 go.AddComponent<Knockable>();
+            }
+            else if (a.kind == "fixture")
+            {
+                // solid, but it stays put (cabinets, barriers, poles, gates, the covered car, the burning barrel)
+                var bc = go.AddComponent<BoxCollider>(); bc.center = lc; bc.size = ls;
+                if (n.Contains("electricity_pole")) { bc.center = new Vector3(0f, ls.y * 0.5f, 0f); bc.size = new Vector3(0.3f, ls.y, 0.3f); } // just the pole, not the cross-arms
             }
             else if (a.kind == "rock" && size > 0.6f)
             {

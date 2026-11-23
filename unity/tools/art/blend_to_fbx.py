@@ -34,6 +34,26 @@ CFG = {
     'coastal_cliff_02': dict(kind='rock', tex=2048, mode='lod', lods=(3, 3), caps=[('', 12000)], caps1=4000),
     'mountainside': dict(kind='rock', tex=2048, mode='lod', lods=(3, 3), caps=[('', 8000)], caps1=2500),
     'fir_sapling_medium': dict(kind='tree', tex=1024, mode='lod', lods=(2, None), skip=r'twigs|needles|dead_branches|geometry'),
+    # from the Drive (Poly Haven, CC0): street furniture and junk for the town. kind: prop = knock it about,
+    # fixture = solid but stays put, wall = on a wall (no collider), flat = in the ground (no collider)
+    'barrel_stove': dict(kind='fixture', tex=1024, mode='prop', caps=[('', 2500)], variants={'barrel_stove': r'^barrel_stove$'}),
+    'concrete_road_barrier': dict(kind='fixture', tex=1024, mode='lod', lods=(3, 5)),
+    'concrete_road_barrier_02': dict(kind='fixture', tex=1024, mode='lod', lods=(3, 4)),
+    'covered_car': dict(kind='fixture', tex=1024, mode='prop', caps=[('wheel', 500), ('', 4500)]),
+    'electric_stove': dict(kind='fixture', tex=1024, mode='prop', caps=[('stovetop', 4000), ('door_top|handle', 1200), ('', 200)], variants={'electric_stove': r'^(?!wdg_)'}),
+    'football': dict(kind='prop', tex=512, mode='prop', caps=[('', 1200)], variants={'football': r'^football_inflated$'}),
+    'industrial_wall_lamp': dict(kind='wall', tex=512, mode='prop', caps=[('', 1500)]),
+    'large_iron_gate': dict(kind='fixture', tex=1024, mode='prop', caps=[('door', 3000), ('', 400)]),
+    'modular_electricity_poles': dict(kind='fixture', tex=1024, mode='prop', caps=[('connection_(large|small)', 1500), ('fuse|transformer', 600), ('', 150)],
+                                      variants={'electricity_pole_01': r'^preset_01_', 'electricity_pole_02': r'^preset_02_', 'electricity_pole_03': r'^preset_03_'}),
+    'old_tyre': dict(kind='prop', tex=512, mode='prop', caps=[('', 1200)]),
+    'rollershutter_window_02': dict(kind='wall', tex=1024, mode='prop', caps=[('', 600)],
+                                    variants={'rollershutter_window_02': r'^rollershutter_window_02$', 'rollershutter_window_02_graffiti': r'_graffiti$'}),
+    'rusted_wheel_rim_01': dict(kind='prop', tex=512, mode='prop', caps=[('', 1500)]),
+    'security_camera_01': dict(kind='wall', tex=512, mode='prop', caps=[('', 2000)], variants={'security_camera_01': r'^security_camera_01$'}),
+    'security_camera_02': dict(kind='wall', tex=512, mode='prop', caps=[('', 1500)], variants={'security_camera_02': r'^security_camera_02'}),
+    'utility_box_02': dict(kind='fixture', tex=1024, mode='prop', caps=[('', 1500)]),
+    'water_manhole_cover': dict(kind='flat', tex=1024, mode='prop', caps=[('frame', 300), ('', 800)]),
 }
 
 def tris(me): return sum(len(p.vertices) - 2 for p in me.polygons)
