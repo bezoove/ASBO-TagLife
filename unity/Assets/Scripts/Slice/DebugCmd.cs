@@ -600,8 +600,22 @@ namespace ASBO.Slice
             void Shot() { ScreenCapture.CaptureScreenshot(dir + "/c_" + (n++) + ".png"); }
             GameClock.Set(21.5f); // it looks its best lit up at night
             var o = CasinoHall.Origin;
-            foreach (var (at, yaw, pitch) in new[] { (new Vector3(20f, 0.2f, -17f), 0f, 4f), (new Vector3(20f, 0.2f, 1.5f), 0f, 8f), (new Vector3(36f, 0.2f, 9f), 245f, 10f), (new Vector3(6f, 0.2f, 16f), 120f, 10f) })
-            { pc.Teleport(o + at, yaw, pitch); yield return new WaitForSeconds(2.5f); Shot(); yield return new WaitForSeconds(0.3f); }
+            var views = new[] { (new Vector3(26f, 0.2f, -17f), 0f, 4f), (new Vector3(26f, 0.2f, 1.2f), 0f, 8f), (new Vector3(10.3f, 0.2f, 6.2f), 250f, 10f), (new Vector3(19.6f, 0.2f, 2.0f), 300f, 12f),
+                (new Vector3(30f, 0.2f, 10.6f), 0f, 14f), (new Vector3(37.6f, 0.2f, 17.4f), 240f, 12f), (new Vector3(46.4f, 0.2f, 7.5f), 90f, 8f), (new Vector3(50.8f, 0.2f, 2.4f), 0f, 10f),
+                (new Vector3(4.8f, 0.2f, 10.4f), 0f, 6f), (new Vector3(6.6f, 0.2f, 13.4f), 270f, 10f), (new Vector3(6.2f, 0.2f, 16.6f), 300f, 12f), (new Vector3(17.6f, 0.2f, 13.0f), 300f, 12f),
+                (new Vector3(12.6f, 0.2f, 18.6f), 90f, 10f), (new Vector3(48.6f, 0.2f, 16.1f), 250f, 12f), (new Vector3(40.2f, 0.2f, 3.4f), 60f, 10f) };
+            foreach (var (at, yaw, pitch) in views)
+            { pc.Teleport(o + at, yaw, pitch); yield return new WaitForSeconds(1.6f); Shot(); yield return new WaitForSeconds(0.3f); }
+            // try the things: a pint off the bar, sit on a stool, a door, the PC
+            foreach (var (at, yaw) in new[] { (new Vector3(48.5f, 0.05f, 3.1f), 90f), (new Vector3(48.4f, 0.05f, 5.2f), 90f), (new Vector3(10f, 0.05f, 11.3f), 0f), (new Vector3(15.8f, 0.05f, 21.2f), 180f) })
+            {
+                pc.Teleport(o + at, yaw, 10f); yield return new WaitForSeconds(0.8f);
+                bool used = PropWorld.TryUse(); yield return new WaitForSeconds(1.0f);
+                Debug.Log($"[ASBO] casino use at {at}: used={used} holding={PropWorld.Holding} seated={pc.OnSeat}");
+                Shot(); yield return new WaitForSeconds(0.3f);
+                if (pc.OnSeat) pc.StandUp(); else if (PropWorld.Holding) PropWorld.TryUse();
+                yield return new WaitForSeconds(0.4f);
+            }
             ASBO.Casino.CasinoWallet.Held = 300;
             foreach (var g in new[] { ASBO.Casino.CasinoUI.Game.Roulette, ASBO.Casino.CasinoUI.Game.Blackjack, ASBO.Casino.CasinoUI.Game.Slots, ASBO.Casino.CasinoUI.Game.Poker })
             {

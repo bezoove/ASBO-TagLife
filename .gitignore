@@ -16,3 +16,4 @@ unity/tools/__pycache__/
 # Mixamo downloads: fine inside the game, not to be handed out as files
 unity/Assets/Mixamo/
 unity/tools/art/cars/__pycache__/
+unity/tools/art/casino/out/

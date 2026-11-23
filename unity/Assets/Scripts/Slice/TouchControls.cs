@@ -355,7 +355,7 @@ namespace ASBO.Slice
             if (!talkLooked) { talkLooked = true; foreach (var c in ctls) if (c.id == "talk") talkCtl = c; }
             if (talkCtl != null && talkCtl.rt.gameObject.activeSelf)
             {
-                bool can = !inCar && (Social.I != null && (Social.I.Near != null || DialogueUI.Open) || CasinoFloor.Near != null);
+                bool can = !inCar && (Social.I != null && (Social.I.Near != null || DialogueUI.Open) || CasinoFloor.Near != null || PropWorld.HasPrompt);
                 talkCtl.group.alpha = Mathf.MoveTowards(talkCtl.group.alpha, can ? 1f : 0f, Time.deltaTime * 6f);
                 talkCtl.group.blocksRaycasts = can; talkCtl.group.interactable = can;
             }

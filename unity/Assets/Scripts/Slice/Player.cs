@@ -118,6 +118,16 @@ namespace ASBO.Slice
             if ((kb != null && kb.eKey.wasPressedThisFrame) || (gp != null && gp.selectButton.wasPressedThisFrame)) ToggleCar();
             // talk to whoever's in front of you, or answer whoever came over: T / pad Y / TALK
             if (!inCar && Social.I != null && ((kb != null && kb.tKey.wasPressedThisFrame) || (gp != null && gp.buttonNorth.wasPressedThisFrame))) Social.I.TalkPressed();
+            if (chairSat)
+            {
+                // sat on a stool, a chair, a sofa: stay put until you push the stick (or press TALK)
+                person.SetMove(Vector2.zero); vel = Vector3.zero; transform.SetPositionAndRotation(chairPos, Quaternion.Euler(0, chairYaw, 0)); bodyYaw = chairYaw;
+                Vector2 mv = kb == null ? Vector2.zero : new Vector2((kb.dKey.isPressed ? 1 : 0) - (kb.aKey.isPressed ? 1 : 0), (kb.wKey.isPressed ? 1 : 0) - (kb.sKey.isPressed ? 1 : 0));
+                if (gp != null && gp.leftStick.ReadValue().sqrMagnitude > 0.25f) mv = Vector2.one;
+                if (FloatStick.Active && FloatStick.Value.sqrMagnitude > 0.25f) mv = Vector2.one;
+                if (mv.sqrMagnitude > 0.1f && Time.time - chairT > 0.6f) StandUp();
+                UpdateCamera(); return;
+            }
             if (kb != null && kb.vKey.wasPressedThisFrame) spectate = !spectate;
             if (kb != null && kb.f9Key.wasPressedThisFrame)
             {
@@ -400,6 +410,29 @@ namespace ASBO.Slice
         }
 
         bool seated;
+        bool chairSat; Vector3 chairPos; float chairYaw, chairT;
+        /// <summary>Sat on a seat (not in a car).</summary>
+        public bool OnSeat => chairSat;
+        /// <summary>Sit down on a seat: the root goes at pos facing yaw, the sitting pose plays, no walking until you get up.</summary>
+        public void SitOn(Vector3 pos, float yaw)
+        {
+            if (inCar || chairSat) return;
+            if (crouched) SetCrouch(false);
+            chairSat = true; chairPos = pos; chairYaw = yaw; chairT = Time.time; cc.enabled = false; vel = Vector3.zero; vy = 0f;
+            transform.SetPositionAndRotation(pos, Quaternion.Euler(0, yaw, 0)); bodyYaw = yaw;
+            if (person != null && person.anim != null && HasParam(person.anim, "Sit")) person.anim.SetBool("Sit", true);
+            fg ??= GetComponentInChildren<FootGround>(); if (fg != null) fg.off = true;
+        }
+        /// <summary>Get up and step out in front of the seat.</summary>
+        public void StandUp()
+        {
+            if (!chairSat) return; chairSat = false;
+            if (person != null && person.anim != null && HasParam(person.anim, "Sit")) person.anim.SetBool("Sit", false);
+            Vector3 p = chairPos + Quaternion.Euler(0, chairYaw, 0) * Vector3.forward * 0.6f; float y = chairPos.y;
+            if (Physics.Raycast(p + Vector3.up * 1.2f, Vector3.down, out var hit, 3f, ~((1 << 2) | (1 << Person.RagdollLayer)), QueryTriggerInteraction.Ignore)) y = hit.point.y;
+            transform.position = new Vector3(p.x, y + 0.02f, p.z); cc.enabled = true;
+            fg ??= GetComponentInChildren<FootGround>(); if (fg != null) fg.off = false;
+        }
         static bool HasParam(Animator a, string n) { foreach (var p in a.parameters) if (p.name == n) return true; return false; }
         /// <summary>Into the driver's seat (every frame, and again after the animation so the pose's own drift can't move you).</summary>
         void Sit()

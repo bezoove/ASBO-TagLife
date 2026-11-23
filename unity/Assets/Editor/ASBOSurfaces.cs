@@ -52,7 +52,8 @@ namespace ASBO.EditorTools
                         bool normal = path.Contains("_normal."), mask = path.Contains("_mask.");
                         imp.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
                         imp.sRGBTexture = !normal && !mask;
-                        imp.alphaSource = mask ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None;
+                        bool cut = path.EndsWith("_albedo.png");   // see-through sets (grilles, gates, mesh) keep their alpha
+                        imp.alphaSource = mask || cut ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None; imp.alphaIsTransparency = cut;
                         imp.mipmapEnabled = true; imp.wrapMode = TextureWrapMode.Repeat; imp.anisoLevel = 4;
                         imp.filterMode = FilterMode.Trilinear;
                         imp.maxTextureSize = normal || mask ? 1024 : 2048;
@@ -86,7 +87,7 @@ namespace ASBO.EditorTools
         }
 
         static Texture2D T(string name, string kind) =>
-            AssetDatabase.LoadAssetAtPath<Texture2D>($"{TexRoot}/{name}/{name}_{kind}.{(kind == "albedo" ? "jpg" : "png")}");
+            AssetDatabase.LoadAssetAtPath<Texture2D>($"{TexRoot}/{name}/{name}_{kind}.{(kind == "albedo" ? "jpg" : "png")}") ?? (kind == "albedo" ? AssetDatabase.LoadAssetAtPath<Texture2D>($"{TexRoot}/{name}/{name}_albedo.png") : null);
 
         /// <summary>Turns any material into the named surface: colour, normal and metal/smoothness maps, real-size tiling.</summary>
         static void Skin(Material m, string surf, float scale, Color tint, float bump)
@@ -111,6 +112,11 @@ namespace ASBO.EditorTools
                 m.SetTexture("_DetailAlbedoMap", macro); m.SetTextureScale("_DetailAlbedoMap", Vector2.one * (scale * size / Surfaces.MacroMetres));
                 m.SetFloat("_DetailAlbedoMapScale", 1f); m.EnableKeyword("_DETAIL_MULX2");
             }
+            // see-through sets: cut out by the albedo's alpha, both sides drawn
+            bool cut = AssetDatabase.GetAssetPath(a).EndsWith(".png");
+            m.SetFloat("_AlphaClip", cut ? 1f : 0f); m.SetFloat("_Cutoff", 0.5f); m.SetFloat("_Cull", cut ? 0f : 2f);
+            if (cut) { m.EnableKeyword("_ALPHATEST_ON"); m.renderQueue = 2450; m.SetOverrideTag("RenderType", "TransparentCutout"); }
+            else { m.DisableKeyword("_ALPHATEST_ON"); if (m.renderQueue == 2450) m.renderQueue = -1; }
             m.enableInstancing = true;
         }
 

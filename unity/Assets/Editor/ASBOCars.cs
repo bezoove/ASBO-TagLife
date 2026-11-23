@@ -88,6 +88,13 @@ namespace ASBO.EditorTools
 
         const string AmbSrc = "Assets/Art/Ambulance";
 
+        /// <summary>Rebuild only the ambulance prefab (after a new ambulance.fbx), using the shared car materials already made.</summary>
+        public static void AmbulanceOnly()
+        {
+            Material L(string n) => AssetDatabase.LoadAssetAtPath<Material>($"{Mats}/{n}.mat");
+            BuildAmbulance(L("KitDark"), L("KitChrome"), L("KitGlass"), L("KitLamps"), L("KitPlate"), L("KitWheel"));
+        }
+
         /// <summary>
         /// The box ambulance (Assets/Art/Ambulance/ambulance.fbx from tools/art/cars/ambforge.py): baked livery
         /// (yellow, green Battenburg, EMERGENCY AMBULANCE), chevron rear doors, white treatment room with kit inside.

@@ -23,6 +23,15 @@ namespace ASBO.Slice
             ["limewash_stone"] = 2f, ["plaster_smooth"] = 2f, ["buff_brick"] = 1.8f, ["red_brick_vic"] = 2.7f,
             ["dark_rock_02"] = 2f, ["rock_pitted_mossy"] = 1f, ["bark_brown_01"] = 1f, ["coated_pine"] = 0.74f,
             ["eucalyptus_bark"] = 1.81f, ["hinoki_planks"] = 1.89f, ["jolcham_oak_bark_01"] = 2f, ["sakura_bark"] = 1.6f,
+            // the CC BY 4.0 packs (Julio Sillet) from the Drive
+            ["carpet_hex"] = 1.6f, ["carpet_office"] = 1f, ["velvet_red"] = 0.8f, ["fabric_gold"] = 0.6f, ["fabric_wool"] = 0.8f, ["leather_quilt"] = 0.8f, ["leather_quilt2"] = 0.8f,
+            ["leather_worn_red"] = 1f, ["grille_clover"] = 0.6f, ["grille_square"] = 1f, ["shutter_roller"] = 1.5f, ["shutter_bars"] = 1.5f, ["parquet_diamond"] = 2f, ["parquet_cherry"] = 2f,
+            ["parquet_herring"] = 1.5f, ["wood_slats"] = 2f, ["wood_slats_dark"] = 2f, ["wood_weathered"] = 2f, ["wood_painted"] = 2f, ["tiles_metro_black"] = 1f, ["tiles_metro_green"] = 1f,
+            ["tiles_herring_teal"] = 1f, ["tiles_victorian"] = 1f, ["tiles_chevron"] = 1f, ["tiles_red"] = 1.2f, ["tiles_grey_wall"] = 1f, ["concrete_floor"] = 3f, ["concrete_panels"] = 3f,
+            ["concrete_dark"] = 3f, ["rubber_mat"] = 0.6f, ["rug_brown"] = 2f, ["dark_wood_tiles"] = 1.5f, ["tiles_black_deco"] = 1f,
+            ["facade_01"] = 8f, ["facade_02"] = 8f, ["facade_03"] = 8f, ["facade_04"] = 8f, ["facade_05"] = 8f, ["facade_06"] = 8f, ["facade_07"] = 8f, ["facade_08"] = 8f, ["facade_09"] = 8f,
+            ["brickfront_01"] = 6f, ["brickfront_02"] = 6f, ["brickfront_03"] = 6f, ["brickfront_04"] = 6f, ["brickfront_05"] = 6f, ["red_bricks_01"] = 2f, ["red_bricks_02"] = 2f, ["concrete_damaged"] = 3f,
+            ["tactile_red"] = 0.8f, ["tactile_buff"] = 0.8f, ["tactile_lines"] = 0.8f, ["security_gate"] = 2f, ["window_grill"] = 1.2f, ["hivis_mesh"] = 1f, ["sidewalk_01"] = 2f, ["sidewalk_02"] = 2f, ["ground_stones"] = 2f,
         };
 
         static readonly Dictionary<string, Material> loaded = new Dictionary<string, Material>();
