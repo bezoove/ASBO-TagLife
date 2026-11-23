@@ -28,12 +28,12 @@ namespace ASBO.Slice
             return p;
         }
 
-        /// <summary>How rough estate traffic is: mostly tired, some clean, some filthy or rusting, the odd wreck.</summary>
+        /// <summary>How rough estate traffic is: mostly tired, some clean, some filthy or rusting.</summary>
         public static Wear PickWear(System.Random r, bool rough)
         {
             if (!rough) return Wear.Clean;
             double t = r.NextDouble();
-            return t < 0.42 ? Wear.Clean : t < 0.76 ? Wear.Tired : t < 0.87 ? Wear.Dirty : t < 0.97 ? Wear.Rusty : Wear.Wreck;
+            return t < 0.42 ? Wear.Clean : t < 0.76 ? Wear.Tired : t < 0.87 ? Wear.Dirty : Wear.Rusty; // (wrecks don't drive about: they're dumped, placed on their own)
         }
 
         public static Transform[] Build(Transform parent, CarBody.Spec s, Color paint, bool castShadow, int seed, bool rough)
@@ -45,7 +45,7 @@ namespace ASBO.Slice
         /// <summary>Builds the car under parent (origin on the ground at its middle, front = +z). Returns the wheels FL, FR, RL, RR.</summary>
         public static Transform[] Build(Transform parent, string id, Color paint, Wear wear, bool castShadow, System.Random rng)
         {
-            if (wear <= Wear.Dirty && Pack(id) != null) return BuildPack(parent, id, paint, wear, castShadow, rng);
+            if (wear <= Wear.Rusty && Pack(id) != null) return BuildPack(parent, id, paint, wear, castShadow, rng); // detailed model, weathered by paint
             var root = Object.Instantiate(Prefab(id), parent, false).transform;
             root.name = "Body"; root.localPosition = Vector3.zero; root.localRotation = Quaternion.identity;
             bool dented = wear >= Wear.Rusty || wear == Wear.Dirty && rng.NextDouble() < 0.35;
@@ -178,9 +178,10 @@ namespace ASBO.Slice
         {
             var root = Object.Instantiate(Pack(id), parent, false).transform;
             root.name = "Body"; root.localPosition = Vector3.zero; root.localRotation = Quaternion.identity;
-            float fade = wear == Wear.Tired ? 0.15f + (float)rng.NextDouble() * 0.2f : wear == Wear.Dirty ? 0.25f : (float)rng.NextDouble() * 0.06f;
+            float fade = wear == Wear.Tired ? 0.15f + (float)rng.NextDouble() * 0.2f : wear == Wear.Dirty ? 0.25f : wear == Wear.Rusty ? 0.38f : (float)rng.NextDouble() * 0.06f;
             Color col = Color.Lerp(paint, new Color(0.62f, 0.62f, 0.6f), fade);
             if (wear == Wear.Dirty) col = Color.Lerp(col, new Color(0.33f, 0.29f, 0.22f), 0.3f);
+            if (wear == Wear.Rusty) col = Color.Lerp(col, new Color(0.38f, 0.22f, 0.12f), 0.32f + (float)rng.NextDouble() * 0.12f); // sun-baked and going brown
             var sh = castShadow ? ShadowCastingMode.On : ShadowCastingMode.Off;
             Material paintM = null, plateM = null;
             var near = new List<Renderer>();
@@ -192,7 +193,7 @@ namespace ASBO.Slice
                     if (mats[i] == null) continue;
                     if (mats[i].name.EndsWith("_Paint"))
                     {
-                        if (paintM == null) { paintM = new Material(mats[i]) { name = id + " paint" }; paintM.SetColor("_BaseColor", col); paintM.SetFloat("_Smoothness", wear == Wear.Clean ? 0.66f : wear == Wear.Tired ? 0.45f : 0.28f); }
+                        if (paintM == null) { paintM = new Material(mats[i]) { name = id + " paint" }; paintM.SetColor("_BaseColor", col); paintM.SetFloat("_Smoothness", wear == Wear.Clean ? 0.66f : wear == Wear.Tired ? 0.45f : wear == Wear.Dirty ? 0.28f : 0.12f); }
                         mats[i] = paintM;
                     }
                     else if (mats[i].name.EndsWith("_Plates"))

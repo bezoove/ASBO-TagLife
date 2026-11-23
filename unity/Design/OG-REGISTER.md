@@ -163,10 +163,31 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - You asked: Running looked wrong: a foot at a crazy angle, arms in the body, chest puffed out. Use the motion assets.
   - You asked: Feet stay planted on the floor (no sliding), in every move now and later.
   - Old game: [Player](og/modules/Player.md), [Gait](og/modules/Gait.md), [Moves](og/modules/Moves.md), [Mocap](og/modules/Mocap.md), [MocapData](og/modules/MocapData.md), [Anim](og/modules/Anim.md), [Anim2](og/modules/Anim2.md), [Input](og/modules/Input.md) (91 behaviours, 16 lines said or shown, 122 tuning numbers)
-- [ ] **Sit on chairs, stools and benches**
+- [~] **Every movement (v25 status)**: what's in, and what's still to come. All motion capture from the Mixamo, Kevin Iglesias, MoCap Central and DoubleL libraries already in the project.
+  - In: walk, jog, run, sprint (push the stick further to run); turn on the spot; braking strides when you pull up from a run.
+  - In: jump (the whole body leaves the ground, feet left to the jump in the air); momentum kept through the air.
+  - In: landings: soft; hard landing from a big drop (knees buckle, hand to the floor); a roll when you land a drop on the run; arms and legs going on a long fall.
+  - In: crouch down and stand up (proper transitions), slow crouch walk, quicker hunched sneak at the captured speed; sprint straight out of a crouch.
+  - In: climb chest-to-head-high ledges (hands on, a foot up, haul up and step on, the capture's own rise scaled to the wall); hop up onto low ledges; run-up wall climb when you sprint at a 1.9 to 2.9 m wall.
+  - In: vault fences, railings and low walls on the run (uses the jump capture: there's no vault capture in the library yet, a Mixamo vault download would make it a hand-on-the-rail vault).
+  - In: stumble when you run into someone; they're knocked back a step and shout.
+  - In: reach for things on tables and counters, squat for things on the floor, before they're in your hand.
+  - In: sitting on benches, chairs and stools, three ways of sitting, random small movements (look round, over a shoulder, scratch, sip, shrug, rub the head, a few words with the hands), a few sit perfectly still; the same small movements for people stood about.
+  - In: fights (jab, cross, hook, body shot, overhand, kicks, shove), being hit, knockdowns, getting up, limping; stamping on someone's head when they're down.
+  - In: carjacking (open the door, drag the driver out onto the road, get in and go); getting in and out of cars; the driving pose.
+  - In: drunk stagger, injured limp, talking gestures, waving, kneeling (people about the town).
+  - To come: ladders (DoubleL ladder captures are in; needs ladders put on buildings, scaffolding and the construction site).
+  - To come: hanging from a ledge, shimmying along it, dropping down (Braced Hang, Freehang Climb, Jump To Freehang); climbing back down off a ledge; jumping down off a ledge on purpose; rope climb.
+  - To come: slipping on wet floors and ice; running and walking 180-degree turns; start and stop walking steps.
+  - To come: kneel to search a knocked-out person; crawling away when you're down.
+  - To come: headbutt, elbow, knee, leg sweep, tackle, flying kick, grabs and chokes in fights; weapon swings and stabs (with the weapons).
+  - To come: a proper throw for things you're holding (pitch or lob); typing a code into keypads (the casino vault); celebrating; a swagger walk for some of the lads; hit-by-car and dying reactions before the ragdoll.
+- [x] **Sit on chairs, stools and benches**: v25: varied sitting and random small movements, nobody in step with anybody else.
+  - You asked: People sitting in the casino moved in sync: make a wide variety of subtle random movements for idle sitting; sitting perfectly still is okay.
   - You asked: Player can sit on upright chairs (old game).
   - Old game: [Sit](og/modules/Sit.md), [FpSeat](og/modules/FpSeat.md) (12 behaviours, 3 lines said or shown, 2 tuning numbers)
-- [ ] **Climbing and ladders**: Fall too far and something in your knee goes click.
+- [~] **Climbing and ladders**: v25: ledges, high walls at a run, fences and low walls (see Every movement). Ladders still to come. Fall too far and something in your knee goes click.
+  - You asked: Climbing and vaulting, carjacking and head stamping: you have the motion capture for them (v25: all in).
   - Old game: [Climb](og/modules/Climb.md), [Ladders](og/modules/Ladders.md), [LADDER_KINDS](og/modules/LADDER_KINDS.md) (76 behaviours, 70 lines said or shown, 59 tuning numbers)
 - [ ] **First and third person view**: v21: the car camera stays the same distance behind at every speed (it used to drop back further the faster you went, and judder) and isn't pushed about by cars or bodies; that distance is a saved setting ready for the custom view, which isn't built yet.
   - You asked: First/third person toggle, centre dot and a discreet info box (old game).
@@ -318,6 +339,11 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - You asked: Open the door to get out, not just appear outside.
   - You asked: Bail out of a moving car and tumble or splat on the floor, worse the faster you're going.
   - Old game: [Cars](og/modules/Cars.md), [CarExit](og/modules/CarExit.md), [World:cars](og/modules/World-cars.md) (139 behaviours, 55 lines said or shown, 104 tuning numbers)
+- [~] **Car models: every car detailed**: v26: every car driving about or parked is one of the two detailed bought models (hatchback and saloon) in every colour, plate and condition (clean, tired, filthy, sun-baked going brown). Our simpler generated bodies (old saloon, supermini, 70s hatch, rally, coupe, estate, jeep, van) are off the road; they stay only as dumped wrecks and burnt-out shells, which need smashed glass and dents the bought models can't show yet. More shapes come back as detailed models are added. Parked cars kept out of lanes and apart (v25), traffic sees parked cars, wrecks get towed when nobody's looking.
+  - You asked: Some cars are simple (asked about five times).
+  - You asked: Cars piled up, overlapping, sunk into the road.
+- [x] **Carjacking**: v25: walk up to a car in traffic (stopped or crawling) and get in: you open the door, drag the driver out onto the road, and drive off.
+  - You asked: Carjacking: you have the motion capture.
 - [x] **Traffic that stops at the zebra**
 - [~] **Crashes and damage**: Sounds in. v20: the bodywork dents in where it's hit, deeper the harder the hit, on every car (Realistic Mesh Deformation), with sparks off the impact. Cracked glass, tyres going and fire not yet.
   - You asked: Use the dent asset for crash effects.

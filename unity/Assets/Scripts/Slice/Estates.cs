@@ -331,7 +331,7 @@ namespace ASBO.Slice
             if (Bays.Count == 0) RebuildBays();
             var root = new GameObject("Estate Cars").transform; root.SetParent(parent, false);
             var r = new System.Random(777); int n = 0;
-            string[] kinds = { "hatch90", "hatch90", "hatch90", "saloon90", "saloon90", "saloon90", "boxy80", "supermini", "hatch70", "estate90", "coupe80", "jeep" }; // mostly the detailed hatch and saloon
+            string[] kinds = { "hatch90", "hatch90", "hatch90", "saloon90", "saloon90" }; // only the detailed models (wrecks fall back to the generated shells)
             foreach (var (p, yaw, gang) in Bays)
             {
                 if (r.NextDouble() > 0.62) continue;

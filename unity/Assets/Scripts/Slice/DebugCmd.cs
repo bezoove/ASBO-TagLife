@@ -122,6 +122,16 @@ namespace ASBO.Slice
         public static void MoveTest() { new GameObject("MoveTest").AddComponent<MoveTestRun>(); }
         /// <summary>Films a carjack (a stopped car, the driver dragged out, away you go) and then a stamp on the driver lying in the road. Shots/moves/j_N.png.</summary>
         public static void JackTest() { new GameObject("JackTest").AddComponent<JackTestRun>(); }
+        /// <summary>Which car models are about: traffic by model, parked cars and wrecks by name.</summary>
+        public static void CarCensus()
+        {
+            var d = new System.Collections.Generic.SortedDictionary<string, int>();
+            void Add(string k) { d[k] = d.TryGetValue(k, out var v) ? v + 1 : 1; }
+            foreach (var c in TrafficCar.All) if (c != null) Add("traffic " + c.id);
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsSortMode.None)) if (t.name.StartsWith("Parked ") || t.name.StartsWith("Wreck ")) Add(t.name);
+            var sb = new System.Text.StringBuilder("[ASBO] cars: "); foreach (var kv in d) sb.Append(kv.Key).Append(" x").Append(kv.Value).Append(", ");
+            Debug.Log(sb.ToString());
+        }
         /// <summary>Climb, run-up wall climb, vault, drop-and-roll, barging into someone, reaching down: on a test slab up in the sky.</summary>
         public static void TraverseTest(int only) { TraverseTestRun.Only = only; new GameObject("TraverseTest").AddComponent<TraverseTestRun>(); }
         public static void MobTest() { new GameObject("MobTest").AddComponent<MobTestRun>(); }
