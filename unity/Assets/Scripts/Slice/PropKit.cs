@@ -41,7 +41,7 @@ namespace ASBO.Slice
         {
             var e = PropLib.Get(id); if (e == null || e.mesh == null) { Missing++; return -1; }
             if (e.kind == PropLib.Kind.Door) { doors.Add((id, pos, yaw, tag)); return -1; }
-            var rot = Quaternion.Euler(tilt, yaw, 0f); var src = Of(e.mesh);
+            var rot = Quaternion.Euler(tilt, yaw, 0f); var src = Of(e.mesh); zone = Cell(pos);
             if (!chunks.TryGetValue(zone, out var c)) chunks[zone] = c = new Chunk();
             int v0 = c.v.Count;
             for (int i = 0; i < src.v.Length; i++)
@@ -60,6 +60,7 @@ namespace ASBO.Slice
         public void Picture(string region, Vector3 c, Vector3 facing, float w, float h, int zone)
         {
             if (!PropLib.Regions.TryGetValue(region, out var r)) { Missing++; return; }
+            zone = Cell(c);
             if (!chunks.TryGetValue(zone, out var k)) chunks[zone] = k = new Chunk();
             facing.y = 0f; facing.Normalize(); Vector3 right = Vector3.Cross(Vector3.up, facing).normalized * (w * 0.5f), up = Vector3.up * (h * 0.5f); c += facing * 0.012f;
             int v0 = k.v.Count;
@@ -69,6 +70,9 @@ namespace ASBO.Slice
             Vector3 td = -right.normalized; for (int i = 0; i < 4; i++) { k.n.Add(facing); k.t.Add(new Vector4(td.x, td.y, td.z, 1f)); }
             k.t0.Add(v0); k.t0.Add(v0 + 2); k.t0.Add(v0 + 1); k.t0.Add(v0); k.t0.Add(v0 + 3); k.t0.Add(v0 + 2);
         }
+
+        /// <summary>Meshes are cut into 8 m squares, so each is lit by its own nearest lamps (phones light a mesh with only a couple).</summary>
+        public static int Cell(Vector3 p) => Mathf.FloorToInt(p.x / 8f) * 64 + Mathf.FloorToInt(p.z / 8f) + 2080;
 
         public void Solid(Vector3 mn, Vector3 mx) => solids.Add(((mn + mx) * 0.5f, mx - mn, Quaternion.identity));
 
@@ -103,78 +107,6 @@ namespace ASBO.Slice
             foreach (var (id, p, yaw, tag) in doors) PropDoor.Make(root, id, p, yaw, tag);
             Debug.Log($"[ASBO] props: {name}: {rs.Length} props in {mfs.Count} meshes, {solids.Count} colliders, {doors.Count} doors" + (Missing > 0 ? $", {Missing} missing" : ""));
             return set;
-        }
-    }
-
-    /// <summary>Where every baked prop in an interior is, so it can be found, hidden and swapped for a real one at play.</summary>
-    public class PropSet : MonoBehaviour
-    {
-        [System.Serializable] public struct Rec { public string id; public Vector3 pos; public float yaw; public int chunk, v0, vn; public string tag; }
-        public MeshFilter[] chunks; public Rec[] recs;
-        [System.NonSerialized] public bool[] gone;
-        [System.NonSerialized] Vector3[][] verts;
-        public static readonly List<PropSet> All = new List<PropSet>();
-        void OnEnable() { All.Add(this); gone ??= new bool[recs?.Length ?? 0]; }
-        void OnDisable() { All.Remove(this); }
-
-        public Vector3 World(int i) => transform.TransformPoint(recs[i].pos);
-        public Quaternion Rot(int i) => transform.rotation * Quaternion.Euler(0f, recs[i].yaw, 0f);
-
-        /// <summary>Takes prop i out of its baked mesh (squashes its vertices to a point).</summary>
-        public void Hide(int i)
-        {
-            if (gone[i]) return; gone[i] = true;
-            var r = recs[i]; if (r.chunk < 0 || r.chunk >= chunks.Length) return;
-            verts ??= new Vector3[chunks.Length][];
-            var mf = chunks[r.chunk];
-            if (verts[r.chunk] == null) { var m = mf.mesh; verts[r.chunk] = m.vertices; }   // .mesh: our own copy, the asset stays whole
-            var v = verts[r.chunk]; var p = v[r.v0];
-            for (int k = r.v0; k < r.v0 + r.vn && k < v.Length; k++) v[k] = p;
-            mf.mesh.SetVertices(v);
-        }
-    }
-
-    /// <summary>A door you can open and shut: swings about its hinge. Some are locked (a code, a key).</summary>
-    public class PropDoor : MonoBehaviour
-    {
-        public string id, tag; public float open; public float target; public Transform leaf;
-        public static readonly List<PropDoor> All = new List<PropDoor>();
-        void OnEnable() { All.Add(this); }
-        void OnDisable() { All.Remove(this); }
-        public static PropDoor Make(Transform parent, string id, Vector3 p, float yaw, string tag)
-        {
-            var e = PropLib.Get(id); if (e == null) return null;
-            var hinge = new GameObject("Door_" + id); hinge.transform.SetParent(parent, false);
-            // the leaf is modelled centred with its hinge at x = e.hinge (Blender) = -hinge in Unity's mirrored x
-            Vector3 hingeLocal = new Vector3(-e.hinge, 0f, 0f);
-            hinge.transform.localPosition = p + Quaternion.Euler(0, yaw, 0) * hingeLocal; hinge.transform.localRotation = Quaternion.Euler(0, yaw, 0);
-            var leaf = new GameObject("leaf"); leaf.transform.SetParent(hinge.transform, false); leaf.transform.localPosition = -hingeLocal;
-            leaf.AddComponent<MeshFilter>().sharedMesh = e.mesh;
-            var mr = leaf.AddComponent<MeshRenderer>(); mr.sharedMaterials = new[] { PropLib.I.opaque, PropLib.I.glass }; mr.shadowCastingMode = ShadowCastingMode.Off;
-            var bc = leaf.AddComponent<BoxCollider>(); bc.center = e.center; bc.size = e.size;
-            leaf.layer = Bld.DetailLayer;
-            var d = hinge.AddComponent<PropDoor>(); d.id = id; d.tag = tag ?? ""; d.leaf = leaf.transform;
-            return d;
-        }
-        void Update()
-        {
-            if (Mathf.Abs(open - target) < 0.01f) return;
-            open = Mathf.MoveTowards(open, target, Time.deltaTime * (id == "vault_door" ? 0.35f : 1.6f));
-            transform.localRotation = Quaternion.Euler(0, baseYaw + Mathf.SmoothStep(0, 1, open) * (id == "vault_door" ? -110f : 100f) * swing, 0);
-        }
-        float baseYaw = float.NaN; float swing = 1f;
-        public void Toggle(Vector3 from)
-        {
-            if (float.IsNaN(baseYaw)) baseYaw = transform.localEulerAngles.y;
-            if (target < 0.5f)
-            {
-                // swing away from whoever's opening it
-                Vector3 fwd = transform.forward; swing = Vector3.Dot(from - transform.position, fwd) > 0f ? 1f : -1f;
-                if (id == "vault_door") swing = 1f;
-                target = 1f;
-            }
-            else target = 0f;
-            if (GameAudio.I != null) GameAudio.I.Knock(transform.position + Vector3.up, id == "vault_door" ? 6f : 2.5f, id != "door");
         }
     }
 }

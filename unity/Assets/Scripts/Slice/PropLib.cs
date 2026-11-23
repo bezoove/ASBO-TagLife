@@ -32,7 +32,7 @@ namespace ASBO.Slice
             }
             return id != null && byId.TryGetValue(id, out var x) ? x : null;
         }
-        public static void Reset() { byId = null; lib = null; }
+        public static void Flush() { byId = null; lib = null; }
 
         /// <summary>The atlas rectangles (UV min, max) by name, for signs and pictures laid straight onto walls.</summary>
         public static Dictionary<string, Rect> Regions

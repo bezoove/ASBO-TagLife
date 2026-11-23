@@ -50,7 +50,7 @@ namespace ASBO.Slice
             {
                 if (d == null || d.leaf == null) continue;
                 Vector3 c = d.leaf.position + Vector3.up * 1.0f; var e = PropLib.Get(d.id); if (e == null) continue;
-                float sc = Score(me, fwd, c, e) - 0.2f; if (sc < best) { best = sc; near = new Target { door = d, e = e, at = c }; }
+                float sc = Score(me, fwd, c, e) - 0.5f; if (sc < best) { best = sc; near = new Target { door = d, e = e, at = c }; }
             }
         }
         static float Score(Vector3 me, Vector3 fwd, Vector3 c, PropLib.Entry e)
@@ -97,9 +97,9 @@ namespace ASBO.Slice
         {
             if (d.target < 0.5f)
             {
-                if (d.tag == "vault" && !flags.Contains("code")) { Say("A keypad and a time lock. It wants a four-digit code."); return; }
-                if (d.tag == "vault") Say("1... 9... 8... 7. A clunk, a whirr, and the vault door swings open.");
-                if (d.tag == "cage" && !flags.Contains("cagekey")) { Say("Locked. The cashier's got the key on a lanyard."); return; }
+                if (d.lockTag == "vault" && !flags.Contains("code")) { Say("A keypad and a time lock. It wants a four-digit code."); return; }
+                if (d.lockTag == "vault") Say("1... 9... 8... 7. A clunk, a whirr, and the vault door swings open.");
+                if (d.lockTag == "cage" && !flags.Contains("cagekey")) { Say("Locked. The cashier's got the key on a lanyard."); return; }
             }
             d.Toggle(pc.transform.position);
         }

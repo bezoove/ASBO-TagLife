@@ -24,6 +24,9 @@ namespace ASBO.Slice
         public static System.Action<int> NewDay;
 
         Light sun; float lightT; Color baseSky, baseEq, baseGround, baseFog; float baseRefl = 1f; bool haveBase;
+        // indoors (in a building's sound zone) the sky light gives way to a warm room light, whatever the hour
+        Color oSky, oEq, oGround; float oRefl; public static float Indoors; PlayerCtl player;
+        static readonly Color inSky = new Color(0.8f, 0.7f, 0.6f), inEq = new Color(0.72f, 0.61f, 0.52f), inGround = new Color(0.42f, 0.35f, 0.3f);
 
         public static void Create(Transform parent) { if (I != null) return; var g = new GameObject("Clock"); g.transform.SetParent(parent, false); I = g.AddComponent<GameClock>(); }
 
@@ -43,6 +46,16 @@ namespace ASBO.Slice
             // light changes slowly: no need to touch it every frame (and every change re-renders the shadows anyway)
             lightT -= Time.deltaTime;
             if (lightT <= 0f) { lightT = Speed > 1f ? 0.05f : 0.5f; Apply(); Resident.WakeAny(); }
+            if (player == null) player = FindFirstObjectByType<PlayerCtl>();
+            float want = player != null && !player.InCar && GameAudio.I != null && GameAudio.I.InsideAny(player.transform.position + Vector3.up) ? 1f : 0f;
+            if (!Mathf.Approximately(Indoors, want)) { Indoors = Mathf.MoveTowards(Indoors, want, Time.deltaTime * 1.5f); Ambient(); }
+        }
+
+        void Ambient()
+        {
+            float t = Mathf.SmoothStep(0f, 1f, Indoors);
+            RenderSettings.ambientSkyColor = Color.Lerp(oSky, inSky, t); RenderSettings.ambientEquatorColor = Color.Lerp(oEq, inEq, t);
+            RenderSettings.ambientGroundColor = Color.Lerp(oGround, inGround, t); RenderSettings.reflectionIntensity = Mathf.Lerp(oRefl, 0.7f, t);
         }
 
         /// <summary>Sun (or moon) direction, colour and strength, and the sky light, for the current time.</summary>
@@ -76,11 +89,12 @@ namespace ASBO.Slice
             }
             float dark = Mathf.Lerp(0f, 0.72f, night) + dusk * 0.18f;
             Color nightSky = new Color(0.16f, 0.2f, 0.34f), nightEq = new Color(0.12f, 0.13f, 0.18f), nightGround = new Color(0.06f, 0.06f, 0.07f);
-            RenderSettings.ambientSkyColor = Color.Lerp(baseSky, nightSky, dark);
-            RenderSettings.ambientEquatorColor = Color.Lerp(Color.Lerp(baseEq, new Color(0.75f, 0.5f, 0.38f), dusk * 0.5f), nightEq, dark);
-            RenderSettings.ambientGroundColor = Color.Lerp(baseGround, nightGround, dark);
+            oSky = Color.Lerp(baseSky, nightSky, dark);
+            oEq = Color.Lerp(Color.Lerp(baseEq, new Color(0.75f, 0.5f, 0.38f), dusk * 0.5f), nightEq, dark);
+            oGround = Color.Lerp(baseGround, nightGround, dark);
             RenderSettings.fogColor = Color.Lerp(Color.Lerp(baseFog, new Color(0.85f, 0.62f, 0.5f), dusk * 0.5f), new Color(0.08f, 0.1f, 0.15f), dark);
-            RenderSettings.reflectionIntensity = Mathf.Lerp(baseRefl, 0.25f, dark);
+            oRefl = Mathf.Lerp(baseRefl, 0.25f, dark);
+            Ambient();
         }
 
         /// <summary>Jump the clock (tests; sleeping later).</summary>

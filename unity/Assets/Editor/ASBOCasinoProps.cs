@@ -79,7 +79,7 @@ namespace ASBO.EditorTools
             }
             File.Copy($"{Src}/casino_regions.txt", $"{Res}/casino_regions.txt", true);
             EditorUtility.SetDirty(lib); AssetDatabase.SaveAssets(); AssetDatabase.ImportAsset($"{Res}/casino_regions.txt");
-            PropLib.Reset();
+            PropLib.Flush();
             // check the axes came across: the importer's bounds against the size and centre the forge measured
             foreach (var id in new[] { "till", "slot0", "bar_stool", "door" })
             {

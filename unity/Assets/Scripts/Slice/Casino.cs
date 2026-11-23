@@ -40,6 +40,31 @@ namespace ASBO.Slice
         static Mats M;
         static Material C(string n) => Resources.Load<Material>("Casino/" + n);
         static Material E(string n) => Resources.Load<Material>("Estate/" + n);
+        static readonly Dictionary<Material, Material> lit = new Dictionary<Material, Material>();
+        /// <summary>
+        /// The indoor copy of a material: it also glows a little with its own colour, a stand-in for light bouncing round
+        /// a lit room (phones light each mesh with only a couple of lamps, and at night the outdoor ambient is dark).
+        /// Saved as an asset so the built scene keeps it.
+        /// </summary>
+        static Material In(Material m, float glow = 0.3f)
+        {
+            if (m == null || m.IsKeywordEnabled("_EMISSION")) return m;
+            if (lit.TryGetValue(m, out var c) && c != null) return c;
+#if UNITY_EDITOR
+            const string dir = "Assets/Art/Generated/CasinoMats"; System.IO.Directory.CreateDirectory(dir);
+            string path = $"{dir}/{m.name}_in.mat";
+            c = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (c == null) { c = new Material(m) { name = m.name + "_in" }; UnityEditor.AssetDatabase.CreateAsset(c, path); }
+            else { c.shader = m.shader; c.CopyPropertiesFromMaterial(m); }
+            if (m.HasProperty("_BaseMap")) c.SetTexture("_EmissionMap", m.GetTexture("_BaseMap"));
+            var bc = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : Color.white;
+            c.SetColor("_EmissionColor", new Color(bc.r * glow, bc.g * glow, bc.b * glow, 1f)); c.EnableKeyword("_EMISSION");
+            c.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None; UnityEditor.EditorUtility.SetDirty(c);
+#else
+            c = m;
+#endif
+            lit[m] = c; MeshKit.Tile[c] = MeshKit.TileOf(m); return c;
+        }
         static Material S(string n, Material fallback, float size)
         {
             var m = Surfaces.Source(n); if (m == null) return fallback;
@@ -56,10 +81,11 @@ namespace ASBO.Slice
             };
             if (M.carpet == null || M.clad == null) { Debug.LogWarning("[ASBO] casino: materials missing"); return null; }
             MeshKit.Tile[M.carpet] = 2f; MeshKit.Tile[M.wall] = 1.5f; MeshKit.Tile[M.clad] = 2f;
-            M.plaster = S("plaster_smooth", M.white, 2f); M.grille = Surfaces.Source("grille_clover"); M.shutter = S("shutter_roller", M.chrome, 1.5f);
-            PropLib.Reset();
+            M.plaster = M.white; M.grille = Surfaces.Source("grille_clover"); M.shutter = S("shutter_roller", M.chrome, 1.5f);
+            PropLib.Flush();
             var root = new GameObject(RootName).transform; root.SetParent(parent, false); root.position = Origin;
-            Shell(root); CarPark(root); Interior(root);
+            Shell(root); CarPark(root);
+            var outdoor = M; M = Indoors(M); Interior(root); M = outdoor;
             if (PropLib.I != null) Dress(root); else Debug.LogWarning("[ASBO] casino: no prop library (run ASBO/Art/Build Casino Props)");
             Lights(root);
             return root;
@@ -191,13 +217,20 @@ namespace ASBO.Slice
             var c2 = g.AddComponent<BoxCollider>(); c2.center = new Vector3(s.x, 1.5f, s.z); c2.size = new Vector3(0.4f, 3f, 0.4f);
         }
 
+        static Mats Indoors(Mats o) => new Mats
+        {
+            carpet = In(o.carpet), wall = In(o.wall), sign = o.sign, pylon = o.pylon, felt = In(o.felt), wood = In(o.wood), gold = In(o.gold, 0.12f), clad = o.clad, navy = In(o.navy),
+            glass = o.glass, ceiling = In(o.ceiling), light = o.light, cab = In(o.cab), chrome = In(o.chrome, 0.12f), black = In(o.black), white = In(o.white, 0.1f), line = o.line,
+            asphalt = o.asphalt, kerb = o.kerb, felt2 = o.felt2, plaster = In(o.plaster, 0.1f), grille = o.grille, shutter = In(o.shutter),
+        };
+
         // ------------------------------------------------------------------------------------------ inside: floors, walls, ceilings, rooms
         static void Interior(Transform root)
         {
             var k = new MeshKit(); var cols = new List<(Vector3 mn, Vector3 mx)>();
-            Material carpet = S("carpet_hex", M.carpet, 1.6f), parquet = S("parquet_diamond", M.wood, 2f), rubber = S("rubber_mat", M.black, 0.6f);
-            Material conc = S("concrete_floor", M.white, 3f), concD = S("concrete_dark", M.black, 3f), staffFloor = S("parquet_herring", M.wood, 1.5f), office = S("carpet_office", M.carpet, 1f);
-            Material slats = S("wood_slats", M.wood, 2f), tilesW = S("tiles_metro_black", M.black, 1f), panel = S("parquet_cherry", M.wood, 2f);
+            Material carpet = In(S("carpet_hex", M.carpet, 1.6f)), parquet = In(S("parquet_diamond", M.wood, 2f)), rubber = In(S("rubber_mat", M.black, 0.6f));
+            Material conc = In(S("concrete_floor", M.white, 3f)), concD = In(S("concrete_panels", M.black, 3f)), staffFloor = In(S("parquet_herring", M.wood, 1.5f)), office = In(S("carpet_office", M.carpet, 1f));
+            Material slats = In(S("wood_slats", M.wood, 2f)), tilesW = In(S("tiles_metro_black", M.black, 1f)), panel = In(S("parquet_cherry", M.wood, 2f));
             void Floor(float x0, float z0, float x1, float z1, Material m, float y = 0.01f) => k.Quad(m, new Vector3(x0, y, z0), new Vector3(x1, y, z0), new Vector3(x1, y, z1), new Vector3(x0, y, z1), Vector3.up);
             void Ceil(float x0, float z0, float x1, float z1, float y, Material m) => k.Quad(m, new Vector3(x0, y, z0), new Vector3(x1, y, z0), new Vector3(x1, y, z1), new Vector3(x0, y, z1), Vector3.down);
             // floors: carpet on the gaming floor, parquet in the bar, rubber behind it; concrete, tiles and office carpet out back
@@ -516,17 +549,19 @@ namespace ASBO.Slice
 
         static void Lights(Transform root)
         {
-            var spots = new (Vector3 p, float range, float inten)[]
-            {
-                (new Vector3(6f, 3.6f, 4f), 12f, 1.5f), (new Vector3(15f, 3.6f, 8f), 12f, 1.5f), (new Vector3(30f, 2.7f, 9.2f), 10f, 1.7f), (new Vector3(30f, 2.7f, 13.8f), 10f, 1.7f),
-                (new Vector3(30f, 2.7f, 18.2f), 10f, 1.7f), (new Vector3(43f, 3.2f, 7f), 11f, 1.5f), (new Vector3(50.8f, 2.6f, 7f), 8f, 1.3f), (new Vector3(26f, 3.4f, 2.5f), 9f, 1.4f),
-                (new Vector3(4.5f, 2.5f, 13.5f), 6f, 1.2f), (new Vector3(4.5f, 2.5f, 18.5f), 7f, 1.2f), (new Vector3(10f, 2.5f, 17f), 6f, 1.0f), (new Vector3(15.5f, 2.5f, 14.5f), 7f, 1.2f),
-                (new Vector3(15.5f, 2.5f, 19.5f), 7f, 1.2f), (new Vector3(45.5f, 2.6f, 18.5f), 9f, 1.2f), (new Vector3(16f, 4.2f, -4.5f), 8f, 2.2f), (new Vector3(36f, 4.2f, -4.5f), 8f, 2.2f),
-            };
-            foreach (var (p, range, inten) in spots)
+            var spots = new List<(Vector3 p, float range, float inten, bool cool)>();
+            foreach (var x in new[] { 4f, 10.5f, 17f }) foreach (var z in new[] { 3f, 9f }) spots.Add((new Vector3(x, 3.4f, z), 9f, 3.2f, false));      // the slots hall
+            foreach (var x in new[] { 24f, 30f, 36f }) foreach (var z in new[] { 8f, 13.5f, 19f }) spots.Add((new Vector3(x, 3.0f, z), 8.5f, 3.4f, false));  // the pit, warm under the chandeliers
+            foreach (var x in new[] { 41f, 46.5f }) foreach (var z in new[] { 3f, 8f, 12.5f }) spots.Add((new Vector3(x, 3.2f, z), 8f, 3.0f, false));   // the lounge
+            foreach (var z in new[] { 3f, 7.5f, 12f }) spots.Add((new Vector3(50.8f, 2.6f, z), 6f, 2.6f, false));                                         // behind the bar
+            spots.Add((new Vector3(26f, 3.4f, 2.5f), 8.5f, 3.2f, false));                                                                                       // the lobby
+            foreach (var p in new[] { new Vector3(4.5f, 2.5f, 13.5f), new Vector3(4.5f, 2.5f, 18.5f), new Vector3(10f, 2.5f, 15f), new Vector3(10f, 2.5f, 20f), new Vector3(15.5f, 2.5f, 14.5f), new Vector3(15.5f, 2.5f, 19.5f), new Vector3(43f, 2.6f, 18.5f), new Vector3(48.5f, 2.6f, 18.5f) })
+                spots.Add((p, 6.5f, 2.4f, true));                                                                                                               // the back rooms
+            spots.Add((new Vector3(16f, 4.2f, -4.5f), 8f, 2.2f, false)); spots.Add((new Vector3(36f, 4.2f, -4.5f), 8f, 2.2f, false));                         // under the canopy
+            foreach (var (p, range, inten, cool) in spots)
             {
                 var g = new GameObject("Light"); g.transform.SetParent(root, false); g.transform.localPosition = p;
-                var l = g.AddComponent<Light>(); l.type = LightType.Point; l.range = range; l.intensity = inten; l.color = p.z > 12f && p.x < 21f || p.z > 15f && p.x > 38f ? new Color(0.95f, 0.97f, 1f) : new Color(1f, 0.85f, 0.64f);
+                var l = g.AddComponent<Light>(); l.type = LightType.Point; l.range = range; l.intensity = inten; l.color = cool ? new Color(0.95f, 0.97f, 1f) : new Color(1f, 0.86f, 0.66f);
                 l.shadows = LightShadows.None; l.renderMode = LightRenderMode.Auto;
 #if UNITY_EDITOR
                 l.lightmapBakeType = LightmapBakeType.Realtime;
@@ -555,13 +590,25 @@ namespace ASBO.Slice
             Make(new Vector3(34.2f, 0f, 11.4f), 90f, "Staff"); Make(new Vector3(34.2f, 0f, 15.2f), 90f, "Staff");     // dealers
             Make(new Vector3(30f, 0f, 15.8f), 180f, "Staff");                                                // the pit boss
             Make(new Vector3(50.8f, 0f, 4.2f), -90f, "Staff"); Make(new Vector3(50.8f, 0f, 9.2f), -90f, "Staff");     // behind the bar
-            Make(new Vector3(15.8f, 0.04f, 20.75f), 180f, "Staff", true);                                     // the manager at his desk
-            Make(new Vector3(11.95f, 0.0f, 14.4f), 90f, "Staff", true);                                       // on a break
-            // punters: at the machines, the tables and the bar
-            Make(new Vector3(5.65f, 0.16f, 3.12f), 0f, "Punter", true); Make(new Vector3(13.9f, 0.16f, 9.28f), 180f, "Punter", true); Make(new Vector3(1.18f, 0.16f, 6.4f), 270f, "Punter", true);
-            Make(new Vector3(22.85f, 0.16f, 12.4f), 90f, "Punter", true); Make(new Vector3(36.4f, 0.16f, 11.9f), 250f, "Punter", true); Make(new Vector3(36.5f, 0.16f, 15.0f), 270f, "Punter", true);
-            Make(new Vector3(49.02f, 0.32f, 3.1f), 90f, "Punter", true); Make(new Vector3(49.02f, 0.32f, 7.3f), 90f, "Punter", true);
-            Make(new Vector3(40.0f, 0.0f, 6.4f), 180f, "Punter", true); Make(new Vector3(22.3f, 0f, 16.0f), 60f, "Punter");
+            // punters (and two staff) sat on real seats: picked from the props, so they're exactly on them
+            PropSet props = null; foreach (var ps in PropSet.All) if (ps != null && ps.transform.parent != null && ps.transform.parent.name == RootName) props = ps;
+            if (props != null)
+            {
+                var want = new Dictionary<string, int[]> { ["slot_stool"] = new[] { 3, 17, 29, 41, 55, 66 }, ["bar_stool"] = new[] { 1, 4, 8 }, ["casino_chair"] = new[] { 2, 7, 13, 18, 22, 27 }, ["tub_chair"] = new[] { 1, 9 }, ["booth"] = new[] { 2 }, ["office_chair"] = new[] { 1 }, ["sofa"] = new[] { 0 } };
+                var seen = new Dictionary<string, int>();
+                for (int i = 0; i < props.recs.Length; i++)
+                {
+                    string id = props.recs[i].id; if (!want.TryGetValue(id, out var picks)) continue;
+                    int n = seen.TryGetValue(id, out var c) ? c : 0; seen[id] = n + 1;
+                    if (System.Array.IndexOf(picks, n) < 0) continue;
+                    var e = PropLib.Get(id); if (e == null) continue;
+                    Quaternion q = props.Rot(i); Vector3 at = props.World(i) + q * new Vector3(0f, Mathf.Max(0f, e.seat - 0.46f), -0.06f);
+                    bool staff = id == "office_chair" || id == "sofa";
+                    var p = World.MakePerson(at, staff ? Color.black : new Color(0.3f, 0.3f, 0.35f), staff ? Color.black : new Color(0.2f, 0.2f, 0.22f), staff ? "Staff" : "Punter");
+                    p.transform.rotation = Quaternion.Euler(0, q.eulerAngles.y, 0); p.gameObject.AddComponent<SitPose>(); inside.Add(p.gameObject);
+                }
+            }
+            Make(new Vector3(22.3f, 0f, 16.0f), 60f, "Punter"); Make(new Vector3(27.6f, 0f, 10.2f), 200f, "Punter");
             new GameObject("CasinoFloor").AddComponent<CasinoFloor>();
         }
         /// <summary>Show or hide the people inside (they cost a lot to draw; nobody sees them from the road).</summary>
@@ -589,6 +636,15 @@ namespace ASBO.Slice
         public static CasinoHall.Station? Near;
         PlayerCtl pc; float jingleT; AudioSource murmur; bool peopleOn = true; readonly List<Vector3> machines = new List<Vector3>();
         static GUIStyle style;
+
+        System.Collections.IEnumerator Start()
+        {
+            // the room counts as indoors (warm room light, the murmur, the camera pulled in): the zone set when the town was
+            // built doesn't survive into play, so it's registered again here, once everything else is up
+            yield return null;
+            var root = GameObject.Find(CasinoHall.RootName);
+            if (root != null) GameAudio.RegisterZone(root.transform, new List<CRect> { new CRect(0f, CasinoHall.W, 0f, CasinoHall.D) }, CasinoHall.CeilY + 0.3f);
+        }
 
         void Awake()
         {

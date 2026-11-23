@@ -18,6 +18,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageChops
 OUT = sys.argv[1]; SURF = sys.argv[2] if len(sys.argv) > 2 else None
 os.makedirs(OUT, exist_ok=True)
 S = 4096; H2 = 2048
+AMBIENT = 0.16   # share of the albedo added to the glow map (fake interior ambient)
 G = '/usr/share/fonts/truetype/google-fonts/ofl/'
 FONTS = dict(anton=G + 'anton/Anton-Regular.ttf', archivo=G + 'archivoblack/ArchivoBlack-Regular.ttf', cardo=G + 'cardo/Cardo-Bold.ttf',
              cardoi=G + 'cardo/Cardo-Italic.ttf', crimson=G + 'crimsontext/CrimsonText-Bold.ttf', crimsoni=G + 'crimsontext/CrimsonText-BoldItalic.ttf',
@@ -472,7 +473,9 @@ region('panel_dark', 128, 128, 0.6); commit('panel_dark', im)
 # ------------------------------------------------------------------ write out
 print('atlas used to y =', shelf.y, 'of', S, '|', len(regions), 'regions,', len(PAL), 'swatches')
 albedo.save(os.path.join(OUT, 'casino_albedo.png'), optimize=True)
-emit.resize((H2, H2), Image.LANCZOS).save(os.path.join(OUT, 'casino_emit.png'), optimize=True)
+# a little of every colour glows too: the interiors stay readable on phones that only light each mesh with a couple of lamps
+glow = np.asarray(emit.resize((H2, H2), Image.LANCZOS), np.float32); base = np.asarray(albedo.resize((H2, H2), Image.LANCZOS), np.float32)
+Image.fromarray(np.clip(glow + base * AMBIENT, 0, 255).astype(np.uint8)).save(os.path.join(OUT, 'casino_emit.png'), optimize=True)
 normal.resize((H2, H2), Image.LANCZOS).save(os.path.join(OUT, 'casino_normal.png'), optimize=True)
 mask.resize((H2, H2), Image.NEAREST).save(os.path.join(OUT, 'casino_mask.png'), optimize=True)
 json.dump(dict(size=S, palette=PAL, regions={k: v['uv'] for k, v in regions.items()}, labels=len(LABELS), mats=len(MATS), games=len(GAMES)), open(os.path.join(OUT, 'casino_atlas.json'), 'w'), indent=0)
