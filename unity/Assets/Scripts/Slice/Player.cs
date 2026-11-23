@@ -297,6 +297,13 @@ namespace ASBO.Slice
             // in the air the feet are left to the jump (a short grace so stepping off a kerb doesn't flick them about)
             airT = cc.isGrounded ? 0f : airT + Time.deltaTime;
             fg ??= GetComponentInChildren<FootGround>(); if (fg != null) fg.airborne = airT > 0.06f || vy > 1f;
+            if (fg != null)
+            {
+                // crouched: a touch lower, head up and looking where you're heading (not down at the floor)
+                fg.lookW = crouched ? 0.9f : 0f; fg.lowerBy = crouched ? 0.07f : 0f;
+                Vector3 lf = vel.sqrMagnitude > 0.25f ? vel.normalized : transform.forward;
+                fg.lookAt = transform.position + lf * 4f + Vector3.up * 0.95f;
+            }
             // a long way down (longer than any jump): arms and legs going until you land
             bool longFall = airT > 0.4f && vy < -5.5f;
             if (pp.fall && longFall != falling) { falling = longFall; person.anim.SetBool("Fall", falling); }
@@ -376,16 +383,22 @@ namespace ASBO.Slice
             if (victim == spare) { spare = null; victim.transform.SetPositionAndRotation(door + outw * 0.45f + Vector3.down * 50f, Quaternion.LookRotation(outw)); }
             StartCoroutine(MakeSpare(6f));
             victim.transform.rotation = Quaternion.LookRotation(outw); LastCarjacked = victim;
-            cc.enabled = false; transform.position = door - outw * 0.15f; bodyYaw = Mathf.Atan2(-outw.x, -outw.z) * Mathf.Rad2Deg; transform.rotation = Quaternion.Euler(0, bodyYaw, 0); cc.enabled = true; vel = Vector3.zero;
-            if (person != null && person.anim != null && HasParam(person.anim, "Carjack")) person.anim.SetTrigger("Carjack");
+            // you stand outside the door, towards the front of it, and reach in at the driver
+            Vector3 stand = door + outw * 0.55f + tc.transform.forward * 0.45f; Vector3 look = (door - stand).WithY(0);
+            cc.enabled = false; transform.position = stand; bodyYaw = Mathf.Atan2(look.x, look.z) * Mathf.Rad2Deg; transform.rotation = Quaternion.Euler(0, bodyYaw, 0); cc.enabled = true; vel = Vector3.zero;
+            if (person != null && person.anim != null && HasParam(person.anim, "Take")) person.anim.SetTrigger("Take");
             float until = Time.time + 4f; yield return new WaitForSeconds(0.8f);
             while (!victim.Ready && Time.time < until) yield return null;
             // out of the seat and down onto the road
             foreach (var t in tc.GetComponentsInChildren<Transform>(true)) if (t.name == "Driver") t.gameObject.SetActive(false);
-            victim.transform.SetPositionAndRotation(door + outw * 0.45f, Quaternion.LookRotation(outw));
-            if (victim.anim != null && HasParam(victim.anim, "PulledOut")) victim.anim.SetTrigger("PulledOut");
-            yield return new WaitForSeconds(1.5f);
-            if (victim != null) victim.Knockout(outw * 2.2f + Vector3.up * 0.4f, 5f, false);
+            victim.transform.SetPositionAndRotation(door - outw * 0.25f, Quaternion.LookRotation(outw));
+            if (victim.anim != null && HasParam(victim.anim, "PulledOut"))
+            {
+                // the capture drags them out of the seat and onto the road, along the way it travels (straight out from the door)
+                victim.anim.SetTrigger("PulledOut");
+                victim.StartCoroutine(VictimDown(victim, victim.transform.position, outw));
+            }
+            yield return new WaitForSeconds(1.2f);
             World.Toast("You drag the driver out onto the road.", 1);
             // the car's yours now
             var parent = tc.transform.parent; Vector3 pos = tc.transform.position + Vector3.up * 0.12f; float yaw0 = tc.transform.eulerAngles.y;
@@ -393,6 +406,19 @@ namespace ASBO.Slice
             Destroy(tc.gameObject);
             if (pc2 != null) { PlayerCar.I = pc2; yield return new WaitForSeconds(0.25f); doorBusy = false; StartCoroutine(GetIn(pc2.transform)); }
             else doorBusy = false;
+        }
+
+        /// <summary>The capture has them sat, then yanked and thrown out of the seat from 0.2 s in (the clip is cut at the moment the yank starts), ending flat on the road.
+        /// It's played in place; this carries them the 2 m out from the door (and gets them across the door sill) as it goes.</summary>
+        static System.Collections.IEnumerator VictimDown(Person v, Vector3 from, Vector3 outw)
+        {
+            for (float t = 0f; t < 2.0f && v != null; t += Time.deltaTime)
+            {
+                float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.2f) / 1.5f));
+                var pos = from + outw * (2.1f * p); pos.y = from.y;
+                v.transform.position = pos; yield return null;
+            }
+            if (v != null) v.Knockout(Vector3.zero, 6f, false);
         }
 
         /// <summary>Getting in: turn to the car, the door swings open, in you go, it shuts behind you.</summary>
@@ -498,7 +524,7 @@ namespace ASBO.Slice
         System.Collections.IEnumerator Climb(Vector3 top)
         {
             climbing = true; cc.enabled = false; vel = Vector3.zero; vy = 0f;
-            float rise = top.y - transform.position.y; bool high = rise > 1.1f && person != null && person.anim != null && HasParam(person.anim, "Climb");
+            float rise = top.y - transform.position.y; bool high = rise > 1.0f && person != null && person.anim != null && HasParam(person.anim, "Climb");
             var fg2 = GetComponentInChildren<FootGround>(); if (fg2 != null) fg2.off = true;
             if (high)
             {
@@ -510,7 +536,7 @@ namespace ASBO.Slice
                 for (float t = 0; t < 0.12f; t += Time.deltaTime) { transform.SetPositionAndRotation(Vector3.Lerp(a0, a1, t / 0.12f), Quaternion.Slerp(r0, r1, t / 0.12f)); yield return null; }
                 transform.SetPositionAndRotation(a1, r1);
                 // the capture climbs a 1.63 m wall and ends 1.38 m on from where it started
-                yield return RootMove("Climb", new Vector3(1f, rise / 1.63f, 0.9f / 1.38f), 4f);
+                yield return RootMove("Climb", new Vector3(1f, rise / 1.9f, 0.7f / 0.58f), 3f); // the hang-and-pull-up capture: about 1.9 m up, 0.6 m forward
                 Vector3 end = transform.position; end.y = top.y + 0.02f; transform.position = end;
             }
             else

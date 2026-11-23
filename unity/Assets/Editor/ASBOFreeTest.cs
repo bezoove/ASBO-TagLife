@@ -468,12 +468,12 @@ namespace ASBO.EditorTools
             }
             else Debug.LogWarning("[ASBO] no crouch clips (ASBO/Mixamo/2 Cut Clips)");
             // climbing up onto something
-            var climb = ASBOMixamo.ClipFrom("Climbing To Top", "MX_ClimbUp");
+            var climb = ASBOMixamo.ClipFrom("Braced Hang To Crouch", "MX_ClimbUp");
             if (climb != null)
             {
-                var cs = St("Climb", climb, new Vector3(300, 460)); cs.speed = 1.3f; // a touch brisker than the capture (a lad, not a pensioner)
+                var cs = St("Climb", climb, new Vector3(300, 460)); cs.speed = 1.0f;
                 var a = sm.AddAnyStateTransition(cs); a.AddCondition(AnimatorConditionMode.If, 0, "Climb"); a.hasExitTime = false; a.duration = 0.1f; a.canTransitionToSelf = false;
-                var b = cs.AddTransition(move); b.hasExitTime = true; b.exitTime = 0.94f; b.duration = 0.2f;
+                var b = cs.AddTransition(move); b.hasExitTime = true; b.exitTime = 0.92f; b.duration = 0.3f;
             }
             // sat on a bench
             var sit = ASBOMixamo.ClipFrom("Jostled Passenger", "MX_Sit");

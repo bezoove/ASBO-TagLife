@@ -18,6 +18,8 @@ namespace ASBO.Slice
         /// <summary>In the air (jumping, falling): the feet and hips are left to the animation, not pulled back to the ground
         /// below (which held the body down while only the legs moved).</summary>
         public bool airborne;
+        /// <summary>Head looks at this world point with this weight (crouched: the capture has the head down at the floor; this keeps it up, looking where you're going).</summary>
+        public float lookW, lowerBy; public Vector3 lookAt; float lookNow, lowerNow;
         /// <summary>Sat in a car's seat: where the body, feet and hands go (world space; set every frame by whoever sat us down).</summary>
         public bool sat; public Vector3 satBody, satFootL, satFootR, satHandL, satHandR; public Quaternion satRot = Quaternion.identity;
         void Goal(AvatarIKGoal g, Vector3 p, float w, float rw) { anim.SetIKPositionWeight(g, w); anim.SetIKPosition(g, p); anim.SetIKRotationWeight(g, rw); if (rw > 0f) anim.SetIKRotation(g, satRot * Quaternion.Euler(-25f, 0f, 0f)); }
@@ -90,6 +92,8 @@ namespace ASBO.Slice
                 return;
             }
             if (off || anim == null || !anim.enabled || !anim.isHuman || layer != 0) return;
+            lookNow = Mathf.MoveTowards(lookNow, lookW, 3f * Time.deltaTime);
+            if (lookNow > 0.01f) { anim.SetLookAtWeight(lookNow, 0.25f, 0.9f, 1f, 0.6f); anim.SetLookAtPosition(lookAt); }
             if (airborne) { lW = rW = 0f; lOff = rOff = 0f; pelvis = 0f; lPin.on = rPin.on = false; lPin.w = rPin.w = 0f; return; }
             float k = 1f - Mathf.Exp(-16f * Time.deltaTime);
             bool lok = Probe(AvatarIKGoal.LeftFoot, anim.leftFeetBottomHeight, out var lp, out var lr, out var lo);
@@ -100,7 +104,8 @@ namespace ASBO.Slice
             float want = Mathf.Clamp(Mathf.Min(0f, Mathf.Min(lok ? lo : 0f, rok ? ro : 0f)), -maxDrop, 0f);
             pelvis = Mathf.Lerp(pelvis, want, k);
             Vector3 up = anim.transform.up;
-            anim.bodyPosition += up * (pelvis + lift * Mathf.Min(lW, rW));
+            lowerNow = Mathf.MoveTowards(lowerNow, lowerBy, 0.5f * Time.deltaTime);
+            anim.bodyPosition += up * (pelvis + lift * Mathf.Min(lW, rW) - lowerNow);
             // feet go to the surface; the hip drop is already in the IK goals' frame, so add it back
             anim.SetIKPositionWeight(AvatarIKGoal.LeftFoot, lW); anim.SetIKRotationWeight(AvatarIKGoal.LeftFoot, lW * 0.7f);
             float dt = Mathf.Max(Time.deltaTime, 1e-4f);

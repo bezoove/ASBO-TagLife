@@ -32,7 +32,7 @@ namespace ASBO.EditorTools
             ["Falling Down"] = new[] { ("MX_FallDown", -1f, -1f, false) },
             ["Zombie Stand Up"] = new[] { ("MX_StandUp", -1f, -1f, false) },
             ["Evading A Threat"] = new[] { ("MX_Evade", -1f, -1f, false) },
-            ["Pulled From Seat"] = new[] { ("MX_PulledOut", -1f, -1f, false) },
+            ["Pulled From Seat"] = new[] { ("MX_PulledOut", 1.6f, -1f, false) },
             ["Jumping Down"] = new[] { ("MX_JumpDown", -1f, -1f, false) },
             ["Climbing Down"] = new[] { ("MX_ClimbDown", -1f, -1f, false) },
             ["Freehang Climb"] = new[] { ("MX_Climb", -1f, -1f, false) },
@@ -278,7 +278,8 @@ namespace ASBO.EditorTools
             Cut("Honking Horn", "MX_Drive", 3.0f, 4.3f, true); // sat at the wheel, hands on it (between the toots)
             Cut("Crouching Idle", "MX_CrouchIdle", -1f, -1f, true);
             Cut("Crouch Walk", "MX_CrouchWalk", -1f, -1f, true);
-            Cut("Climbing To Top", "MX_ClimbUp", -1f, 3.4f, false, false, false); // rise as root motion: the player's RootMover lifts the body, scaled to the wall
+            Cut("Climbing To Top", "MX_RopeClimb", -1f, 3.4f, false, false, false); // a rope climb: kept for ropes, not for ledges
+            Cut("Braced Hang To Crouch", "MX_ClimbUp", -1f, -1f, false, false, false); // a ledge: hands on the top, pull up, onto it (rise as root motion, scaled to the ledge)
             Cut("Jostled Passenger", "MX_Sit", 0.5f, 4.5f, true); // sat on a bench
             Cut("Jostled Passenger", "MX_SitB", 1.2f, 5.2f, true); // the same seat, a different stretch of it (people sat side by side don't match)
             Cut("Sneaking Forward", "MX_Sneak", -1f, -1f, true);    // the quicker hunched sneak (the crouch walk is the slow one)
@@ -287,7 +288,7 @@ namespace ASBO.EditorTools
             Cut("Hard Landing", "MX_HardLand", 0.5f, 2.2f, false);  // from touchdown: knees buckle, hand to the floor, up again
             Cut("Run To Stop", "MX_RunToStop", -1f, -1f, false);
             Cut("Look Over Shoulder", "MX_LookBack", -1f, -1f, false);
-            Cut("Pulled From Seat", "MX_PulledOut", -1f, -1f, false); // dragged out of the driver's seat
+            Cut("Pulled From Seat", "MX_PulledOut", 1.6f, -1f, false); // dragged out of the driver's seat
             Cut("Stomp", "MX_Stomp", 2.3f, 3.73f, false);           // stamping on someone who's down (the boot lands about 0.8 s in)
             Cut("Pull Pilot From Seat", "MX_Carjack", 5.4f, 9.43f, false); // reaching in and dragging the driver out
             Cut("Falling Idle", "MX_FallIdle", -1f, -1f, true);              // a long drop: arms and legs going

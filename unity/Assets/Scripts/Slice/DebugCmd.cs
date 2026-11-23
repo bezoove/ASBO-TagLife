@@ -122,6 +122,41 @@ namespace ASBO.Slice
         public static void MoveTest() { new GameObject("MoveTest").AddComponent<MoveTestRun>(); }
         /// <summary>Films a carjack (a stopped car, the driver dragged out, away you go) and then a stamp on the driver lying in the road. Shots/moves/j_N.png.</summary>
         public static void JackTest() { new GameObject("JackTest").AddComponent<JackTestRun>(); }
+        /// <summary>Solid-looking things nobody can bump into: renderers of any size worth walking round with no collider on them, above them or below.</summary>
+        public static void ColliderAudit()
+        {
+            var by = new System.Collections.Generic.Dictionary<string, (int n, float vol, Vector3 at)>();
+            int total = 0, missing = 0;
+            foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+            {
+                if (r == null || !r.enabled || !r.gameObject.activeInHierarchy || r.shadowCastingMode == UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly) continue;
+                var b = r.bounds; total++;
+                if (b.size.y < 0.35f || Mathf.Max(b.size.x, b.size.z) < 0.35f || b.size.y > 200f) continue;
+                if (r.GetComponentInParent<Collider>() != null || r.GetComponentInChildren<Collider>() != null) continue;
+                if (r.GetComponentInParent<ParticleSystem>() != null || r.GetComponent<LODGroup>() != null) continue;
+                // a lod sibling with a collider (the collider sits on the LOD group's root)
+                var lg = r.GetComponentInParent<LODGroup>(); if (lg != null && lg.GetComponentInChildren<Collider>() != null) continue;
+                // does anything solid stand where it's drawn? (rays in from four sides at knee and chest height)
+                int solid = 0, tries = 0; var bx = b; bx.Expand(0.6f);
+                foreach (float hy in new[] { 0.5f, 1.3f })
+                    foreach (var d in new[] { Vector3.right, Vector3.left, Vector3.forward, Vector3.back })
+                    {
+                        float ext = Mathf.Abs(Vector3.Dot(b.extents, d)); Vector3 c0 = new Vector3(b.center.x, b.min.y + hy, b.center.z); if (c0.y > b.max.y) continue;
+                        tries++; if (Physics.Raycast(c0 + d * (ext + 3f), -d, out var hh, ext + 3f, ~0, QueryTriggerInteraction.Ignore) && bx.Contains(hh.point)) solid++;
+                    }
+                if (tries == 0 || solid * 2 >= tries) continue; // something stands there (a collider on a neighbouring object)
+                missing++;
+                var t = r.transform; string top = t.name; for (var q = t; q != null && q.parent != null; q = q.parent) { top = q.name; if (q.parent.parent == null) break; }
+                string key = (t.root != null ? t.root.name : "") + " / " + (t.parent != null && t.parent.parent != null ? t.parent.name + " / " : "") + t.name;
+                key = System.Text.RegularExpressions.Regex.Replace(key, @"[\d_ ]+$", "");
+                by.TryGetValue(key, out var v); by[key] = (v.n + 1, v.vol + b.size.x * b.size.y * b.size.z, b.center);
+                if (key.Contains("Props") || key.Contains("Iron") || key.Contains("Greenery")) { var pth = r.name; for (var q = r.transform.parent; q != null; q = q.parent) pth = q.name + "/" + pth; Debug.Log($"[ASBO] nocol-item {pth} size {b.size} at {b.center} mesh {(r.GetComponent<MeshFilter>() != null && r.GetComponent<MeshFilter>().sharedMesh != null ? r.GetComponent<MeshFilter>().sharedMesh.vertexCount : 0)}v"); }
+            }
+            var list = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, (int n, float vol, Vector3 at)>>(by);
+            list.Sort((a, c) => c.Value.vol.CompareTo(a.Value.vol));
+            Debug.Log($"[ASBO] colliders: {missing} of {total} renderers have none ({list.Count} kinds)");
+            for (int i = 0; i < Mathf.Min(45, list.Count); i++) Debug.Log($"[ASBO] nocol {list[i].Value.n}x vol {list[i].Value.vol:F0} {list[i].Key} e.g. {list[i].Value.at}");
+        }
         /// <summary>Which car models are about: traffic by model, parked cars and wrecks by name.</summary>
         public static void CarCensus()
         {
