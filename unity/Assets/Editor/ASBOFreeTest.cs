@@ -343,8 +343,8 @@ namespace ASBO.EditorTools
             if (File.Exists(ctrlPath)) AssetDatabase.DeleteAsset(ctrlPath);
             var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
             foreach (var n in new[] { "MoveX", "MoveZ", "Variant", "Gait", "IdleVar", "SitVar" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
-            foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded", "Seated", "Crouch", "Sit", "Stick" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
-            foreach (var n in new[] { "Jump", "TurnL", "TurnR", "Climb", "HardLand", "RunStop", "Stamp", "Carjack", "PulledOut" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
+            foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded", "Seated", "Crouch", "Sit", "Stick", "Fall" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
+            foreach (var n in new[] { "Jump", "TurnL", "TurnR", "Climb", "HardLand", "RunStop", "Stamp", "Carjack", "PulledOut", "Roll", "Stumble", "WallClimb", "Take", "Barged" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
             var sm = ac.layers[0].stateMachine;
 
             var move = ac.CreateBlendTreeInController("Move", out BlendTree tree, 0);
@@ -471,9 +471,9 @@ namespace ASBO.EditorTools
             var climb = ASBOMixamo.ClipFrom("Climbing To Top", "MX_ClimbUp");
             if (climb != null)
             {
-                var cs = St("Climb", climb, new Vector3(300, 460));
+                var cs = St("Climb", climb, new Vector3(300, 460)); cs.speed = 1.3f; // a touch brisker than the capture (a lad, not a pensioner)
                 var a = sm.AddAnyStateTransition(cs); a.AddCondition(AnimatorConditionMode.If, 0, "Climb"); a.hasExitTime = false; a.duration = 0.1f; a.canTransitionToSelf = false;
-                var b = cs.AddTransition(move); b.hasExitTime = true; b.exitTime = 0.92f; b.duration = 0.15f;
+                var b = cs.AddTransition(move); b.hasExitTime = true; b.exitTime = 0.94f; b.duration = 0.2f;
             }
             // sat on a bench
             var sit = ASBOMixamo.ClipFrom("Jostled Passenger", "MX_Sit");
@@ -510,6 +510,25 @@ namespace ASBO.EditorTools
                 var st = St(trig, c, new Vector3(900, y));
                 var a = sm.AddAnyStateTransition(st); a.AddCondition(AnimatorConditionMode.If, 0, trig); a.hasExitTime = false; a.duration = 0.12f; a.canTransitionToSelf = false;
                 var b = st.AddTransition(move); b.hasExitTime = true; b.exitTime = exit; b.duration = 0.25f;
+            }
+            // a long drop: flailing until the ground arrives (the landing's own state takes over from here)
+            var fallc = ASBOMixamo.ClipFrom("Falling Idle", "MX_FallIdle");
+            if (fallc != null)
+            {
+                var fs = St("Fall", fallc, new Vector3(900, -40));
+                var a = sm.AddAnyStateTransition(fs); a.AddCondition(AnimatorConditionMode.If, 0, "Fall"); a.hasExitTime = false; a.duration = 0.3f; a.canTransitionToSelf = false;
+                var b = fs.AddTransition(move); b.AddCondition(AnimatorConditionMode.IfNot, 0, "Fall"); b.hasExitTime = false; b.duration = 0.12f;
+            }
+            // landing a drop on the run: a roll and up again; a trip; the run-up wall climb; reaching for something; being barged
+            foreach (var (trig, file, cut, y, exit, inDur) in new[] {
+                ("Roll", "Falling To Roll", "MX_Roll", 800f, 0.9f, 0.06f), ("Stumble", "Jogging Stumble", "MX_Stumble", 860f, 0.86f, 0.1f),
+                ("WallClimb", "Sprint To Wall Climb", "MX_WallClimb", 920f, 0.95f, 0.1f), ("Take", "Taking Item", "MX_Take", 980f, 0.9f, 0.2f),
+                ("Barged", "Hit To Body", "MX_Barged", 1040f, 0.85f, 0.08f) })
+            {
+                var c = ASBOMixamo.ClipFrom(file, cut); if (c == null) { Debug.LogWarning("[ASBO] no " + cut); continue; }
+                var st = St(trig, c, new Vector3(900, y));
+                var a = sm.AddAnyStateTransition(st); a.AddCondition(AnimatorConditionMode.If, 0, trig); a.hasExitTime = false; a.duration = inDur; a.canTransitionToSelf = false;
+                var b = st.AddTransition(move); b.hasExitTime = true; b.exitTime = exit; b.duration = 0.22f;
             }
             // pulling up from a run: the last strides braking, not a skid to a standstill (let go if you set off again)
             var rstop = ASBOMixamo.ClipFrom("Run To Stop", "MX_RunToStop");

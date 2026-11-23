@@ -174,6 +174,25 @@ namespace ASBO.Slice
         public void SetTalk(bool t) { if (anim != null && anim.enabled) anim.SetBool("Talk", t); }
         public void SetWave(bool w) { if (anim != null && anim.enabled) anim.SetBool("Wave", w); }
         public void Jump() { if (anim != null && anim.enabled) anim.SetTrigger("Jump"); }
+        /// <summary>Run into by someone in a hurry: knocked back a step (and they'll tell you about it).</summary>
+        public void Barged(Vector3 dir)
+        {
+            if (state != State.Walking || anim == null || !anim.enabled || isPlayer) return;
+            bool has = false; foreach (var q in anim.parameters) if (q.name == "Barged") { has = true; break; }
+            if (has) anim.SetTrigger("Barged");
+            StartCoroutine(Shoved(dir));
+            if (GameAudio.I != null) GameAudio.I.PlayVoice("shout", transform.position + Vector3.up * 1.5f, 0.25f, 1f);
+        }
+        System.Collections.IEnumerator Shoved(Vector3 dir)
+        {
+            dir.y = 0f; dir.Normalize(); var cc = GetComponent<CharacterController>();
+            for (float t = 0f; t < 0.35f; t += Time.deltaTime)
+            {
+                Vector3 m = dir * (1.8f * (1f - t / 0.35f) * Time.deltaTime);
+                if (cc != null && cc.enabled) cc.Move(m); else transform.position += m;
+                yield return null;
+            }
+        }
 
         Fighter fighterC; bool fighterLooked;
         /// <summary>In a fight (the Fighter moves them, not their walking route).</summary>

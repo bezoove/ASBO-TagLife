@@ -199,7 +199,9 @@ namespace ASBO.Slice
             Vector3 dir = camYaw * new Vector3(inp.x, 0, inp.y); if (dir.sqrMagnitude > 1e-4f) dir.Normalize();
             // crouch (Z / pad right stick click / the touch button): a slow, quiet sneak; stand up again only where there's headroom
             if ((kb != null && kb.zKey.wasPressedThisFrame) || (pad != null && pad.rightStickButton.wasPressedThisFrame) || crouchTap) { crouchTap = false; SetCrouch(!crouched); }
-            bool sprint = !crouched && (fakeSprint || (kb != null && kb.leftShiftKey.isPressed) || (pad != null && pad.leftStickButton.isPressed) || touchStick && FloatStick.Sprint);
+            bool sprintHeld = (kb != null && kb.leftShiftKey.isPressed) || (pad != null && pad.leftStickButton.isPressed) || touchStick && FloatStick.Sprint;
+            if (crouched && sprintHeld && mag > 0.5f) SetCrouch(false); // breaking cover: straight up out of the crouch and away
+            bool sprint = !crouched && (fakeSprint || TestSprint || (kb != null && kb.leftShiftKey.isPressed) || (pad != null && pad.leftStickButton.isPressed) || touchStick && FloatStick.Sprint);
             bool walk = (kb != null && kb.leftCtrlKey.isPressed) || (mag > 0.05f && mag < (touchStick ? FloatStick.RunAt : 0.5f));
             float pace = sprint ? sp.sprint : walk ? sp.walk * (touchStick ? Mathf.Lerp(0.45f, 1f, mag / FloatStick.RunAt) : 1f) : sp.run; // a gentle push ambles, more walks briskly
             if (crouched) pace = Mathf.Min(pace, 1.6f); // up to the quick hunched sneak (the crouch blend matches its clips to the speed)
@@ -233,7 +235,7 @@ namespace ASBO.Slice
                 bodyYaw += step;
                 want = Vector3.zero;
             }
-            else if (want.sqrMagnitude > 0.01f && vel.magnitude < 0.4f && grounded && !facing)
+            else if (want.sqrMagnitude > 0.01f && vel.magnitude < 0.4f && grounded && !facing && !climbing)
             {
                 float delta = Mathf.DeltaAngle(bodyYaw, Mathf.Atan2(want.x, want.z) * Mathf.Rad2Deg);
                 if (Mathf.Abs(delta) > 75f && FreePackTest.On)
@@ -245,6 +247,11 @@ namespace ASBO.Slice
             }
 
             if (landLock > 0f) { landLock -= Time.deltaTime; want = Vector3.zero; }
+            // rolling out of a landing: carried forward, no steering until you're back on your feet
+            if (rollT > 0f) { rollT -= Time.deltaTime; want = rollDir * Mathf.Lerp(1.4f, 2.4f, rollT / 1.2f); }
+            // tripped: the catch costs you a stride or two
+            if (stumbleT > 0f) { stumbleT -= Time.deltaTime; if (want.sqrMagnitude > 5.8f) want = want.normalized * 2.4f; }
+            if (stumbleCool > 0f) stumbleCool -= Time.deltaTime;
             // pulling up from a run: the braking strides, and a stop that takes them (not a dead stop under a sliding body)
             var pp = Params();
             bool stopping = want.sqrMagnitude < 0.01f && vel.magnitude > 3.2f && !crouched && (fighter == null || fighter.Target == null);
@@ -252,12 +259,13 @@ namespace ASBO.Slice
             if (want.sqrMagnitude > 0.01f || vel.magnitude < 0.2f) runStopping = false;
             if (pp.stick) person.anim.SetBool("Stick", want.sqrMagnitude > 0.01f);
             // human-like acceleration: quicker to stop than to get going, sprint builds up
-            float accTime = want.sqrMagnitude < vel.sqrMagnitude ? (runStopping ? 0.3f : 0.16f) : (vel.magnitude < sp.walk ? 0.22f : 0.38f);
+            float accTime = want.sqrMagnitude < vel.sqrMagnitude ? (runStopping ? 0.3f : rollT > 0f ? 0.08f : 0.16f) : (vel.magnitude < sp.walk ? 0.22f : 0.38f);
+            if (!grounded && !climbing) accTime = 1.4f; // in the air you keep the run-up's momentum (only a little steering)
             vel = Vector3.SmoothDamp(vel, want, ref velRef, accTime);
             if (want == Vector3.zero && vel.magnitude < 0.05f) vel = Vector3.zero;
 
             // body follows the travel direction along a smooth arc (tighter when slow); squared up in a fight, it strafes instead
-            if (vel.sqrMagnitude > 0.04f && turnTimer <= 0f && !facing)
+            if (vel.sqrMagnitude > 0.04f && turnTimer <= 0f && !facing && !climbing)
             {
                 float target = Mathf.Atan2((want.sqrMagnitude > 0.01f ? want : vel).x, (want.sqrMagnitude > 0.01f ? want : vel).z) * Mathf.Rad2Deg;
                 float t = Mathf.Lerp(0.07f, 0.2f, vel.magnitude / Mathf.Max(sp.sprint, 0.1f));
@@ -266,14 +274,21 @@ namespace ASBO.Slice
             transform.rotation = Quaternion.Euler(0, bodyYaw, 0);
 
             if (grounded && !wasGrounded && fallSpeed < -3.5f && GameAudio.I != null) GameAudio.I.Land(transform.position);
-            // a big drop (more than about a storey's fall): the landing buckles your knees and holds you a moment
-            if (grounded && !wasGrounded && fallSpeed < -8.5f && person.anim != null && Params().hardLand) { person.anim.SetTrigger("HardLand"); landLock = 0.75f; }
+            // landing a drop while running: tuck and roll, and up still moving; a big drop from standing (or a huge one):
+            // the landing buckles your knees and holds you a moment
+            float hsp = new Vector2(vel.x, vel.z).magnitude;
+            if (grounded && !wasGrounded && fallSpeed < -6.5f && fallSpeed > -15f && hsp > 2.6f && !crouched && person.anim != null && pp.roll)
+            { person.anim.SetTrigger("Roll"); rollT = 1.2f; rollDir = new Vector3(vel.x, 0f, vel.z).normalized; }
+            else if (grounded && !wasGrounded && fallSpeed < -8.5f && person.anim != null && pp.hardLand) { person.anim.SetTrigger("HardLand"); landLock = 0.75f; }
             fallSpeed = vy; wasGrounded = grounded;
             if (grounded && vy < 0f) vy = -2f; else vy -= 19.6f * Time.deltaTime;
             if (grounded && turnTimer <= 0f && !climbing && ((kb != null && kb.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonSouth.wasPressedThisFrame) || jumpTap))
             {
                 jumpTap = false;
-                if (Ledge(out var top)) StartCoroutine(Climb(top));   // a wall or a fence in front, low enough: up and over onto it
+                // on the run at a high wall: the run-up, a foot up it and over the top
+                if (vel.magnitude > 4f && pp.wallClimb && Ledge(out var wtop, out _, 1.7f, 1.9f, 2.9f)) StartCoroutine(WallClimb(wtop, vel.magnitude));
+                else if (Ledge(out var top)) StartCoroutine(Climb(top));   // a wall or a ledge in front, low enough: up onto it
+                else if (Vaultable(out var vtop, out var land)) StartCoroutine(Vault(vtop, land));  // a fence or a low wall: hands on and over
                 else if (!crouched) { vy = 4.6f; person.Jump(); }
             }
             if (climbing) return;
@@ -282,6 +297,23 @@ namespace ASBO.Slice
             // in the air the feet are left to the jump (a short grace so stepping off a kerb doesn't flick them about)
             airT = cc.isGrounded ? 0f : airT + Time.deltaTime;
             fg ??= GetComponentInChildren<FootGround>(); if (fg != null) fg.airborne = airT > 0.06f || vy > 1f;
+            // a long way down (longer than any jump): arms and legs going until you land
+            bool longFall = airT > 0.4f && vy < -5.5f;
+            if (pp.fall && longFall != falling) { falling = longFall; person.anim.SetBool("Fall", falling); }
+            // running into someone: you stumble, they're knocked back a step and have something to say about it
+            if (grounded && vel.magnitude > 3.3f && stumbleCool <= 0f && (bargeCheck -= Time.deltaTime) <= 0f)
+            {
+                bargeCheck = 0.1f; Vector3 ahead = transform.position + vel.normalized * 0.55f;
+                foreach (var o in Person.All)
+                {
+                    if (o == null || o == person || o.state != Person.State.Walking || !o.isActiveAndEnabled) continue;
+                    Vector3 d = o.transform.position - ahead; if (Mathf.Abs(d.y) > 1f || d.x * d.x + d.z * d.z > 0.3f) continue;
+                    if (fighter != null && fighter.Target != null) break; // squaring up isn't a collision
+                    o.Barged(vel.normalized);
+                    if (pp.stumble) person.anim.SetTrigger("Stumble");
+                    stumbleT = 0.8f; stumbleCool = 2.5f; break;
+                }
+            }
 
             // the animator gets the real local velocity (lateral part = the lean/cross-step while turning)
             Vector3 hv = cc.velocity; hv.y = 0f; if (hv.magnitude > vel.magnitude + 0.3f) hv = vel;
@@ -429,8 +461,8 @@ namespace ASBO.Slice
         }
         void OnEnable() { StartCoroutine(MakeSpare(8f)); }
         /// <summary>Tests: a stick held this way (camera-relative), or null for the real controls.</summary>
-        public static Vector2? TestInput;
-        bool runStopping; float landLock, airT;
+        public static Vector2? TestInput; public static bool TestSprint;
+        bool runStopping, falling; float landLock, airT, rollT, stumbleT, stumbleCool, bargeCheck; Vector3 rollDir;
         public bool Crouched => crouched;
         /// <summary>Crouch down or stand up (standing waits for room above your head).</summary>
         public void SetCrouch(bool on)
@@ -444,34 +476,144 @@ namespace ASBO.Slice
         /// <summary>Something to climb straight ahead: a face within reach, its top between knee and head-and-a-bit high, room to stand on it.</summary>
         bool Ledge(out Vector3 top) => Ledge(out top, out _);
         public string LedgeWhy() { Ledge(out _, out var why); return why; }
-        bool Ledge(out Vector3 top, out string why)
+        float ledgeDist; Vector3 ledgeNormal;
+        bool Ledge(out Vector3 top, out string why, float reach = 0.9f, float minRise = 0.45f, float maxRise = 2.35f)
         {
             top = default; why = ""; Vector3 f = transform.forward, p = transform.position;
             bool hit = false; float dist = 0f;
-            foreach (float h in new[] { 0.35f, 0.75f, 1.2f, 1.6f }) if (Physics.Raycast(p + Vector3.up * h, f, out var w, 0.9f, ClimbMask, QueryTriggerInteraction.Ignore) && Mathf.Abs(w.normal.y) < 0.4f) { hit = true; dist = w.distance; why = $"face {w.collider.name} at {h}m/{dist:F2}; "; break; }
+            foreach (float h in new[] { 0.35f, 0.75f, 1.2f, 1.6f }) if (Physics.Raycast(p + Vector3.up * h, f, out var w, reach, ClimbMask, QueryTriggerInteraction.Ignore) && Mathf.Abs(w.normal.y) < 0.4f) { hit = true; dist = w.distance; ledgeNormal = w.normal; why = $"face {w.collider.name} at {h}m/{dist:F2}; "; break; }
             if (!hit) { why = "no face ahead"; return false; }
-            Vector3 over = p + f * (dist + 0.4f) + Vector3.up * 2.6f;
-            if (!Physics.Raycast(over, Vector3.down, out var d, 2.6f, ClimbMask, QueryTriggerInteraction.Ignore) || d.normal.y < 0.7f) { why += "no top"; return false; }
-            float rise = d.point.y - p.y; why += $"top {rise:F2}; "; if (rise < 0.45f || rise > 2.35f) { why += "wrong height"; return false; }
+            ledgeDist = dist;
+            Vector3 over = p + f * (dist + 0.4f) + Vector3.up * (maxRise + 0.3f);
+            if (!Physics.Raycast(over, Vector3.down, out var d, maxRise + 0.3f, ClimbMask, QueryTriggerInteraction.Ignore) || d.normal.y < 0.7f) { why += "no top"; return false; }
+            float rise = d.point.y - p.y; why += $"top {rise:F2}; "; if (rise < minRise || rise > maxRise) { why += "wrong height"; return false; }
             // something to stand on, not the top rail of a fence: the surface carries on a bit further in
-            if (!Physics.Raycast(over + f * 0.35f, Vector3.down, out var d2, 2.6f, ClimbMask, QueryTriggerInteraction.Ignore) || Mathf.Abs(d2.point.y - d.point.y) > 0.15f) { why += "too thin"; return false; }
+            if (!Physics.Raycast(over + f * 0.35f, Vector3.down, out var d2, maxRise + 0.3f, ClimbMask, QueryTriggerInteraction.Ignore) || Mathf.Abs(d2.point.y - d.point.y) > 0.15f) { why += "too thin"; return false; }
             // room to stand up there
             if (Physics.CheckCapsule(d.point + Vector3.up * 0.35f, d.point + Vector3.up * 1.5f, 0.25f, ClimbMask, QueryTriggerInteraction.Ignore)) { why += "no headroom"; return false; }
             top = d.point; why += "ok"; return true;
         }
-        /// <summary>Up onto a ledge: hands on, pull up (or a quick vault for low ones), step forward onto it.</summary>
+        /// <summary>Up onto a ledge. Chest-high and above: square up to the wall, hands on, a foot up, haul up and step on, the
+        /// mocap's own rise and travel moving the body (scaled to this wall). Lower: a hop up onto it.</summary>
         System.Collections.IEnumerator Climb(Vector3 top)
         {
             climbing = true; cc.enabled = false; vel = Vector3.zero; vy = 0f;
-            float rise = top.y - transform.position.y; bool high = rise > 1.25f;
-            if (person != null && person.anim != null) { if (high && HasParam(person.anim, "Climb")) person.anim.SetTrigger("Climb"); else person.Jump(); }
+            float rise = top.y - transform.position.y; bool high = rise > 1.1f && person != null && person.anim != null && HasParam(person.anim, "Climb");
             var fg2 = GetComponentInChildren<FootGround>(); if (fg2 != null) fg2.off = true;
-            Vector3 a = transform.position, up = new Vector3(a.x, top.y + 0.02f, a.z) + transform.forward * 0.15f, b = top + Vector3.up * 0.02f + transform.forward * 0.25f;
-            float t1 = high ? 0.9f : 0.35f, t2 = high ? 0.55f : 0.3f;
-            for (float t = 0; t < t1; t += Time.deltaTime) { transform.position = Vector3.Lerp(a, up, Mathf.SmoothStep(0, 1, t / t1)); yield return null; }
-            for (float t = 0; t < t2; t += Time.deltaTime) { transform.position = Vector3.Lerp(up, b, Mathf.SmoothStep(0, 1, t / t2)); yield return null; }
-            transform.position = b; cc.enabled = true; if (fg2 != null) fg2.off = false; climbing = false;
+            if (high)
+            {
+                // square up, a hand's reach from the wall
+                Vector3 inward = -ledgeNormal; inward.y = 0f; if (inward.sqrMagnitude < 0.01f) inward = transform.forward; inward.Normalize();
+                bodyYaw = Mathf.Atan2(inward.x, inward.z) * Mathf.Rad2Deg;
+                Vector3 a0 = transform.position, a1 = a0 + inward * (ledgeDist - 0.35f);
+                Quaternion r0 = transform.rotation, r1 = Quaternion.Euler(0f, bodyYaw, 0f);
+                for (float t = 0; t < 0.12f; t += Time.deltaTime) { transform.SetPositionAndRotation(Vector3.Lerp(a0, a1, t / 0.12f), Quaternion.Slerp(r0, r1, t / 0.12f)); yield return null; }
+                transform.SetPositionAndRotation(a1, r1);
+                // the capture climbs a 1.63 m wall and ends 1.38 m on from where it started
+                yield return RootMove("Climb", new Vector3(1f, rise / 1.63f, 0.9f / 1.38f), 4f);
+                Vector3 end = transform.position; end.y = top.y + 0.02f; transform.position = end;
+            }
+            else
+            {
+                if (person != null) person.Jump();
+                Vector3 a = transform.position, up = new Vector3(a.x, top.y + 0.02f, a.z) + transform.forward * 0.15f, b = top + Vector3.up * 0.02f + transform.forward * 0.25f;
+                const float t1 = 0.35f, t2 = 0.3f;
+                for (float t = 0; t < t1; t += Time.deltaTime) { transform.position = Vector3.Lerp(a, up, Mathf.SmoothStep(0, 1, t / t1)); yield return null; }
+                for (float t = 0; t < t2; t += Time.deltaTime) { transform.position = Vector3.Lerp(up, b, Mathf.SmoothStep(0, 1, t / t2)); yield return null; }
+                transform.position = b;
+            }
+            cc.enabled = true; if (fg2 != null) fg2.off = false; climbing = false;
         }
+
+        /// <summary>Plays a traversal state and lets its own motion (rise and travel, scaled per axis: x across, y up, z forward)
+        /// carry the body, until the state is nearly done.</summary>
+        System.Collections.IEnumerator RootMove(string state, Vector3 scale, float maxSecs)
+        {
+            var an = person.anim; var rm = an.GetComponent<RootMover>(); if (rm == null) rm = an.gameObject.AddComponent<RootMover>();
+            rm.target = transform; rm.scale = scale; rm.on = true;
+            an.SetTrigger(state);
+            float until = Time.time + maxSecs; bool entered = false;
+            while (Time.time < until)
+            {
+                var si = an.GetCurrentAnimatorStateInfo(0);
+                if (si.IsName(state)) { entered = true; if (si.normalizedTime >= 0.93f) break; }
+                else if (entered && !an.IsInTransition(0)) break;
+                yield return null;
+            }
+            rm.on = false;
+        }
+
+        /// <summary>A high wall taken at a sprint: the run-up jump, a foot up the wall, hands on the top, hauled over.</summary>
+        System.Collections.IEnumerator WallClimb(Vector3 top, float speed)
+        {
+            climbing = true; cc.enabled = false; vy = 0f; vel = Vector3.zero;
+            var fg2 = GetComponentInChildren<FootGround>(); if (fg2 != null) fg2.off = true;
+            Vector3 inward = -ledgeNormal; inward.y = 0f; if (inward.sqrMagnitude < 0.01f) inward = transform.forward; inward.Normalize();
+            bodyYaw = Mathf.Atan2(inward.x, inward.z) * Mathf.Rad2Deg; transform.rotation = Quaternion.Euler(0f, bodyYaw, 0f);
+            float rise = top.y - transform.position.y;
+            // the capture: about 1.1 m to the wall at the take-off, a 2.5 m climb, ending 0.7 m past the face (1.83 m in all)
+            yield return RootMove("WallClimb", new Vector3(1f, rise / 2.5f, Mathf.Clamp((ledgeDist + 0.65f) / 1.83f, 0.6f, 1.3f)), 3f);
+            Vector3 end = transform.position; end.y = top.y + 0.02f;
+            if (Physics.Raycast(end + Vector3.up * 0.6f, Vector3.down, out var g, 1.5f, ClimbMask, QueryTriggerInteraction.Ignore)) end.y = g.point.y + 0.02f;
+            transform.position = end;
+            cc.enabled = true; if (fg2 != null) fg2.off = false; climbing = false;
+        }
+
+        /// <summary>A fence, railings or a low wall (too thin to stand on), waist-high or less, with somewhere to land beyond.</summary>
+        bool Vaultable(out Vector3 top, out Vector3 land)
+        {
+            top = land = default; Vector3 f = transform.forward, p = transform.position;
+            RaycastHit w = default; bool hit = false;
+            foreach (float h in new[] { 0.3f, 0.6f, 0.9f }) if (Physics.Raycast(p + Vector3.up * h, f, out w, 1.1f, ClimbMask, QueryTriggerInteraction.Ignore) && Mathf.Abs(w.normal.y) < 0.4f) { hit = true; break; }
+            if (!hit) return false;
+            Vector3 face = w.point; face.y = p.y;
+            // its top, just in from the face
+            if (!Physics.Raycast(face + f * 0.06f + Vector3.up * 1.6f, Vector3.down, out var t, 1.6f, ClimbMask, QueryTriggerInteraction.Ignore)) return false;
+            float rise = t.point.y - p.y; if (rise < 0.4f || rise > 1.25f) return false;
+            // thin: the far side drops away again within half a metre
+            float thick = -1f;
+            for (float s = 0.12f; s <= 0.5f; s += 0.1f)
+                if (!Physics.Raycast(face + f * s + Vector3.up * (rise + 0.05f), Vector3.down, out var q, 0.25f, ClimbMask, QueryTriggerInteraction.Ignore)) { thick = s; break; }
+            if (thick < 0f) return false;
+            // ground on the far side, not far below, with room to land and a clear path over the top
+            Vector3 beyond = face + f * (thick + 0.7f);
+            if (!Physics.Raycast(beyond + Vector3.up * (rise + 0.4f), Vector3.down, out var g, rise + 2.2f, ClimbMask, QueryTriggerInteraction.Ignore) || g.normal.y < 0.7f) return false;
+            if (g.point.y < p.y - 1.8f || g.point.y > p.y + 0.4f) return false;
+            if (Physics.CheckCapsule(g.point + Vector3.up * 0.4f, g.point + Vector3.up * 1.5f, 0.25f, ClimbMask, QueryTriggerInteraction.Ignore)) return false;
+            if (Physics.CheckCapsule(t.point + Vector3.up * 0.45f + f * 0.1f, t.point + Vector3.up * 1.4f + f * 0.1f, 0.2f, ClimbMask, QueryTriggerInteraction.Ignore)) return false;
+            top = t.point; land = g.point; return true;
+        }
+
+        /// <summary>Over a fence: a hand on the top, legs swung over, down the other side, keeping most of the run's pace.</summary>
+        System.Collections.IEnumerator Vault(Vector3 top, Vector3 land)
+        {
+            climbing = true; cc.enabled = false; vy = 0f; float keep = Mathf.Min(vel.magnitude, 3.6f);
+            var fg2 = GetComponentInChildren<FootGround>(); if (fg2 != null) { fg2.off = true; fg2.airborne = true; }
+            if (person != null) person.Jump();
+            Vector3 a = transform.position, b = land + Vector3.up * 0.02f, mid = new Vector3(top.x, top.y + 0.3f, top.z);
+            float dur = 0.42f + 0.18f * (top.y - a.y);
+            for (float t = 0; t < dur; t += Time.deltaTime)
+            {
+                float u = t / dur; Vector3 q = (1 - u) * (1 - u) * a + 2 * (1 - u) * u * mid + u * u * b; // over the top on a curve
+                transform.position = q; yield return null;
+            }
+            transform.position = b; cc.enabled = true; if (fg2 != null) fg2.off = false;
+            vel = transform.forward * keep; climbing = false;
+            if (GameAudio.I != null) GameAudio.I.Land(transform.position);
+        }
+
+        /// <summary>Bend for something: a squat for the floor, a reach for a table or counter. Returns when the hand gets there.</summary>
+        public float ReachFor(Vector3 at)
+        {
+            if (person == null || person.anim == null || InCar || climbing || chairSat) return 0f;
+            Vector3 d = at - transform.position; d.y = 0f;
+            if (d.sqrMagnitude > 0.01f) { bodyYaw = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg; transform.rotation = Quaternion.Euler(0f, bodyYaw, 0f); }
+            vel = Vector3.zero; float h = at.y - transform.position.y;
+            if (h < 0.45f && HasParam(person.anim, "Crouch")) { StartCoroutine(Squat()); landLock = 1.0f; return 0.5f; }
+            if (HasParam(person.anim, "Take")) { person.anim.SetTrigger("Take"); landLock = 1.0f; return 0.55f; }
+            return 0f;
+        }
+        System.Collections.IEnumerator Squat() { bool was = crouched; if (!was) SetCrouch(true); yield return new WaitForSeconds(0.7f); if (!was) SetCrouch(false); }
 
         bool seated;
         bool chairSat; Vector3 chairPos; float chairYaw, chairT;
@@ -499,13 +641,13 @@ namespace ASBO.Slice
         }
         static bool HasParam(Animator a, string n) { foreach (var p in a.parameters) if (p.name == n) return true; return false; }
         // which of the newer parameters this body's controller has (looked up once per controller: reading the list allocates)
-        struct PSet { public bool stick, runStop, hardLand; }
+        struct PSet { public bool stick, runStop, hardLand, fall, roll, stumble, wallClimb; }
         PSet pset; RuntimeAnimatorController psetFor;
         PSet Params()
         {
             var a = person != null ? person.anim : null;
             if (a == null || a.runtimeAnimatorController == null) return default;
-            if (psetFor != a.runtimeAnimatorController) { psetFor = a.runtimeAnimatorController; pset = new PSet { stick = HasParam(a, "Stick"), runStop = HasParam(a, "RunStop"), hardLand = HasParam(a, "HardLand") }; }
+            if (psetFor != a.runtimeAnimatorController) { psetFor = a.runtimeAnimatorController; pset = new PSet { stick = HasParam(a, "Stick"), runStop = HasParam(a, "RunStop"), hardLand = HasParam(a, "HardLand"), fall = HasParam(a, "Fall"), roll = HasParam(a, "Roll"), stumble = HasParam(a, "Stumble"), wallClimb = HasParam(a, "WallClimb") }; }
             return pset;
         }
         /// <summary>Into the driver's seat (every frame, and again after the animation so the pose's own drift can't move you).</summary>

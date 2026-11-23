@@ -278,7 +278,7 @@ namespace ASBO.EditorTools
             Cut("Honking Horn", "MX_Drive", 3.0f, 4.3f, true); // sat at the wheel, hands on it (between the toots)
             Cut("Crouching Idle", "MX_CrouchIdle", -1f, -1f, true);
             Cut("Crouch Walk", "MX_CrouchWalk", -1f, -1f, true);
-            Cut("Climbing To Top", "MX_ClimbUp", -1f, -1f, false);
+            Cut("Climbing To Top", "MX_ClimbUp", -1f, 3.4f, false, false, false); // rise as root motion: the player's RootMover lifts the body, scaled to the wall
             Cut("Jostled Passenger", "MX_Sit", 0.5f, 4.5f, true); // sat on a bench
             Cut("Jostled Passenger", "MX_SitB", 1.2f, 5.2f, true); // the same seat, a different stretch of it (people sat side by side don't match)
             Cut("Sneaking Forward", "MX_Sneak", -1f, -1f, true);    // the quicker hunched sneak (the crouch walk is the slow one)
@@ -290,6 +290,12 @@ namespace ASBO.EditorTools
             Cut("Pulled From Seat", "MX_PulledOut", -1f, -1f, false); // dragged out of the driver's seat
             Cut("Stomp", "MX_Stomp", 2.3f, 3.73f, false);           // stamping on someone who's down (the boot lands about 0.8 s in)
             Cut("Pull Pilot From Seat", "MX_Carjack", 5.4f, 9.43f, false); // reaching in and dragging the driver out
+            Cut("Falling Idle", "MX_FallIdle", -1f, -1f, true);              // a long drop: arms and legs going
+            Cut("Falling To Roll", "MX_Roll", 0.5f, 1.9f, false);           // from touchdown: over the shoulder and up running
+            Cut("Jogging Stumble", "MX_Stumble", 0.7f, 1.7f, false);         // a trip mid-stride and the catch
+            Cut("Sprint To Wall Climb", "MX_WallClimb", 0.3f, -1f, false, false, false); // the run-up jump, feet up the wall, hauled over the top (about 2.5 m)
+            Cut("Taking Item", "MX_Take", 0.8f, 2.3f, false);               // reaching down to a table or a counter and lifting something
+            Cut("Hit To Body", "MX_Barged", -1f, -1f, false);               // knocked back a step when someone runs into you
             Drop("Uppercut", "MX_Uppercut"); // the whole take again under another name: Unity refuses the copy (now cut as a Hay version)
             // cuts left in a file from an older list of takes (a take moved to another file keeps its old copy here,
             // and Unity drops the newer cut if it's the same stretch of the same take): out they go
@@ -360,7 +366,9 @@ namespace ASBO.EditorTools
         /// the take's travel goes to root motion, which the game ignores (it moves people itself), so the body stays
         /// over its feet. The whole take stays in the file too (as "FULL") for the measuring tools.
         /// </summary>
-        public static void Cut(string file, string clip, float a, float b, bool loop, bool bakeXZ = false)
+        /// <param name="bakeY">false: the clip's rise and fall go to root motion instead of the pose, so a script can move the body
+        /// itself, scaled to the wall it's climbing (the climbs); true (the default): the height stays in the pose.</param>
+        public static void Cut(string file, string clip, float a, float b, bool loop, bool bakeXZ = false, bool bakeY = true)
         {
             var path = F(file); var mi = (ModelImporter)AssetImporter.GetAtPath(path); if (mi == null) { Debug.LogWarning("[ASBO] mixamo: no " + path); return; }
             var src = mi.defaultClipAnimations[0];
@@ -371,7 +379,7 @@ namespace ASBO.EditorTools
             {
                 name = clip, takeName = src.takeName, firstFrame = a < 0 ? src.firstFrame : a * fps, lastFrame = b < 0 ? src.lastFrame : Mathf.Min(src.lastFrame, b * fps),
                 loopTime = loop, loopPose = loop, lockRootRotation = true, keepOriginalOrientation = true,
-                lockRootHeightY = true, keepOriginalPositionY = true, lockRootPositionXZ = bakeXZ, keepOriginalPositionXZ = bakeXZ
+                lockRootHeightY = bakeY, keepOriginalPositionY = true, lockRootPositionXZ = bakeXZ, keepOriginalPositionXZ = bakeXZ
             });
             mi.clipAnimations = list.ToArray(); mi.SaveAndReimport();
         }

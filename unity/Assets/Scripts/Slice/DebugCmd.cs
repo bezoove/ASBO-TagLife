@@ -122,6 +122,8 @@ namespace ASBO.Slice
         public static void MoveTest() { new GameObject("MoveTest").AddComponent<MoveTestRun>(); }
         /// <summary>Films a carjack (a stopped car, the driver dragged out, away you go) and then a stamp on the driver lying in the road. Shots/moves/j_N.png.</summary>
         public static void JackTest() { new GameObject("JackTest").AddComponent<JackTestRun>(); }
+        /// <summary>Climb, run-up wall climb, vault, drop-and-roll, barging into someone, reaching down: on a test slab up in the sky.</summary>
+        public static void TraverseTest(int only) { TraverseTestRun.Only = only; new GameObject("TraverseTest").AddComponent<TraverseTestRun>(); }
         public static void MobTest() { new GameObject("MobTest").AddComponent<MobTestRun>(); }
         public static void BrawlHits(float secs) { var r = new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); r.onHit = true; r.secs = secs; r.kickFinish = true; }
         public static void TalkTest() { new GameObject("TalkTest").AddComponent<TalkTestRun>(); }
@@ -1781,6 +1783,94 @@ namespace ASBO.Slice
             }
             Debug.Log("[ASBO] jack test done");
             cam.targetTexture = null; Destroy(rt); Destroy(cg); Destroy(gameObject);
+        }
+    }
+}
+
+
+namespace ASBO.Slice
+{
+    public class TraverseTestRun : MonoBehaviour
+    {
+        Camera cam; RenderTexture rt; Texture2D tex; string dir; int n; PlayerCtl pc; Transform root;
+        const float Y = 200f; public static int Only; // 0 = every test, else just that one (1 climb .. 6 reach)
+        bool Do(int k) => Only == 0 || Only == k;
+        void Shot(string tag)
+        {
+            Vector3 p = pc.transform.position, r = pc.transform.right;
+            cam.transform.position = p + r * 4.2f + Vector3.up * 1.3f - pc.transform.forward * 0.6f; cam.transform.LookAt(p + Vector3.up * 1.0f);
+            cam.Render(); RenderTexture.active = rt; tex.ReadPixels(new Rect(0, 0, 480, 360), 0, 0); tex.Apply(); RenderTexture.active = null;
+            System.IO.File.WriteAllBytes($"{dir}/t_{n++:D2}_{tag}.png", tex.EncodeToPNG());
+        }
+        void Box(string name, Vector3 min, Vector3 max, Color c)
+        {
+            var g = GameObject.CreatePrimitive(PrimitiveType.Cube); g.name = name; g.transform.SetParent(root, false);
+            g.transform.position = (min + max) * 0.5f; g.transform.localScale = max - min;
+            var m = new Material(Gfx.Lit); m.color = c; g.GetComponent<Renderer>().sharedMaterial = m;
+        }
+        float Ahead(float faceX) => faceX - pc.transform.position.x;
+        System.Collections.IEnumerator Start()
+        {
+            pc = FindFirstObjectByType<PlayerCtl>(); if (pc == null) { Destroy(gameObject); yield break; }
+            dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/moves"); System.IO.Directory.CreateDirectory(dir);
+            var cg = new GameObject("TravCam"); cam = cg.AddComponent<Camera>(); cam.fieldOfView = 55f; cam.nearClipPlane = 0.1f;
+            rt = new RenderTexture(480, 360, 24); cam.targetTexture = rt; cam.enabled = false; tex = new Texture2D(480, 360, TextureFormat.RGB24, false);
+            GameClock.Set(13f);
+            root = new GameObject("TraverseSlab").transform;
+            Box("Slab", new Vector3(-4f, Y - 1f, -4f), new Vector3(32f, Y, 34f), new Color(0.45f, 0.45f, 0.47f));
+            Box("ClimbBox", new Vector3(5f, Y, -1.5f), new Vector3(7f, Y + 1.6f, 1.5f), new Color(0.6f, 0.4f, 0.3f));
+            Box("HighWall", new Vector3(14f, Y, 4.5f), new Vector3(16f, Y + 2.5f, 7.5f), new Color(0.55f, 0.35f, 0.3f));
+            Box("Fence", new Vector3(10f, Y, 10f), new Vector3(10.08f, Y + 1.0f, 14f), new Color(0.3f, 0.25f, 0.2f));
+            Box("Tower", new Vector3(-3f, Y, 16.5f), new Vector3(6f, Y + 4f, 19.5f), new Color(0.5f, 0.5f, 0.55f));
+            yield return null;
+            // 1) chest-high climb
+            if (Do(1)) { pc.Teleport(new Vector3(4.3f, Y + 0.05f, 0f), 90f, 8f); yield return new WaitForSeconds(1.2f);
+            Shot("climb0"); PlayerCtl.jumpTap = true;
+            for (int i = 0; i < 12; i++) { yield return new WaitForSeconds(0.22f); Shot("climb"); }
+            Debug.Log($"[ASBO] trav: climb ended at y {pc.transform.position.y - Y:F2} x {pc.transform.position.x:F2}"); }
+            // 2) run-up wall climb at a sprint
+            if (Do(2)) { pc.Teleport(new Vector3(2f, Y + 0.05f, 6f), 90f, 8f); yield return new WaitForSeconds(1.2f);
+            PlayerCtl.TestInput = new Vector2(0f, 1f); PlayerCtl.TestSprint = true;
+            for (float w = 0; w < 6f && Ahead(14f) > 1.3f; w += Time.deltaTime) yield return null;
+            PlayerCtl.jumpTap = true; PlayerCtl.TestInput = null; PlayerCtl.TestSprint = false;
+            for (int i = 0; i < 10; i++) { yield return new WaitForSeconds(0.16f); Shot("wall"); }
+            yield return new WaitForSeconds(0.5f);
+            Debug.Log($"[ASBO] trav: wall climb ended at y {pc.transform.position.y - Y:F2} x {pc.transform.position.x:F2}"); }
+            // 3) vault a fence at a run
+            if (Do(3)) { pc.Teleport(new Vector3(4f, Y + 0.05f, 12f), 90f, 8f); yield return new WaitForSeconds(1.2f);
+            PlayerCtl.TestInput = new Vector2(0f, 1f);
+            for (float w = 0; w < 5f && Ahead(10f) > 0.85f; w += Time.deltaTime) yield return null;
+            PlayerCtl.jumpTap = true;
+            for (int i = 0; i < 7; i++) { yield return new WaitForSeconds(0.1f); Shot("vault"); }
+            PlayerCtl.TestInput = null; yield return new WaitForSeconds(0.4f);
+            Debug.Log($"[ASBO] trav: vault ended at x {pc.transform.position.x:F2} (fence at 10)"); }
+            // 4) run off a 4 m drop: the roll
+            if (Do(4)) { pc.Teleport(new Vector3(1f, Y + 4.05f, 18f), 90f, 8f); yield return new WaitForSeconds(1.2f);
+            PlayerCtl.TestInput = new Vector2(0f, 1f);
+            for (float w = 0; w < 4f && pc.transform.position.y > Y + 3.5f; w += Time.deltaTime) yield return null;
+            PlayerCtl.TestInput = null;
+            for (int i = 0; i < 18; i++) { yield return new WaitForSeconds(0.12f); Shot("roll"); } }
+            // 5) running into someone
+            Person npc = null;
+            if (Do(5)) { npc = World.MakePerson(new Vector3(9f, Y + 0.05f, 24f), new Color(0.7f, 0.2f, 0.2f), new Color(0.2f, 0.2f, 0.25f), "Barged");
+            npc.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+            pc.Teleport(new Vector3(2f, Y + 0.05f, 24f), 90f, 8f);
+            for (float w = 0; w < 6f && !npc.Ready; w += Time.deltaTime) yield return null;
+            yield return new WaitForSeconds(0.6f);
+            PlayerCtl.TestInput = new Vector2(0f, 1f);
+            for (float w = 0; w < 4f && Ahead(9f) > 1.6f; w += Time.deltaTime) yield return null;
+            for (int i = 0; i < 9; i++) { yield return new WaitForSeconds(0.12f); Shot("barge"); }
+            PlayerCtl.TestInput = null; yield return new WaitForSeconds(0.6f); }
+            // 6) reaching for something on a table, then on the floor
+            if (Do(6)) { pc.Teleport(new Vector3(4f, Y + 0.05f, 30f), 90f, 8f); yield return new WaitForSeconds(1.0f);
+            pc.ReachFor(pc.transform.position + Vector3.right * 0.6f + Vector3.up * 0.8f);
+            for (int i = 0; i < 5; i++) { yield return new WaitForSeconds(0.2f); Shot("take"); }
+            yield return new WaitForSeconds(0.8f);
+            pc.ReachFor(pc.transform.position + Vector3.right * 0.5f);
+            for (int i = 0; i < 4; i++) { yield return new WaitForSeconds(0.2f); Shot("floor"); } }
+            Debug.Log("[ASBO] trav test done");
+            if (npc != null) Destroy(npc.gameObject);
+            cam.targetTexture = null; Destroy(rt); Destroy(cg); Destroy(root.gameObject); Destroy(gameObject);
         }
     }
 }

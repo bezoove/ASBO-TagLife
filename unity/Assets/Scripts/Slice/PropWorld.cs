@@ -82,7 +82,7 @@ namespace ASBO.Slice
             switch (e.kind)
             {
                 case PropLib.Kind.Pickup:
-                    if (e.cash > 0f) { Take(t); Econ.Give(e.cash); Say($"You pocket £{e.cash:0}. Nobody saw. Probably."); Heat(e.cash); return true; }
+                    if (e.cash > 0f) { StartCoroutine(Pocket(t)); return true; }
                     if (held != null) PutDown();
                     PickUp(t); return true;
                 case PropLib.Kind.Sit:
@@ -174,7 +174,21 @@ namespace ASBO.Slice
             var s = t.set; s.Hide(t.i);
             return t.e.cash > 0f ? null : Spawn(t.e, s.World(t.i), s.Rot(t.i));
         }
-        void PickUp(Target t) { var g = Take(t); Hold(g, t.e); }
+        bool reaching;
+        /// <summary>Bend down or reach for it first; it's in your hand when your hand gets there.</summary>
+        void PickUp(Target t) { if (!reaching) StartCoroutine(PickUpRun(t)); }
+        System.Collections.IEnumerator PickUpRun(Target t)
+        {
+            reaching = true; float d = pc.ReachFor(t.at);
+            if (d > 0f) yield return new WaitForSeconds(d);
+            var g = Take(t); Hold(g, t.e); reaching = false;
+        }
+        System.Collections.IEnumerator Pocket(Target t)
+        {
+            if (reaching) yield break; reaching = true; float d = pc.ReachFor(t.at);
+            if (d > 0f) yield return new WaitForSeconds(d);
+            Take(t); Econ.Give(t.e.cash); Say($"You pocket £{t.e.cash:0}. Nobody saw. Probably."); Heat(t.e.cash); reaching = false;
+        }
         void Give(string id) { var e = PropLib.Get(id); if (e == null) return; if (held != null) PutDown(); var h = Hand(); Hold(Spawn(e, h.position, pc.transform.rotation), e); }
         void Hold(GameObject g, PropLib.Entry e)
         {
