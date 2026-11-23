@@ -631,6 +631,23 @@ namespace ASBO.Slice
         }
 
         public Vector3 BodyPos => hips != null ? hips.position : transform.position;
+        /// <summary>Where their head is (on the floor or stood up).</summary>
+        public Vector3 HeadPos { get { var h = anim != null && anim.isHuman ? anim.GetBoneTransform(HumanBodyBones.Head) : null; return h != null ? h.position : BodyPos + Vector3.up * 0.25f; } }
+
+        /// <summary>Stamped on while down: the head driven into the floor, blood, badly hurt (they'll want an ambulance).</summary>
+        public void Stamped(Vector3 dir)
+        {
+            var head = anim != null && anim.isHuman ? anim.GetBoneTransform(HumanBodyBones.Head) : null; Vector3 at = head != null ? head.position : BodyPos;
+            if (head != null && byT.TryGetValue(head, out var b) && b.rb != null && !b.rb.isKinematic) b.rb.AddForce(Vector3.down * 7f + dir * 1.5f, ForceMode.VelocityChange);
+            if (Gore.Level > 0)
+            {
+                Gore.Burst(at, Vector3.up + dir * 0.4f, 5 + Gore.Level * 4);
+                if (Physics.Raycast(at + Vector3.up * 0.4f, Vector3.down, out var g, 2f)) Gore.Splat(g.point + g.normal * 0.01f, g.normal, UnityEngine.Random.Range(0.25f, 0.5f));
+            }
+            if (GameAudio.I != null) GameAudio.I.Play3D(AudioSynth.Thud(), at, 0.9f, 0.8f, 25f, 2f);
+            injured = true; getUp = false; LastHit = this;
+            var f = GetComponent<Fighter>(); if (f != null) f.Hurt(35f, true);
+        }
 
         /// <summary>Removes the body (picked up by ambulance crew).</summary>
         /// <summary>

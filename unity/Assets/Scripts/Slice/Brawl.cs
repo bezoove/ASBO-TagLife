@@ -174,9 +174,40 @@ namespace ASBO.Slice
                 if (punchHeld > 0f && !punchFired) Press(null); // tapped: next in the combo
                 punchHeld = 0f; punchFired = false;
             }
-            if (kick) Press(Move.Kick);
+            if (kick && !TryStamp()) Press(Move.Kick);
             if (shove) Press(Move.Shove);
         }
+        /// <summary>
+        /// KICK with someone on the floor at your feet (and nobody on their feet in front having a go): you stamp on
+        /// their head instead. It hurts them badly, bloodies the floor and leaves them needing an ambulance.
+        /// </summary>
+        bool TryStamp()
+        {
+            if (mode == Mode.Atk || mode == Mode.Stun || p == null || p.anim == null || !p.anim.enabled) return false;
+            if (Best(MV[(int)Move.Kick]) != null) return false;
+            Person down = null; float bd = 1.8f;
+            foreach (var q in Person.All)
+            {
+                if (q == null || q == p || (q.state != Person.State.Ragdoll && q.state != Person.State.Settled)) continue;
+                Vector3 d = (q.HeadPos - transform.position).WithY(0); float dist = d.magnitude;
+                if (dist > bd || Vector3.Angle(transform.forward, d) > 80f) continue;
+                bd = dist; down = q;
+            }
+            if (down == null) return false;
+            StartCoroutine(StampOn(down)); return true;
+        }
+
+        System.Collections.IEnumerator StampOn(Person down)
+        {
+            mode = Mode.Atk; t = 0f; cur = Move.Kick; landed = true; aim = null; curDur = 1.35f; curImp = 0.8f; LastSwing = Time.time; stanceT = 6f; guard = false;
+            Vector3 d = (down.HeadPos - transform.position).WithY(0);
+            if (d.sqrMagnitude > 0.01f) { transform.rotation = Quaternion.LookRotation(d); float step = d.magnitude - 0.42f; if (Mathf.Abs(step) > 0.05f) MoveBy(d.normalized * Mathf.Clamp(step, -0.5f, 1.2f)); }
+            bool has = false; foreach (var q in p.anim.parameters) if (q.name == "Stamp") { has = true; break; }
+            p.anim.speed = 1f; p.anim.SetTrigger(has ? "Stamp" : "Kick");
+            yield return new WaitForSeconds(has ? 0.8f : 0.55f);
+            if (down != null) down.Stamped(transform.forward);
+        }
+
         /// <summary>The player's punch button as a single press (touch tests, scripted runs).</summary>
         public void PunchButton() => Press(null);
 

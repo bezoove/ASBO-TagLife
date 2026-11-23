@@ -527,7 +527,7 @@ namespace ASBO.Slice
             var root = new GameObject("EstateLoose").transform; root.SetParent(parent, false);
             var rng = new System.Random(4242);
             int bins = 0, cars = 0;
-            string[] ids = { "hatch90", "saloon90", "supermini", "estate90", "boxy80", "hatch70", "coupe80", "jeep" };
+            string[] ids = { "hatch90", "hatch90", "saloon90", "saloon90", "supermini", "estate90", "boxy80", "hatch70", "coupe80", "jeep" }; // mostly the detailed hatch and saloon
             foreach (var h in Houses(est.transform))
             {
                 Vector3 fwd = h.facing * Vector3.forward, right = h.facing * Vector3.right;

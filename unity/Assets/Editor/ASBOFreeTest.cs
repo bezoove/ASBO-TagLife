@@ -209,6 +209,41 @@ namespace ASBO.EditorTools
         }
 
         /// <summary>Hurt: getting up off the floor, then bent over holding the belly (idle and limping walk). MoCap Central injured set.</summary>
+        /// <summary>
+        /// The "Fidget" layer: small movements added on top of the body (upper body only) for people sat or stood about,
+        /// one state per movement in <see cref="ASBO.Slice.Fidget.Clips"/>, each going back to "Still" when it's done.
+        /// The Fidget component picks them at random and sets the layer's weight.
+        /// </summary>
+        static void AddFidgets(AnimatorController ac)
+        {
+            const string maskPath = "Assets/Resources/Anim/FidgetUpper.mask";
+            var mask = AssetDatabase.LoadAssetAtPath<AvatarMask>(maskPath);
+            if (mask == null)
+            {
+                mask = new AvatarMask();
+                for (int i = 0; i < (int)AvatarMaskBodyPart.LastBodyPart; i++)
+                {
+                    var bp = (AvatarMaskBodyPart)i;
+                    mask.SetHumanoidBodyPartActive(bp, bp == AvatarMaskBodyPart.Body || bp == AvatarMaskBodyPart.Head || bp == AvatarMaskBodyPart.LeftArm || bp == AvatarMaskBodyPart.RightArm || bp == AvatarMaskBodyPart.LeftFingers || bp == AvatarMaskBodyPart.RightFingers);
+                }
+                AssetDatabase.CreateAsset(mask, maskPath);
+            }
+            ac.AddLayer("Fidget");
+            var ls = ac.layers; var L = ls[ls.Length - 1];
+            L.blendingMode = AnimatorLayerBlendingMode.Additive; L.avatarMask = mask; L.defaultWeight = 0f; ac.layers = ls;
+            var fsm = ac.layers[ls.Length - 1].stateMachine;
+            var still = fsm.AddState("Still", new Vector3(300, 0)); fsm.defaultState = still;
+            int made = 0;
+            for (int i = 0; i < ASBO.Slice.Fidget.Clips.Length; i++)
+            {
+                string path = ASBO.Slice.Fidget.Clips[i].path;
+                var c = path.StartsWith("mixamo:") ? ASBOMixamo.ClipNamed(path.Substring(7)) : AnyClip(path);
+                var st = fsm.AddState("F" + i, new Vector3(560, 50 * i)); st.motion = c; if (c != null) made++;
+                var back = st.AddTransition(still); back.hasExitTime = true; back.exitTime = 0.92f; back.duration = 0.35f;
+            }
+            Debug.Log($"[ASBO] fidgets: {made} of {ASBO.Slice.Fidget.Clips.Length} small movements on the Fidget layer of {ac.name}");
+        }
+
         static void BuildHurt()
         {
             string ctrlPath = Out + "LocoHurt.controller";
@@ -307,9 +342,9 @@ namespace ASBO.EditorTools
             Directory.CreateDirectory(Out);
             if (File.Exists(ctrlPath)) AssetDatabase.DeleteAsset(ctrlPath);
             var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
-            foreach (var n in new[] { "MoveX", "MoveZ", "Variant", "Gait", "IdleVar" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
-            foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded", "Seated", "Crouch", "Sit" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
-            foreach (var n in new[] { "Jump", "TurnL", "TurnR", "Climb" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
+            foreach (var n in new[] { "MoveX", "MoveZ", "Variant", "Gait", "IdleVar", "SitVar" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
+            foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded", "Seated", "Crouch", "Sit", "Stick" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
+            foreach (var n in new[] { "Jump", "TurnL", "TurnR", "Climb", "HardLand", "RunStop", "Stamp", "Carjack", "PulledOut" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
             var sm = ac.layers[0].stateMachine;
 
             var move = ac.CreateBlendTreeInController("Move", out BlendTree tree, 0);
@@ -402,9 +437,34 @@ namespace ASBO.EditorTools
             {
                 var crouch = ac.CreateBlendTreeInController("Crouch", out BlendTree ct, 0);
                 ct.blendType = BlendTreeType.Simple1D; ct.blendParameter = "MoveZ"; ct.useAutomaticThresholds = false;
-                ct.AddChild(cIdle, 0f); ct.AddChild(cWalk, Mathf.Max(0.6f, cWalk.averageSpeed.z));
-                var a = move.AddTransition(crouch); a.AddCondition(AnimatorConditionMode.If, 0, "Crouch"); a.hasExitTime = false; a.duration = 0.25f;
-                var b = crouch.AddTransition(move); b.AddCondition(AnimatorConditionMode.IfNot, 0, "Crouch"); b.hasExitTime = false; b.duration = 0.25f;
+                // each clip at the speed it was captured at, so the feet stay planted (the crouch walk was being dragged along at
+                // more than twice its pace, which looked like shuffling along on your backside); quicker than that, the hunched sneak
+                float cw = Mathf.Clamp(cWalk.averageSpeed.magnitude, 0.4f, 0.8f);
+                ct.AddChild(cIdle, 0f); ct.AddChild(cWalk, cw);
+                var sneak = ASBOMixamo.ClipFrom("Sneaking Forward", "MX_Sneak");
+                if (sneak != null)
+                {
+                    float sv = Mathf.Max(1f, sneak.averageSpeed.magnitude); const float top = 1.6f;
+                    ct.AddChild(sneak, top); var kids = ct.children; kids[2].timeScale = top / sv; ct.children = kids;
+                    Debug.Log($"[ASBO] crouch: walk {cw:F2} m/s, sneak captured {sv:F2} m/s played at {top / sv:F2}x for {top} m/s");
+                }
+                var down = ASBOMixamo.ClipFrom("Standing To Crouched", "MX_CrouchDown"); var upc = ASBOMixamo.ClipFrom("Crouched To Standing", "MX_CrouchUp");
+                if (down != null && upc != null)
+                {
+                    // getting down and getting up: the body folds down into the crouch and straightens out of it (cut short if you set off)
+                    var dn = St("CrouchDown", down, new Vector3(520, 300)); var un = St("CrouchUp", upc, new Vector3(520, 360));
+                    var a = move.AddTransition(dn); a.AddCondition(AnimatorConditionMode.If, 0, "Crouch"); a.hasExitTime = false; a.duration = 0.12f;
+                    var a2 = dn.AddTransition(crouch); a2.hasExitTime = true; a2.exitTime = 0.7f; a2.duration = 0.15f;
+                    var a3 = dn.AddTransition(un); a3.AddCondition(AnimatorConditionMode.IfNot, 0, "Crouch"); a3.hasExitTime = false; a3.duration = 0.15f;
+                    var b = crouch.AddTransition(un); b.AddCondition(AnimatorConditionMode.IfNot, 0, "Crouch"); b.hasExitTime = false; b.duration = 0.12f;
+                    var b2 = un.AddTransition(move); b2.hasExitTime = true; b2.exitTime = 0.7f; b2.duration = 0.15f;
+                    var b3 = un.AddTransition(crouch); b3.AddCondition(AnimatorConditionMode.If, 0, "Crouch"); b3.hasExitTime = false; b3.duration = 0.15f;
+                }
+                else
+                {
+                    var a = move.AddTransition(crouch); a.AddCondition(AnimatorConditionMode.If, 0, "Crouch"); a.hasExitTime = false; a.duration = 0.25f;
+                    var b = crouch.AddTransition(move); b.AddCondition(AnimatorConditionMode.IfNot, 0, "Crouch"); b.hasExitTime = false; b.duration = 0.25f;
+                }
             }
             else Debug.LogWarning("[ASBO] no crouch clips (ASBO/Mixamo/2 Cut Clips)");
             // climbing up onto something
@@ -419,7 +479,10 @@ namespace ASBO.EditorTools
             var sit = ASBOMixamo.ClipFrom("Jostled Passenger", "MX_Sit");
             if (sit != null)
             {
-                var ss = St("Sit", sit, new Vector3(300, 540));
+                // three ways of sitting (SitVar 0, 1, 2): settled, shifting about, and leaning forward with the hands out
+                // (on a bar or a machine's buttons); each person picks one and starts it at their own point in it
+                var ss = sm.AddState("Sit", new Vector3(300, 540));
+                ss.motion = Pick(ac, "Sits", "SitVar", new (Motion, float, float)[] { (sit, 1f, 0f), (ASBOMixamo.ClipFrom("Jostled Passenger", "MX_SitB"), 1f, 0f), (ASBOMixamo.ClipFrom("Honking Horn", "MX_Drive"), 1f, 0f) });
                 var a = move.AddTransition(ss); a.AddCondition(AnimatorConditionMode.If, 0, "Sit"); a.hasExitTime = false; a.duration = 0.3f;
                 var b = ss.AddTransition(move); b.AddCondition(AnimatorConditionMode.IfNot, 0, "Sit"); b.hasExitTime = false; b.duration = 0.3f;
             }
@@ -432,10 +495,36 @@ namespace ASBO.EditorTools
                 var b = ds.AddTransition(move); b.AddCondition(AnimatorConditionMode.IfNot, 0, "Seated"); b.hasExitTime = false; b.duration = 0.25f;
             }
             else Debug.LogWarning("[ASBO] no MX_Drive clip (ASBO/Mixamo/2 Cut Clips)");
+            // a big drop: knees buckle on landing, a hand to the floor, up again
+            var hard = ASBOMixamo.ClipFrom("Hard Landing", "MX_HardLand");
+            if (hard != null)
+            {
+                var hs = St("HardLand", hard, new Vector3(900, 40));
+                var a = sm.AddAnyStateTransition(hs); a.AddCondition(AnimatorConditionMode.If, 0, "HardLand"); a.hasExitTime = false; a.duration = 0.06f; a.canTransitionToSelf = false;
+                var b = hs.AddTransition(move); b.hasExitTime = true; b.exitTime = 0.88f; b.duration = 0.2f;
+            }
+            // stamping on someone on the floor; dragging a driver out of their seat; being dragged out
+            foreach (var (trig, file, cut, y, exit) in new[] { ("Stamp", "Stomp", "MX_Stomp", 620f, 0.9f), ("Carjack", "Pull Pilot From Seat", "MX_Carjack", 680f, 0.92f), ("PulledOut", "Pulled From Seat", "MX_PulledOut", 740f, 0.95f) })
+            {
+                var c = ASBOMixamo.ClipFrom(file, cut); if (c == null) { Debug.LogWarning("[ASBO] no " + cut); continue; }
+                var st = St(trig, c, new Vector3(900, y));
+                var a = sm.AddAnyStateTransition(st); a.AddCondition(AnimatorConditionMode.If, 0, trig); a.hasExitTime = false; a.duration = 0.12f; a.canTransitionToSelf = false;
+                var b = st.AddTransition(move); b.hasExitTime = true; b.exitTime = exit; b.duration = 0.25f;
+            }
+            // pulling up from a run: the last strides braking, not a skid to a standstill (let go if you set off again)
+            var rstop = ASBOMixamo.ClipFrom("Run To Stop", "MX_RunToStop");
+            if (rstop != null)
+            {
+                var rs = St("RunStop", rstop, new Vector3(300, -180));
+                var a = move.AddTransition(rs); a.AddCondition(AnimatorConditionMode.If, 0, "RunStop"); a.hasExitTime = false; a.duration = 0.12f;
+                var b = rs.AddTransition(move); b.hasExitTime = true; b.exitTime = 0.9f; b.duration = 0.2f;
+                var c = rs.AddTransition(move); c.AddCondition(AnimatorConditionMode.If, 0, "Stick"); c.hasExitTime = false; c.duration = 0.2f;
+            }
             // Foot IK on every state: feet go back to where the original mocap put them (fixes wide stance after retargeting onto UMA)
             foreach (var cs in sm.states) cs.state.iKOnFeet = ik;
             if (ik) { var ls = ac.layers; ls[0].iKPass = true; ac.layers = ls; } // ground-aware feet (FootGround.OnAnimatorIK)
             if (!ik) { EditorUtility.SetDirty(ac); return; }
+            AddFidgets(ac);
             EditorUtility.SetDirty(ac);
             if (sa) return;
             File.WriteAllText(Out + "LocoSpeeds" + s + ".json", JsonUtility.ToJson(sp));

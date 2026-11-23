@@ -144,6 +144,7 @@ namespace ASBO.Slice
             var p = g.AddComponent<Person>();
             p.shirt = shirt; p.trousers = trousers; p.label = label; p.isPlayer = player; p.model = model;
             p.Init();
+            if (!player) g.AddComponent<Fidget>(); // small random movements when sat or stood about
             return p;
         }
 

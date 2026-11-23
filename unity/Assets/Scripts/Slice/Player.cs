@@ -192,6 +192,7 @@ namespace ASBO.Slice
                 else if (t < 9.6f) inp = Vector2.zero;
                 else { scripted = null; scriptT = 0f; }
             }
+            if (TestInput.HasValue) inp = TestInput.Value; // tests drive the player like a stick would
             var pad = Gamepad.current; if (pad != null && pad.leftStick.ReadValue().sqrMagnitude > 0.04f) inp = pad.leftStick.ReadValue();
             bool touchStick = FloatStick.Active; if (touchStick) inp = FloatStick.Value; // the floating thumb stick
             float mag = Mathf.Clamp01(inp.magnitude);
@@ -201,7 +202,7 @@ namespace ASBO.Slice
             bool sprint = !crouched && (fakeSprint || (kb != null && kb.leftShiftKey.isPressed) || (pad != null && pad.leftStickButton.isPressed) || touchStick && FloatStick.Sprint);
             bool walk = (kb != null && kb.leftCtrlKey.isPressed) || (mag > 0.05f && mag < (touchStick ? FloatStick.RunAt : 0.5f));
             float pace = sprint ? sp.sprint : walk ? sp.walk * (touchStick ? Mathf.Lerp(0.45f, 1f, mag / FloatStick.RunAt) : 1f) : sp.run; // a gentle push ambles, more walks briskly
-            if (crouched) pace = Mathf.Min(pace, 1.35f);
+            if (crouched) pace = Mathf.Min(pace, 1.6f); // up to the quick hunched sneak (the crouch blend matches its clips to the speed)
             pace *= Drugs.SpeedScale; // whack slows you right down, fizz speeds you up
             if (person.hurt) pace = person.HurtSpeed;
             if (fighter != null)
@@ -243,8 +244,15 @@ namespace ASBO.Slice
                 }
             }
 
+            if (landLock > 0f) { landLock -= Time.deltaTime; want = Vector3.zero; }
+            // pulling up from a run: the braking strides, and a stop that takes them (not a dead stop under a sliding body)
+            var pp = Params();
+            bool stopping = want.sqrMagnitude < 0.01f && vel.magnitude > 3.2f && !crouched && (fighter == null || fighter.Target == null);
+            if (stopping && !runStopping && pp.runStop) { person.anim.SetTrigger("RunStop"); runStopping = true; }
+            if (want.sqrMagnitude > 0.01f || vel.magnitude < 0.2f) runStopping = false;
+            if (pp.stick) person.anim.SetBool("Stick", want.sqrMagnitude > 0.01f);
             // human-like acceleration: quicker to stop than to get going, sprint builds up
-            float accTime = want.sqrMagnitude < vel.sqrMagnitude ? 0.16f : (vel.magnitude < sp.walk ? 0.22f : 0.38f);
+            float accTime = want.sqrMagnitude < vel.sqrMagnitude ? (runStopping ? 0.3f : 0.16f) : (vel.magnitude < sp.walk ? 0.22f : 0.38f);
             vel = Vector3.SmoothDamp(vel, want, ref velRef, accTime);
             if (want == Vector3.zero && vel.magnitude < 0.05f) vel = Vector3.zero;
 
@@ -258,6 +266,8 @@ namespace ASBO.Slice
             transform.rotation = Quaternion.Euler(0, bodyYaw, 0);
 
             if (grounded && !wasGrounded && fallSpeed < -3.5f && GameAudio.I != null) GameAudio.I.Land(transform.position);
+            // a big drop (more than about a storey's fall): the landing buckles your knees and holds you a moment
+            if (grounded && !wasGrounded && fallSpeed < -8.5f && person.anim != null && Params().hardLand) { person.anim.SetTrigger("HardLand"); landLock = 0.75f; }
             fallSpeed = vy; wasGrounded = grounded;
             if (grounded && vy < 0f) vy = -2f; else vy -= 19.6f * Time.deltaTime;
             if (grounded && turnTimer <= 0f && !climbing && ((kb != null && kb.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonSouth.wasPressedThisFrame) || jumpTap))
@@ -269,6 +279,9 @@ namespace ASBO.Slice
             if (climbing) return;
             cc.Move((vel + Vector3.up * vy) * Time.deltaTime);
             person.SetGrounded(cc.isGrounded);
+            // in the air the feet are left to the jump (a short grace so stepping off a kerb doesn't flick them about)
+            airT = cc.isGrounded ? 0f : airT + Time.deltaTime;
+            fg ??= GetComponentInChildren<FootGround>(); if (fg != null) fg.airborne = airT > 0.06f || vy > 1f;
 
             // the animator gets the real local velocity (lateral part = the lean/cross-step while turning)
             Vector3 hv = cc.velocity; hv.y = 0f; if (hv.magnitude > vel.magnitude + 0.3f) hv = vel;
@@ -303,6 +316,9 @@ namespace ASBO.Slice
             if (doorBusy) return;
             if (!inCar)
             {
+                // a car stopped in traffic, its driver's door right by you: you're having it
+                var tc = TrafficCar.Takeable(transform.position, 2.6f, 3.5f);
+                if (tc != null) { StartCoroutine(Carjack(tc)); return; }
                 // the nearest car in reach: one already drivable, or a parked one (which becomes drivable as you get in)
                 var near = PlayerCar.Nearest(transform.position, 4.5f);
                 var parked = ParkedCar.Nearest(transform.position, 4.5f);
@@ -312,6 +328,39 @@ namespace ASBO.Slice
             var vt = VehT; if (vt == null) return;
             if (!inCar) { if ((vt.position - transform.position).sqrMagnitude > 4.5f * 4.5f) return; StartCoroutine(GetIn(vt)); }
             else StartCoroutine(GetOut(vt));
+        }
+
+        /// <summary>
+        /// Carjacking: the car stops, you yank the door and drag the driver out onto the road (they go down and get up
+        /// raging or running), then it's yours: in you get and away.
+        /// </summary>
+        System.Collections.IEnumerator Carjack(TrafficCar tc)
+        {
+            doorBusy = true; tc.Hijack();
+            Vector3 door = tc.DriverDoor; door.y = transform.position.y; Vector3 outw = tc.transform.right;
+            // the driver: one kept ready out of sight (a new body takes a few seconds to put together), else made now
+            var rng = new System.Random(tc.seed);
+            Person victim = spare != null && spare.Ready ? spare : World.MakePerson(door + outw * 0.45f, CarBody.RandomPaint(rng), new Color(0.15f, 0.15f, 0.18f), "Driver");
+            if (victim == spare) { spare = null; victim.transform.SetPositionAndRotation(door + outw * 0.45f + Vector3.down * 50f, Quaternion.LookRotation(outw)); }
+            StartCoroutine(MakeSpare(6f));
+            victim.transform.rotation = Quaternion.LookRotation(outw); LastCarjacked = victim;
+            cc.enabled = false; transform.position = door - outw * 0.15f; bodyYaw = Mathf.Atan2(-outw.x, -outw.z) * Mathf.Rad2Deg; transform.rotation = Quaternion.Euler(0, bodyYaw, 0); cc.enabled = true; vel = Vector3.zero;
+            if (person != null && person.anim != null && HasParam(person.anim, "Carjack")) person.anim.SetTrigger("Carjack");
+            float until = Time.time + 4f; yield return new WaitForSeconds(0.8f);
+            while (!victim.Ready && Time.time < until) yield return null;
+            // out of the seat and down onto the road
+            foreach (var t in tc.GetComponentsInChildren<Transform>(true)) if (t.name == "Driver") t.gameObject.SetActive(false);
+            victim.transform.SetPositionAndRotation(door + outw * 0.45f, Quaternion.LookRotation(outw));
+            if (victim.anim != null && HasParam(victim.anim, "PulledOut")) victim.anim.SetTrigger("PulledOut");
+            yield return new WaitForSeconds(1.5f);
+            if (victim != null) victim.Knockout(outw * 2.2f + Vector3.up * 0.4f, 5f, false);
+            World.Toast("You drag the driver out onto the road.", 1);
+            // the car's yours now
+            var parent = tc.transform.parent; Vector3 pos = tc.transform.position + Vector3.up * 0.12f; float yaw0 = tc.transform.eulerAngles.y;
+            var pc2 = PlayerCar.Create(pos, yaw0, tc.paint, tc.id, CarKit.PickWear(new System.Random(tc.seed), true), tc.seed, parent);
+            Destroy(tc.gameObject);
+            if (pc2 != null) { PlayerCar.I = pc2; yield return new WaitForSeconds(0.25f); doorBusy = false; StartCoroutine(GetIn(pc2.transform)); }
+            else doorBusy = false;
         }
 
         /// <summary>Getting in: turn to the car, the door swings open, in you go, it shuts behind you.</summary>
@@ -367,6 +416,21 @@ namespace ASBO.Slice
 
         // ------------------------------------------------------------------ crouching and climbing
         bool crouched, climbing; public static bool crouchTap, jumpTap;
+        /// <summary>The last driver you dragged out of their car.</summary>
+        [System.NonSerialized] public Person LastCarjacked;
+        Person spare;
+        /// <summary>A driver kept ready, out of sight below the town, so a carjack doesn't wait for a body to be made.</summary>
+        System.Collections.IEnumerator MakeSpare(float after)
+        {
+            yield return new WaitForSeconds(after);
+            if (spare != null) yield break;
+            var r = new System.Random(Random.Range(0, 99999));
+            spare = World.MakePerson(new Vector3(0f, -60f, 0f), CarBody.RandomPaint(r), new Color(0.15f, 0.15f, 0.18f), "Driver");
+        }
+        void OnEnable() { StartCoroutine(MakeSpare(8f)); }
+        /// <summary>Tests: a stick held this way (camera-relative), or null for the real controls.</summary>
+        public static Vector2? TestInput;
+        bool runStopping; float landLock, airT;
         public bool Crouched => crouched;
         /// <summary>Crouch down or stand up (standing waits for room above your head).</summary>
         public void SetCrouch(bool on)
@@ -434,6 +498,16 @@ namespace ASBO.Slice
             fg ??= GetComponentInChildren<FootGround>(); if (fg != null) fg.off = false;
         }
         static bool HasParam(Animator a, string n) { foreach (var p in a.parameters) if (p.name == n) return true; return false; }
+        // which of the newer parameters this body's controller has (looked up once per controller: reading the list allocates)
+        struct PSet { public bool stick, runStop, hardLand; }
+        PSet pset; RuntimeAnimatorController psetFor;
+        PSet Params()
+        {
+            var a = person != null ? person.anim : null;
+            if (a == null || a.runtimeAnimatorController == null) return default;
+            if (psetFor != a.runtimeAnimatorController) { psetFor = a.runtimeAnimatorController; pset = new PSet { stick = HasParam(a, "Stick"), runStop = HasParam(a, "RunStop"), hardLand = HasParam(a, "HardLand") }; }
+            return pset;
+        }
         /// <summary>Into the driver's seat (every frame, and again after the animation so the pose's own drift can't move you).</summary>
         void Sit()
         {

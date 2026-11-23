@@ -1119,7 +1119,8 @@ namespace ASBO.Slice
         // ---------------------------------------------------------------- what's on the estate
         static readonly (string id, int w)[] Mix = { ("hatch_a", 16), ("hatch_b", 12), ("saloon_b", 9), ("supermini_a", 14), ("supermini_b", 13), ("micro_a", 10), ("hatch_c", 9), ("hatch_d", 7), ("van_a", 13) };
         // the modelled UK cars from the reference photos (used when their prefabs are in the build)
-        static readonly (string id, int w)[] Mix2 = { ("hatch90", 15), ("saloon90", 11), ("boxy80", 9), ("supermini", 13), ("hatch70", 6), ("rally", 3), ("coupe80", 5), ("estate90", 9), ("jeep", 5), ("van_a", 11) };
+        // the hatch and the saloon are the detailed bought models: they're most of what's on the road now, the rest fill in
+        static readonly (string id, int w)[] Mix2 = { ("hatch90", 28), ("saloon90", 22), ("boxy80", 6), ("supermini", 8), ("hatch70", 3), ("rally", 2), ("coupe80", 3), ("estate90", 6), ("jeep", 4), ("van_a", 8) };
         public static Spec Random(System.Random r)
         {
             var Mix = CarKit.Has("hatch90") ? Mix2 : CarBody.Mix;

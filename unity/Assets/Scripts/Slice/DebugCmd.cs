@@ -118,6 +118,10 @@ namespace ASBO.Slice
         public static void BrawlTest() { new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); }
         /// <summary>The scripted scrap, filmed only at the moment each blow lands (Shots/brawl/hit_##.png): do fists meet faces?</summary>
         public static void CasinoShots() { new GameObject("CasinoShots").AddComponent<CasinoShotsRun>(); }
+        /// <summary>Films the moves from the side: a standing jump, getting down into a crouch, sneaking along, standing up, a run pulled up, then the casino's seated punters. Shots/moves/m_N.png.</summary>
+        public static void MoveTest() { new GameObject("MoveTest").AddComponent<MoveTestRun>(); }
+        /// <summary>Films a carjack (a stopped car, the driver dragged out, away you go) and then a stamp on the driver lying in the road. Shots/moves/j_N.png.</summary>
+        public static void JackTest() { new GameObject("JackTest").AddComponent<JackTestRun>(); }
         public static void MobTest() { new GameObject("MobTest").AddComponent<MobTestRun>(); }
         public static void BrawlHits(float secs) { var r = new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); r.onHit = true; r.secs = secs; r.kickFinish = true; }
         public static void TalkTest() { new GameObject("TalkTest").AddComponent<TalkTestRun>(); }
@@ -1682,6 +1686,101 @@ namespace ASBO.Slice
             TouchCar.Clear(); TouchCar.brake = true; yield return new WaitForSeconds(2f); TouchCar.Clear();
             pc.UseCar(); yield return new WaitForSeconds(1.5f);
             Debug.Log("[ASBO] perf done"); Destroy(gameObject);
+        }
+    }
+}
+
+
+namespace ASBO.Slice
+{
+    public class MoveTestRun : MonoBehaviour
+    {
+        Camera cam; RenderTexture rt; Texture2D tex; string dir; int n; PlayerCtl pc;
+        void Shot(string tag)
+        {
+            Vector3 p = pc.transform.position, r = pc.transform.right;
+            cam.transform.position = p + r * 3.6f + Vector3.up * 1.1f; cam.transform.LookAt(p + Vector3.up * 0.9f);
+            cam.Render(); RenderTexture.active = rt; tex.ReadPixels(new Rect(0, 0, 640, 480), 0, 0); tex.Apply(); RenderTexture.active = null;
+            System.IO.File.WriteAllBytes($"{dir}/m_{n++:D2}_{tag}.png", tex.EncodeToPNG());
+        }
+        System.Collections.IEnumerator Start()
+        {
+            pc = FindFirstObjectByType<PlayerCtl>(); if (pc == null) { Destroy(gameObject); yield break; }
+            dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/moves"); System.IO.Directory.CreateDirectory(dir);
+            var cg = new GameObject("MoveCam"); cam = cg.AddComponent<Camera>(); cam.fieldOfView = 50f; cam.nearClipPlane = 0.1f;
+            rt = new RenderTexture(640, 480, 24); cam.targetTexture = rt; cam.enabled = false; tex = new Texture2D(640, 480, TextureFormat.RGB24, false);
+            GameClock.Set(13f);
+            pc.Teleport(new Vector3(-118f, 0.1f, 88f), 90f, 8f); yield return new WaitForSeconds(1.5f);
+            Shot("stand");
+            PlayerCtl.jumpTap = true; float t0 = Time.time;
+            for (int i = 0; i < 9; i++) { yield return new WaitForSeconds(0.07f); Shot("jump" + (Time.time - t0).ToString("F2")); }
+            yield return new WaitForSeconds(0.8f);
+            PlayerCtl.crouchTap = true; yield return new WaitForSeconds(0.25f); Shot("crouchdown"); yield return new WaitForSeconds(0.6f); Shot("crouched");
+            PlayerCtl.TestInput = new Vector2(0f, 1f);
+            for (int i = 0; i < 6; i++) { yield return new WaitForSeconds(0.18f); Shot("sneak"); }
+            PlayerCtl.TestInput = null; yield return new WaitForSeconds(0.6f);
+            PlayerCtl.crouchTap = true; yield return new WaitForSeconds(0.25f); Shot("standup"); yield return new WaitForSeconds(0.8f);
+            pc.Teleport(new Vector3(-138f, 0.1f, 88f), 90f, 8f); yield return new WaitForSeconds(0.8f);
+            PlayerCtl.TestInput = new Vector2(0f, 1f); yield return new WaitForSeconds(1.6f); Shot("run"); PlayerCtl.TestInput = null;
+            for (int i = 0; i < 4; i++) { yield return new WaitForSeconds(0.15f); Shot("stop"); }
+            // the casino's seated punters, a few moments apart
+            pc.Teleport(CasinoHall.Origin + new Vector3(10.3f, 0.2f, 6.2f), 250f, 10f); yield return new WaitForSeconds(2.5f);
+            for (int i = 0; i < 4; i++) { ScreenCapture.CaptureScreenshot($"{dir}/m_{n++:D2}_casino.png"); yield return new WaitForSeconds(1.2f); }
+            Debug.Log("[ASBO] move test done");
+            cam.targetTexture = null; Destroy(rt); Destroy(cg); Destroy(gameObject);
+        }
+    }
+}
+
+
+namespace ASBO.Slice
+{
+    public class JackTestRun : MonoBehaviour
+    {
+        Camera cam; RenderTexture rt; Texture2D tex; string dir; int n;
+        void Shot(Vector3 from, Vector3 at, string tag)
+        {
+            cam.transform.position = from; cam.transform.LookAt(at);
+            cam.Render(); RenderTexture.active = rt; tex.ReadPixels(new Rect(0, 0, 640, 480), 0, 0); tex.Apply(); RenderTexture.active = null;
+            System.IO.File.WriteAllBytes($"{dir}/j_{n++:D2}_{tag}.png", tex.EncodeToPNG());
+        }
+        System.Collections.IEnumerator Start()
+        {
+            var pc = FindFirstObjectByType<PlayerCtl>(); if (pc == null) { Destroy(gameObject); yield break; }
+            dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/moves"); System.IO.Directory.CreateDirectory(dir);
+            var cg = new GameObject("JackCam"); cam = cg.AddComponent<Camera>(); cam.fieldOfView = 55f; cam.nearClipPlane = 0.1f;
+            rt = new RenderTexture(640, 480, 24); cam.targetTexture = rt; cam.enabled = false; tex = new Texture2D(640, 480, TextureFormat.RGB24, false);
+            GameClock.Set(13f);
+            TrafficCar tc = null; float bd = 1e9f;
+            foreach (var c in TrafficCar.All) { if (c == null || string.IsNullOrEmpty(c.id) || c.Wrecked) continue; float d = (c.transform.position - pc.transform.position).sqrMagnitude; if (d < bd) { bd = d; tc = c; } }
+            if (tc == null) { Debug.Log("[ASBO] jack test: no traffic"); Destroy(gameObject); yield break; }
+            tc.Hijack(); yield return new WaitForSeconds(0.3f);
+            Vector3 door = tc.DriverDoor, outw = tc.transform.right, fwd = tc.transform.forward;
+            pc.Teleport(door + outw * 0.8f, Mathf.Atan2(-outw.x, -outw.z) * Mathf.Rad2Deg, 8f); yield return new WaitForSeconds(0.6f);
+            Vector3 camFrom = door + fwd * 5f + outw * 2.5f + Vector3.up * 1.5f, camAt = door + Vector3.up * 0.9f;
+            Shot(camFrom, camAt, "before");
+            pc.UseCar();
+            for (int i = 0; i < 12; i++) { yield return new WaitForSeconds(0.3f); Shot(camFrom, camAt, "jack"); }
+            for (float w = 0; w < 5f && !pc.InCar; w += 0.25f) yield return new WaitForSeconds(0.25f);
+            Debug.Log($"[ASBO] jack test: in car {pc.InCar}");
+            yield return new WaitForSeconds(1f);
+            pc.UseCar(); yield return new WaitForSeconds(1.5f);
+            // the driver on the floor: stamp
+            Person drv = pc.LastCarjacked;
+            Debug.Log($"[ASBO] jack test: driver {(drv != null ? drv.state.ToString() : "none")}");
+            if (drv != null)
+            {
+                if (drv.state == Person.State.Walking) drv.Knockout(Vector3.right, 6f, true);
+                yield return new WaitForSeconds(1.2f);
+                Vector3 h = drv.HeadPos; Vector3 side = Vector3.Cross(Vector3.up, (h - drv.BodyPos).WithY(0).normalized); if (side.sqrMagnitude < 0.1f) side = Vector3.right;
+                pc.Teleport(h + side * 1.0f, Mathf.Atan2(-side.x, -side.z) * Mathf.Rad2Deg, 8f); yield return new WaitForSeconds(0.5f);
+                Vector3 sFrom = h + side * 1f + Vector3.Cross(side, Vector3.up) * 3.2f + Vector3.up * 1.2f;
+                var f = pc.GetComponent<Fighter>();
+                if (f != null) f.PlayerInput(false, true, false, false, false, true);
+                for (int i = 0; i < 6; i++) { Shot(sFrom, h + Vector3.up * 0.5f, "stamp"); yield return new WaitForSeconds(0.22f); }
+            }
+            Debug.Log("[ASBO] jack test done");
+            cam.targetTexture = null; Destroy(rt); Destroy(cg); Destroy(gameObject);
         }
     }
 }

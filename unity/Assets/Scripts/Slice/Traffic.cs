@@ -144,6 +144,19 @@ namespace ASBO.Slice
     public class TrafficCar : MonoBehaviour, IVehicle
     {
         public float cruise = 12f;
+        /// <summary>What it is (to rebuild it as your car when you take it): kind, paint, the seed its wear came from.</summary>
+        [System.NonSerialized] public string id; [System.NonSerialized] public Color paint; [System.NonSerialized] public int seed; float wid = 1.7f;
+        /// <summary>Where the driver's door is (right-hand drive: the offside).</summary>
+        public Vector3 DriverDoor => transform.position + transform.right * (wid * 0.5f + 0.5f) + transform.forward * 0.25f;
+        /// <summary>Stopped for good: someone's having the car off them.</summary>
+        public void Hijack() { stoppedUntil = Time.time + 9999f; speed = 0f; }
+        /// <summary>The nearest car slow enough to drag the driver out of (its driver's door within reach).</summary>
+        public static TrafficCar Takeable(Vector3 p, float reach, float maxSpeed)
+        {
+            TrafficCar best = null; float bd = reach;
+            foreach (var c in All) { if (c == null || c.wrecked || c.Speed > maxSpeed || string.IsNullOrEmpty(c.id)) continue; float d = (c.DriverDoor - p).WithY(0).magnitude; if (d < bd) { bd = d; best = c; } }
+            return best;
+        }
         public bool testIgnorePeople; // tests: drive straight into whoever's in the road
         float stoppedUntil;
         /// <summary>Just hit someone: emergency stop, and sit there a while.</summary>
@@ -152,6 +165,7 @@ namespace ASBO.Slice
         AudioSource eng; float L; bool chancer; float think, gap = 999f, waitT;
         TrafficNet.Seg seg; float s; TrafficNet.Lane lane; TrafficNet.Move move, nextMove;
         public float Speed => wrecked ? (rb != null ? rb.linearVelocity.magnitude : 0f) : speed;
+        public bool Wrecked => wrecked;
         public Vector3 Velocity => wrecked ? rb.linearVelocity : transform.forward * speed;
         public static readonly List<TrafficCar> All = new List<TrafficCar>();
         static AudioClip engClip; static bool realEngine; float pitchBase = 1f;
@@ -162,8 +176,9 @@ namespace ASBO.Slice
             var g = new GameObject("TrafficCar"); g.transform.SetParent(parent, false);
             var t = g.AddComponent<TrafficCar>();
             var spec = CarBody.Random(r);
-            t.L = spec.L;
-            t.wheels = CarBody.Build(g.transform, spec, spec.van ? CarBody.VanPaint(r) : CarBody.RandomPaint(r), true, r.Next());
+            t.L = spec.L; t.wid = spec.m.W; t.id = spec.m.id;
+            t.paint = spec.van ? CarBody.VanPaint(r) : CarBody.RandomPaint(r); t.seed = r.Next();
+            t.wheels = CarBody.Build(g.transform, spec, t.paint, true, t.seed);
             Driver.Seat(g.transform, spec.m, r.Next()); // someone at the wheel
             Dents.Add(g, g.transform, spec.van ? 2000f : 1200f);
             var ob = g.AddComponent<UnityEngine.AI.NavMeshObstacle>(); ob.shape = UnityEngine.AI.NavMeshObstacleShape.Box; ob.carving = false; // walkers steer round it
@@ -268,6 +283,8 @@ namespace ASBO.Slice
                 float d = ahead - front - halfLen; if (d < best) { best = Mathf.Max(0f, d); blockedByPlayer = player; }
             }
             foreach (var o in All) { if (o == this || !o.isActiveAndEnabled) continue; Consider(o.transform.position, o.L * 0.5f, 1.5f, false); }
+            // parked cars and wrecks (they're kept out of the lanes, but one shoved into the road gets driven round no more: stop behind it)
+            foreach (var (t, h) in CarKit.Placed) { if (t == null || !t.gameObject.activeInHierarchy) continue; Consider(t.position, h.y, 1.1f + h.x * 0.5f, false); }
             foreach (var amb in Ambulance.All) if (amb != null) Consider(amb.transform.position, amb.HalfLength, 1.9f, false);
             if (!testIgnorePeople) foreach (var pp in Person.All) { if (pp == null) continue; Consider(pp.BodyPos, 0.3f, 1.4f, pp.isPlayer); }
             // the player's car: a wide berth when someone's driving it, but one parked at the kerb is passed (it isn't in the lane)
@@ -309,8 +326,19 @@ namespace ASBO.Slice
             return false;
         }
 
+        float wreckedAt;
         void Update()
         {
+            // a crashed car is towed away once nobody's looking (out of sight for a while): it comes back in as traffic elsewhere
+            if (wrecked && Time.time > wreckedAt + 25f && Camera.main != null)
+            {
+                Vector3 cp = Camera.main.transform.position; Vector3 to = transform.position - cp;
+                if (to.magnitude > 70f || to.magnitude > 25f && Vector3.Dot(to.normalized, Camera.main.transform.forward) < 0.2f)
+                {
+                    wrecked = false; rb.isKinematic = true; rb.collisionDetectionMode = CollisionDetectionMode.Discrete; speed = 0f;
+                    if (eng != null) eng.volume = 0.18f; Reappear(); return;
+                }
+            }
             wheelSpin += Speed * Time.deltaTime / 0.31f * Mathf.Rad2Deg;
             if (!wrecked && wheels != null) foreach (var w in wheels) w.localRotation = Quaternion.Euler(wheelSpin, 0, 90f);
             if (eng != null) { eng.pitch = realEngine ? pitchBase * (0.95f + Speed * 0.035f) : 0.55f + Speed * 0.05f; }
@@ -319,6 +347,9 @@ namespace ASBO.Slice
         void OnCollisionEnter(Collision c)
         {
             if (wrecked) return;
+            // only something car-sized wrecks it (your car, the ambulance): a bin or a cone knocked into the road used to,
+            // and the loose car then ploughed into the ones parked at the kerb
+            if (c.rigidbody == null || c.rigidbody.mass < 300f) return;
             float rel = c.relativeVelocity.magnitude;
             if (rel < 4f) return;
             Wreck(c.relativeVelocity);
@@ -326,7 +357,7 @@ namespace ASBO.Slice
 
         public void Wreck(Vector3 impulseDir)
         {
-            wrecked = true;
+            wrecked = true; wreckedAt = Time.time;
             rb.isKinematic = false; rb.linearVelocity = transform.forward * speed; rb.angularDamping = 0.6f;
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             if (GameAudio.I != null) GameAudio.I.CarCrash(transform.position, impulseDir.magnitude);

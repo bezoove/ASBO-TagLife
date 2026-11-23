@@ -280,6 +280,16 @@ namespace ASBO.EditorTools
             Cut("Crouch Walk", "MX_CrouchWalk", -1f, -1f, true);
             Cut("Climbing To Top", "MX_ClimbUp", -1f, -1f, false);
             Cut("Jostled Passenger", "MX_Sit", 0.5f, 4.5f, true); // sat on a bench
+            Cut("Jostled Passenger", "MX_SitB", 1.2f, 5.2f, true); // the same seat, a different stretch of it (people sat side by side don't match)
+            Cut("Sneaking Forward", "MX_Sneak", -1f, -1f, true);    // the quicker hunched sneak (the crouch walk is the slow one)
+            Cut("Standing To Crouched", "MX_CrouchDown", -1f, -1f, false);
+            Cut("Crouched To Standing", "MX_CrouchUp", -1f, -1f, false);
+            Cut("Hard Landing", "MX_HardLand", 0.5f, 2.2f, false);  // from touchdown: knees buckle, hand to the floor, up again
+            Cut("Run To Stop", "MX_RunToStop", -1f, -1f, false);
+            Cut("Look Over Shoulder", "MX_LookBack", -1f, -1f, false);
+            Cut("Pulled From Seat", "MX_PulledOut", -1f, -1f, false); // dragged out of the driver's seat
+            Cut("Stomp", "MX_Stomp", 2.3f, 3.73f, false);           // stamping on someone who's down (the boot lands about 0.8 s in)
+            Cut("Pull Pilot From Seat", "MX_Carjack", 5.4f, 9.43f, false); // reaching in and dragging the driver out
             Drop("Uppercut", "MX_Uppercut"); // the whole take again under another name: Unity refuses the copy (now cut as a Hay version)
             // cuts left in a file from an older list of takes (a take moved to another file keeps its old copy here,
             // and Unity drops the newer cut if it's the same stretch of the same take): out they go

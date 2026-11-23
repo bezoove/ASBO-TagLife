@@ -15,6 +15,9 @@ namespace ASBO.Slice
         public float rayUp = 0.55f, rayDown = 0.75f, maxDrop = 0.32f;
         /// <summary>Sat down (in a car): leave the feet where the pose puts them.</summary>
         public bool off;
+        /// <summary>In the air (jumping, falling): the feet and hips are left to the animation, not pulled back to the ground
+        /// below (which held the body down while only the legs moved).</summary>
+        public bool airborne;
         /// <summary>Sat in a car's seat: where the body, feet and hands go (world space; set every frame by whoever sat us down).</summary>
         public bool sat; public Vector3 satBody, satFootL, satFootR, satHandL, satHandR; public Quaternion satRot = Quaternion.identity;
         void Goal(AvatarIKGoal g, Vector3 p, float w, float rw) { anim.SetIKPositionWeight(g, w); anim.SetIKPosition(g, p); anim.SetIKRotationWeight(g, rw); if (rw > 0f) anim.SetIKRotation(g, satRot * Quaternion.Euler(-25f, 0f, 0f)); }
@@ -71,7 +74,7 @@ namespace ASBO.Slice
             if (anim == null || !anim.enabled || transform.parent == null) return;
             var root = transform.parent;
             float want = 0f;
-            if (Physics.Raycast(root.position + Vector3.up * 0.5f, Vector3.down, out var hit, 1.1f, Mask, QueryTriggerInteraction.Ignore)) want = Mathf.Clamp(hit.point.y - root.position.y, -0.25f, 0.25f);
+            if (!airborne && Physics.Raycast(root.position + Vector3.up * 0.5f, Vector3.down, out var hit, 1.1f, Mask, QueryTriggerInteraction.Ignore)) want = Mathf.Clamp(hit.point.y - root.position.y, -0.25f, 0.25f);
             rootFix = Mathf.Lerp(rootFix, want, 1f - Mathf.Exp(-12f * Time.deltaTime));
             var lp = transform.localPosition; lp.y = rootFix; transform.localPosition = lp;
         }
@@ -87,6 +90,7 @@ namespace ASBO.Slice
                 return;
             }
             if (off || anim == null || !anim.enabled || !anim.isHuman || layer != 0) return;
+            if (airborne) { lW = rW = 0f; lOff = rOff = 0f; pelvis = 0f; lPin.on = rPin.on = false; lPin.w = rPin.w = 0f; return; }
             float k = 1f - Mathf.Exp(-16f * Time.deltaTime);
             bool lok = Probe(AvatarIKGoal.LeftFoot, anim.leftFeetBottomHeight, out var lp, out var lr, out var lo);
             bool rok = Probe(AvatarIKGoal.RightFoot, anim.rightFeetBottomHeight, out var rp, out var rr, out var ro);

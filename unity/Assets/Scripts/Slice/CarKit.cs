@@ -354,9 +354,42 @@ namespace ASBO.Slice
         static Material DarkLamps(Material dark) { if (darkLamps == null) darkLamps = dark; return darkLamps; }
 
         /// <summary>A parked or abandoned car as scenery: wrecks and burnt-out shells for the estate's corners.</summary>
+        /// <summary>Every parked car and wreck placed (for keeping them apart, and for traffic to see): where, which way, half its size.</summary>
+        public static readonly List<(Transform t, Vector2 half)> Placed = new List<(Transform, Vector2)>();
+
+        /// <summary>Would a car here stick out into a lane traffic drives in (any corner within 3 m of a road's middle)?</summary>
+        public static bool IntoLane(Vector3 pos, float yaw, Vector2 half)
+        {
+            var q = Quaternion.Euler(0f, yaw, 0f);
+            foreach (var c in new[] { new Vector3(half.x, 0, half.y), new Vector3(-half.x, 0, half.y), new Vector3(half.x, 0, -half.y), new Vector3(-half.x, 0, -half.y), Vector3.zero })
+                if (TownPlan.RoadDist(pos + q * c, out _) < 3.0f) return true;
+            return false;
+        }
+
+        /// <summary>Do two cars' footprints overlap (with a hand's breadth spare)? Rectangles on the ground, any angle.</summary>
+        public static bool Overlap(Vector3 pa, float ya, Vector2 ha, Vector3 pb, float yb, Vector2 hb)
+        {
+            ha += new Vector2(0.15f, 0.2f);
+            Vector2 a = new Vector2(pa.x, pa.z), b = new Vector2(pb.x, pb.z);
+            float ra = ya * Mathf.Deg2Rad, rb = yb * Mathf.Deg2Rad;
+            Vector2[] axes = { new Vector2(Mathf.Cos(ra), -Mathf.Sin(ra)), new Vector2(Mathf.Sin(ra), Mathf.Cos(ra)), new Vector2(Mathf.Cos(rb), -Mathf.Sin(rb)), new Vector2(Mathf.Sin(rb), Mathf.Cos(rb)) };
+            foreach (var ax in axes)
+            {
+                float Proj(Vector2 c, float r, Vector2 h) { Vector2 x = new Vector2(Mathf.Cos(r), -Mathf.Sin(r)), z = new Vector2(Mathf.Sin(r), Mathf.Cos(r)); return Mathf.Abs(Vector2.Dot(x, ax)) * h.x + Mathf.Abs(Vector2.Dot(z, ax)) * h.y; }
+                float d = Mathf.Abs(Vector2.Dot(b - a, ax));
+                if (d > Proj(a, ra, ha) + Proj(b, rb, hb)) return false;
+            }
+            return true;
+        }
+
         public static GameObject Scenery(Transform parent, string id, Wear wear, Vector3 pos, float yaw, int seed)
         {
             if (!Has(id)) return null;
+            // never poking into a traffic lane, never parked through another car
+            var dims = CarBody.Get(id).m; var half = new Vector2(dims.W * 0.5f, dims.L * 0.5f);
+            if (IntoLane(pos, yaw, half)) return null;
+            Placed.RemoveAll(e => e.t == null);
+            foreach (var (t, h) in Placed) if (t.gameObject.activeInHierarchy && Overlap(pos, yaw, half, t.position, t.eulerAngles.y, h)) return null;
             bool drivable = wear < Wear.Wreck;
             var g = new GameObject((drivable ? "Parked " : "Wreck ") + id); g.transform.SetParent(parent, false);
             // sat on whatever is under it (a road's surface is a few centimetres up: at y=0 the tyres sank into the tarmac)
@@ -371,6 +404,7 @@ namespace ASBO.Slice
             var ob = g.AddComponent<UnityEngine.AI.NavMeshObstacle>(); ob.shape = UnityEngine.AI.NavMeshObstacleShape.Box; // people walk round it
             ob.center = bc.center; ob.size = bc.size + new Vector3(0.4f, 0f, 0.4f); ob.carving = true; ob.carveOnlyStationary = true;
             if (drivable) { var pc = g.AddComponent<ParkedCar>(); pc.id = id; pc.wear = wear; pc.paint = paint; pc.seed = seed; }
+            Placed.Add((g.transform, half));
             return g;
         }
     }

@@ -605,7 +605,7 @@ namespace ASBO.Slice
                     Quaternion q = props.Rot(i); Vector3 at = props.World(i) + q * new Vector3(0f, Mathf.Max(0f, e.seat - 0.46f), -0.06f);
                     bool staff = id == "office_chair" || id == "sofa";
                     var p = World.MakePerson(at, staff ? Color.black : new Color(0.3f, 0.3f, 0.35f), staff ? Color.black : new Color(0.2f, 0.2f, 0.22f), staff ? "Staff" : "Punter");
-                    p.transform.rotation = Quaternion.Euler(0, q.eulerAngles.y, 0); p.gameObject.AddComponent<SitPose>(); inside.Add(p.gameObject);
+                    p.transform.rotation = Quaternion.Euler(0, q.eulerAngles.y, 0); p.gameObject.AddComponent<SitPose>().lean = id == "slot_stool" || id == "bar_stool"; inside.Add(p.gameObject);
                 }
             }
             Make(new Vector3(22.3f, 0f, 16.0f), 60f, "Punter"); Make(new Vector3(27.6f, 0f, 10.2f), 200f, "Punter");
@@ -618,10 +618,29 @@ namespace ASBO.Slice
     /// <summary>Keeps a person sat down (the seated pose) wherever they were put.</summary>
     public class SitPose : MonoBehaviour
     {
-        Person p; Vector3 at; Quaternion rot;
-        void Start() { p = GetComponent<Person>(); at = transform.position; rot = transform.rotation; Apply(); }
-        void OnEnable() { if (p != null) Apply(); }
-        void Apply() { if (p != null && p.anim != null) foreach (var q in p.anim.parameters) if (q.name == "Sit") { p.anim.SetBool("Sit", true); break; } }
+        /// <summary>Leaning forward with the hands out (at the bar, at a machine) more often than sat back.</summary>
+        public bool lean;
+        Person p; Vector3 at; Quaternion rot; float sitVar = -1f;
+        void Start()
+        {
+            p = GetComponent<Person>(); at = transform.position; rot = transform.rotation;
+            sitVar = lean ? (Random.value < 0.6f ? 2f : Random.Range(0, 2)) : Random.Range(0, 2); // each their own way of sitting
+            if (GetComponent<Fidget>() == null) gameObject.AddComponent<Fidget>();
+            StartCoroutine(Apply());
+        }
+        void OnEnable() { if (p != null) StartCoroutine(Apply()); }
+        /// <summary>Sat down, in their own way of sitting and at their own point in it, so neighbours never move in step.</summary>
+        System.Collections.IEnumerator Apply()
+        {
+            yield return null;
+            if (p == null || p.anim == null || !p.anim.isActiveAndEnabled) yield break;
+            bool hasSit = false, hasVar = false;
+            foreach (var q in p.anim.parameters) { if (q.name == "Sit") hasSit = true; if (q.name == "SitVar") hasVar = true; }
+            if (!hasSit) yield break;
+            if (hasVar) p.anim.SetFloat("SitVar", sitVar);
+            p.anim.SetBool("Sit", true);
+            p.anim.Play("Sit", 0, Random.value);
+        }
         void LateUpdate() { if (p == null || p.state != Person.State.Walking) return; transform.SetPositionAndRotation(at, rot); }
     }
 
