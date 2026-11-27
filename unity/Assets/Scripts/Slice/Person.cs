@@ -235,18 +235,18 @@ namespace ASBO.Slice
         static readonly float[] Swerves = { 35f, -35f, 70f, -70f, 110f, -110f };
 
         // ---- hearing: a noise sends them to look; seeing you do it makes them shout at you
-        bool investigating; Vector3 invPos; float invUntil, invArrive, shoutCool;
+        bool investigating; public bool Investigating => investigating; Vector3 invPos; float invUntil, invArrive, shoutCool;
         public void Investigate(Vector3 at)
         {
             if (isPlayer || dead || state != State.Walking || InScrap) return;
-            invPos = at; invUntil = Time.time + Random.Range(7f, 11f); invArrive = 0f; investigating = true;
+            invPos = at; invUntil = Time.time + UnityEngine.Random.Range(7f, 11f); invArrive = 0f; investigating = true;
         }
         public void Noticed(Transform who)
         {
             if (isPlayer || dead || state != State.Walking || InScrap) return;
             Investigate(who.position);
             if (Time.time < shoutCool) return; shoutCool = Time.time + 8f;
-            if (GameAudio.I != null) GameAudio.I.PlayVoice("shout", transform.position, Random.Range(0.15f, 0.5f), 1f);
+            if (GameAudio.I != null) GameAudio.I.PlayVoice("shout", transform.position, UnityEngine.Random.Range(0.15f, 0.5f), 1f);
             if (Vector3.Distance(who.position, transform.position) < 14f) World.Toast(male ? "\"Oi! Was that you?\"" : "\"Oi! Did you chuck that?\"", 1);
         }
 
@@ -261,7 +261,7 @@ namespace ASBO.Slice
                 else
                 {
                     // got there: stand and look about for a bit, then back to what they were doing
-                    if (invArrive == 0f) { invArrive = Time.time; invUntil = Mathf.Min(invUntil, Time.time + Random.Range(2.5f, 4.5f)); }
+                    if (invArrive == 0f) { invArrive = Time.time; invUntil = Mathf.Min(invUntil, Time.time + UnityEngine.Random.Range(2.5f, 4.5f)); }
                     Animate(0f);
                     transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(0f, transform.eulerAngles.y + Mathf.Sin((Time.time - invArrive) * 1.7f) * 70f, 0f), 90f * Time.deltaTime);
                     return;

@@ -233,7 +233,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
 
 ## Crime and the police
 
-- [ ] **Stealth: sneaking, being noticed, light and noise**
+- [~] **Stealth: sneaking, being noticed, light and noise**: v28: noise system. A landing throw, a smash or a clatter is heard within a range; people who can see you shout and look at you, people who can't wander over to look, then go back to their route (so you can pull someone away from a door). Tested: bottle thrown out of sight and in view. Still to come: light, sneak perks, guards and police reacting properly, offences and heat when seen.
   - Old game: [Stealth](og/modules/Stealth.md), [STEALTH_PERKS](og/modules/STEALTH_PERKS.md), [Sneak](og/modules/Sneak.md), [NEEDS_EYES](og/modules/NEEDS_EYES.md), [UI:stealth](og/modules/UI-stealth.md) (91 behaviours, 58 lines said or shown, 96 tuning numbers)
 - [ ] **Pickpocketing**: Hold to lift, let go when they start to turn round.
   - You asked: Stealing made harder (old game).
@@ -289,7 +289,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - You asked: Properly working casino games where you gamble your money.
 - [ ] **Casino: poker**: Texas Hold'em at a table with other players who bluff and fold like people; the house takes a cut of each pot.
   - You asked: Properly working casino games where you gamble your money.
-- [ ] **Pick up, carry, throw and smash things**: Glasses, chairs, bottles.
+- [~] **Pick up, carry, throw and smash things**: Glasses, chairs, bottles. v28: throw goes where the camera looks (heavy things slower); litter scattered on the pavements (bricks, stones, lager cans, bottles) you can pick up and throw; glass smashes on a hard hit; anything that lands makes a noise people hear (see Stealth). Still to come: aim arc preview, a proper throwing animation, kicking cans.
   - You asked: Physics props: pick up, carry, move, throw, smash, damage.
   - You asked: No chair stuck in your hands (old-game bug).
   - Old game: [Objs](og/modules/Objs.md), [GlassFx](og/modules/GlassFx.md), [Brk](og/modules/Brk.md), [BRK_KIND](og/modules/BRK_KIND.md) (189 behaviours, 38 lines said or shown, 108 tuning numbers)

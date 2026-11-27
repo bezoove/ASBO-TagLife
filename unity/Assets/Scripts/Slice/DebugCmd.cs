@@ -169,6 +169,7 @@ namespace ASBO.Slice
         }
         /// <summary>Climb, run-up wall climb, vault, drop-and-roll, barging into someone, reaching down: on a test slab up in the sky.</summary>
         public static void TraverseTest(int only) { TraverseTestRun.Only = only; new GameObject("TraverseTest").AddComponent<TraverseTestRun>(); }
+        public static void ThrowTest() { new GameObject("ThrowTest").AddComponent<ThrowTestRun>(); }
         public static void MobTest() { new GameObject("MobTest").AddComponent<MobTestRun>(); }
         public static void BrawlHits(float secs) { var r = new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); r.onHit = true; r.secs = secs; r.kickFinish = true; }
         public static void TalkTest() { new GameObject("TalkTest").AddComponent<TalkTestRun>(); }
@@ -1916,6 +1917,35 @@ namespace ASBO.Slice
             Debug.Log("[ASBO] trav test done");
             if (npc != null) Destroy(npc.gameObject);
             cam.targetTexture = null; Destroy(rt); Destroy(cg); Destroy(root.gameObject); Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Throws bottles at a walker twice: once from behind (a mystery noise: they go and look) and once in plain view (they know it was you).</summary>
+    public class ThrowTestRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            yield return new WaitForSeconds(9f);
+            var pc = FindFirstObjectByType<PlayerCtl>(); Person tgt = null; float bd = 1e9f;
+            foreach (var p in Person.All) { if (p == null || p.isPlayer || p.dead || p.state != Person.State.Walking) continue; float d = (p.transform.position - pc.transform.position).sqrMagnitude; if (d > 25f && d < bd) { bd = d; tgt = p; } }
+            int litter = Throwable.All.Count;
+            if (tgt == null) { Debug.Log("[ASBO] throwtest: nobody about, litter=" + litter); Destroy(gameObject); yield break; }
+            Vector3 fwd = tgt.transform.forward; fwd.y = 0f; fwd.Normalize();
+            for (int round = 0; round < 2; round++)
+            {
+                // round 0: player stands behind them (out of sight); round 1: in front of them (in view)
+                Vector3 spot = tgt.transform.position + fwd * (round == 0 ? -9f : 9f);
+                pc.transform.position = spot + Vector3.up * 0.1f; yield return null;
+                Vector3 land = tgt.transform.position + fwd * (round == 0 ? 7f : -7f);
+                var g = Throwables.Spawn("bottle", land + Vector3.up * 2.5f, Quaternion.identity);
+                var kn = g.GetComponent<Knockable>(); kn.thrower = pc.transform; kn.thrownAt = Time.time;
+                g.GetComponent<Rigidbody>().linearVelocity = Vector3.down * 8f;
+                float t0 = Time.time; bool inv = false;
+                while (Time.time - t0 < 6f) { if (tgt.Investigating) inv = true; yield return null; }
+                Debug.Log($"[ASBO] throwtest round {round} ({(round == 0 ? "unseen" : "seen")}): investigating={inv} litter={litter} bottleSmashed={(g == null)} dist={(tgt.transform.position - land).magnitude:F1}");
+                yield return new WaitForSeconds(12f);
+            }
+            Destroy(gameObject);
         }
     }
 }
