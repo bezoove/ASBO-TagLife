@@ -14,10 +14,10 @@ namespace ASBO.Slice
     {
         public static PropWorld I;
         PlayerCtl pc; Transform hand; GameObject held; PropLib.Entry heldE; bool heldDrunk; float useT;
-        struct Target { public PropSet set; public int i; public PropDoor door; public PropLib.Entry e; public Vector3 at; }
+        struct Target { public PropSet set; public int i; public PropDoor door; public PropLib.Entry e; public Vector3 at; public Throwable th; }
         Target? near; static GUIStyle style; string toastText; float toastT;
         readonly HashSet<string> flags = new HashSet<string>();
-        Transform loose;
+        Transform loose; bool littered;
         public static bool Holding => I != null && I.held != null;
         /// <summary>There's something TALK would do right now (for the touch button).</summary>
         public static bool HasPrompt => I != null && (I.near != null || I.held != null || (I.pc != null && I.pc.OnSeat));
@@ -45,6 +45,13 @@ namespace ASBO.Slice
                     Vector3 c = s.transform.TransformPoint(r.pos + Quaternion.Euler(0, r.yaw, 0) * e.center);
                     float sc = Score(me, fwd, c, e); if (sc < best) { best = sc; near = new Target { set = s, i = i, e = e, at = c }; }
                 }
+            }
+            if (!littered && Time.time > 6f && Person.All.Count > 5) { littered = true; Throwables.Scatter(90); }
+            foreach (var th in Throwable.All)
+            {
+                if (th == null || !th.Free || th.entry == null) continue;
+                Vector3 c = th.transform.position + Vector3.up * 0.05f; Vector3 dd = c - me; dd.y = 0f; if (dd.sqrMagnitude > 1.3f) continue;
+                float sc = Score(me, fwd, c, th.entry); if (sc < best) { best = sc; near = new Target { th = th, e = th.entry, at = c }; }
             }
             foreach (var d in PropDoor.All)
             {
@@ -166,11 +173,12 @@ namespace ASBO.Slice
             var mr = g.AddComponent<MeshRenderer>(); mr.sharedMaterials = new[] { PropLib.I.opaque, PropLib.I.glass }; mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             var bc = g.AddComponent<BoxCollider>(); bc.center = e.center; bc.size = Vector3.Max(e.size, Vector3.one * 0.03f);
             var rb = g.AddComponent<Rigidbody>(); rb.mass = Mathf.Clamp(e.mass, 0.05f, 80f); rb.interpolation = RigidbodyInterpolation.Interpolate; rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-            g.AddComponent<Knockable>();
+            var kn = g.AddComponent<Knockable>(); string id = e.id; kn.glass = id.StartsWith("pint") || id.StartsWith("half") || id.StartsWith("shot") || id.StartsWith("wine") || id.StartsWith("btl") || id.StartsWith("tumbler"); kn.loudBase = kn.glass ? 18f : 10f;
             return g;
         }
         GameObject Take(Target t)
         {
+            if (t.th != null) return t.th.gameObject;
             var s = t.set; s.Hide(t.i);
             return t.e.cash > 0f ? null : Spawn(t.e, s.World(t.i), s.Rot(t.i));
         }
@@ -219,8 +227,13 @@ namespace ASBO.Slice
         void Throw()
         {
             if (held == null) return;
-            var g = held; Release(pc.transform.forward * 9f + Vector3.up * 2.5f);
-            g.GetComponent<Rigidbody>().angularVelocity = Random.insideUnitSphere * 8f;
+            // thrown where the camera looks, a bit above it; heavy things go slower and shorter
+            var cam = Camera.main; Vector3 aim = cam != null ? cam.transform.forward : pc.transform.forward;
+            aim.y = Mathf.Clamp(aim.y, -0.2f, 0.6f) + 0.18f; aim.Normalize();
+            float mass = held.GetComponent<Rigidbody>().mass, speed = Mathf.Lerp(15f, 5f, Mathf.Clamp01(mass / 12f));
+            var g = held; Release(aim * speed);
+            g.GetComponent<Rigidbody>().angularVelocity = Random.insideUnitSphere * 9f;
+            var kn = g.GetComponent<Knockable>(); if (kn != null) { kn.thrower = pc.transform; kn.thrownAt = Time.time; }
             if (heldE != null && heldE.id.StartsWith("pint")) Say("You lob the pint. Glass everywhere.");
         }
         void Consume()

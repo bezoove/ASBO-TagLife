@@ -42,7 +42,35 @@ namespace ASBO.Slice
             rb.AddForceAtPosition(dir.normalized * Mathf.Min(speed, 4f) * rb.mass * 0.35f, rb.worldCenterOfMass + Vector3.up * 0.2f, ForceMode.Impulse);
         }
 
-        void OnCollisionEnter(Collision c) { float v = c.relativeVelocity.magnitude; if (v > 1.6f) Clatter(v); }
+        /// <summary>Set when the player throws it: whoever threw it, and when.</summary>
+        public Transform thrower; public float thrownAt = -99f;
+        public bool glass; public float loudBase = 10f; float lastNoise;
+
+        void OnCollisionEnter(Collision c)
+        {
+            float v = c.relativeVelocity.magnitude; if (v > 1.6f) Clatter(v);
+            if (v < 3f || Time.time - lastNoise < 0.5f) return; lastNoise = Time.time;
+            bool mine = thrower != null && Time.time - thrownAt < 8f;
+            float loud = Mathf.Clamp(loudBase * (0.4f + v * 0.08f) * Mathf.Pow(Mathf.Max(0.2f, rb != null ? rb.mass : 1f), 0.2f), 3f, 45f);
+            if (glass && v > 4.5f) { Smash(); loud *= 1.6f; }
+            NoiseBus.Emit(transform.position, loud, mine ? thrower : null);
+        }
+
+        /// <summary>A glass thing hitting something hard: gone in a handful of shards.</summary>
+        void Smash()
+        {
+            var mr = GetComponent<MeshRenderer>(); var mat = mr != null && mr.sharedMaterials.Length > 0 ? mr.sharedMaterials[mr.sharedMaterials.Length - 1] : null;
+            if (GameAudio.I != null) GameAudio.I.Knock(transform.position, 14f, false);
+            var cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx"); Vector3 at = transform.position + Vector3.up * 0.05f;
+            for (int i = 0; i < 7; i++)
+            {
+                var s = new GameObject("shard"); s.transform.position = at + Random.insideUnitSphere * 0.05f; s.transform.localScale = new Vector3(0.03f, 0.004f, 0.02f) * Random.Range(0.7f, 1.6f);
+                s.AddComponent<MeshFilter>().sharedMesh = cube; var r = s.AddComponent<MeshRenderer>(); r.sharedMaterial = mat; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                var b = s.AddComponent<Rigidbody>(); b.mass = 0.01f; b.linearVelocity = Random.insideUnitSphere * 2.2f + Vector3.up * 1.2f; b.angularVelocity = Random.insideUnitSphere * 12f;
+                s.AddComponent<BoxCollider>(); Object.Destroy(s, 5f);
+            }
+            Object.Destroy(gameObject);
+        }
 
         void Clatter(float v)
         {
