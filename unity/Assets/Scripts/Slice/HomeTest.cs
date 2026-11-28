@@ -77,6 +77,43 @@ namespace ASBO.Slice
 
         /// <summary>The same physical flood for the shops and the flats over them (unit footprint: lx across, d 0.14..10.86).</summary>
         /// <summary>The one-room public buildings (variant "hall"): flood from outside the front door and count the spots you can get to.</summary>
+        public static void ReachLockups() { new GameObject("LockupReach").AddComponent<RunLockups>(); }
+        class RunLockups : MonoBehaviour
+        {
+            IEnumerator Start()
+            {
+                yield return null; int tot = 0, bad = 0;
+                foreach (var lk in FindObjectsByType<Lockup>(FindObjectsSortMode.None))
+                {
+                    lk.OpenAll(); Physics.SyncTransforms(); var h = lk.GetComponent<Home>(); var tr = lk.transform; const float cs = 0.1f;
+                    float L = lk.leaves.Length * (h.radius - 3f) * 2f / lk.leaves.Length, D = h.midZ * 2f;
+                    var seen = new System.Collections.Generic.HashSet<long>(); var q = new System.Collections.Generic.Queue<Vector3>(); var reached = new System.Collections.Generic.List<Vector3>();
+                    for (float x = 0.5f; x < L; x += 1f) q.Enqueue(new Vector3(Mathf.Round(x / cs) * cs, 0.02f, -1.2f));
+                    int guard = 0;
+                    while (q.Count > 0 && guard++ < 400000)
+                    {
+                        var p = q.Dequeue(); long key = (long)Mathf.RoundToInt((p.x + 50f) / cs) * 8192 + Mathf.RoundToInt((p.z + 50f) / cs);
+                        if (!seen.Add(key)) continue; reached.Add(p);
+                        foreach (var dv in new[] { new Vector2(cs, 0), new Vector2(-cs, 0), new Vector2(0, cs), new Vector2(0, -cs) })
+                        {
+                            float nx = p.x + dv.x, nz = p.z + dv.y; if (nx < -1f || nx > L + 1f || nz < -1.6f || nz > D) continue;
+                            if (!Physics.Raycast(tr.TransformPoint(new Vector3(nx, p.y + 0.45f, nz)), Vector3.down, out var hit, 1.2f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                            float gy = tr.InverseTransformPoint(hit.point).y; if (gy - p.y > 0.35f || p.y - gy > 0.7f) continue;
+                            if (Physics.CheckCapsule(tr.TransformPoint(new Vector3(nx, gy + 0.65f, nz)), tr.TransformPoint(new Vector3(nx, gy + 1.5f, nz)), 0.28f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                            q.Enqueue(new Vector3(nx, gy, nz));
+                        }
+                    }
+                    var miss = new System.Collections.Generic.List<string>(); int n = 0;
+                    foreach (var sp in h.spots) { n++; bool g = false; foreach (var p in reached) { float dx = p.x - sp.pos.x, dz = p.z - sp.pos.z; if (dx * dx + dz * dz < 0.9f * 0.9f) { g = true; break; } } if (!g) miss.Add(sp.room + ":" + sp.tag + "(" + (Lockup.Theme)lk.theme[sp.room] + ")"); }
+                    tot += n; bad += miss.Count;
+                    Debug.Log($"[ASBO] lockreach {tr.name}: {n - miss.Count}/{n} spots, {reached.Count} cells [{string.Join(",", miss)}]");
+                    yield return null;
+                }
+                Debug.Log($"[ASBO] lockreach total: {tot - bad}/{tot}");
+                Destroy(gameObject);
+            }
+        }
+
         public static void ReachHalls() { new GameObject("HallReach").AddComponent<RunHalls>(); }
         class RunHalls : MonoBehaviour
         {
@@ -141,7 +178,7 @@ namespace ASBO.Slice
 
         /// <summary>Pictures from inside a named object: the player stood at (local) at, the camera at cam looking at look, all in that object's frame.</summary>
         public static void ShotIn(string goName, float ax, float ay, float az, float cx, float cy, float cz, float lx, float ly, float lz, string tag)
-        { var r = new GameObject("ShotIn").AddComponent<RunShotIn>(); r.n = goName.Replace("-", " "); r.at = new Vector3(ax, ay, az); r.cam = new Vector3(cx, cy, cz); r.look = new Vector3(lx, ly, lz); r.tag2 = tag; }
+        { var r = new GameObject("ShotIn").AddComponent<RunShotIn>(); r.n = goName.Replace("-", " ").Replace("~", "-"); r.at = new Vector3(ax, ay, az); r.cam = new Vector3(cx, cy, cz); r.look = new Vector3(lx, ly, lz); r.tag2 = tag; }
         class RunShotIn : MonoBehaviour
         {
             public string n, tag2; public Vector3 at, cam, look;

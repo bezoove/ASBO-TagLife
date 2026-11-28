@@ -412,19 +412,12 @@ namespace ASBO.Slice
             if (!Ready()) return null;
             var g = Root(parent, name, origin, yaw); var rng = new System.Random(seed); var k = new MeshKit();
             const float w = 2.9f, D = 5.6f, h = 2.4f; float L = n * w;
-            k.Box(TownMats.panel, new Vector3(-0.15f, 0f, 0.15f), new Vector3(L + 0.15f, h, D));
-            for (int i = 0; i < n; i++)
-            {
-                float x0 = i * w + 0.25f, x1 = (i + 1) * w - 0.25f; double t = rng.NextDouble();
-                Material door = t < 0.12 ? TownMats.rust : E.garage[rng.Next(E.garage.Length)];
-                k.Box(door, new Vector3(x0, 0f, 0.05f), new Vector3(x1, 2.05f, 0.15f));
-                if (t > 0.9) k.Box(E.felt, new Vector3(x0 + 0.2f, 0.3f, 0.02f), new Vector3(x1 - 0.4f, 1.9f, 0.05f)); // burnt black
-            }
-            k.Box(E.felt, new Vector3(-0.25f, h, 0f), new Vector3(L + 0.25f, h + 0.18f, D + 0.15f));
+            var mats = new Material[n]; for (int i = 0; i < n; i++) mats[i] = rng.NextDouble() < 0.12 ? TownMats.rust : E.garage[rng.Next(E.garage.Length)];
+            var open = new HashSet<int>(); if (rng.NextDouble() < 0.7) open.Add(rng.Next(n));
+            Lockup.Build(g, name, n, w, D, h, 2.05f, 0.25f, TownMats.panel, E.felt, i => mats[i], seed * 7 + 3, open);
             var faces = new (Vector3, Vector3, Vector3, float)[] { (new Vector3(L + 0.15f, 0, D), Vector3.left, Vector3.forward, L + 0.3f), (new Vector3(-0.15f, 0, D), Vector3.back, Vector3.left, D) };
             Graffiti(k, faces, rng, seed % 3);
             k.Build("Garages", g, false, ShadowCastingMode.On);
-            Coll(g, new Vector3(-0.15f, 0, 0.05f), new Vector3(L + 0.15f, h + 0.2f, D));
             return g;
         }
 

@@ -199,30 +199,14 @@ namespace ASBO.Slice
         // ------------------------------------------------------------------------------------------ lock-up garages
         static void GarageRow(Transform parent)
         {
-            var k = new MeshKit(); var ground = new MeshKit();
+            var ground = new MeshKit();
             var rng = new System.Random(808);
-            float x0 = GaragesX, x1 = GaragesX + GarageCount * GarageW, zf = GaragesZ, zb = GaragesZ - GarageD;
+            float x0 = GaragesX, x1 = GaragesX + GarageCount * GarageW, zf = GaragesZ;
             const float h = 2.45f, doorH = 2.05f, pier = 0.22f;
-            // front: brick piers and lintel round a run of up-and-over doors
-            var holes = new List<Rect>();
-            for (int i = 0; i < GarageCount; i++)
-            {
-                float a = x0 + i * GarageW + pier * 0.5f, b = x0 + (i + 1) * GarageW - pier * 0.5f;
-                holes.Add(new Rect(a, 0f, b - a, doorH));
-                bool open = i == 5; // one left up, black inside
-                var door = open ? M.black : M.garage[rng.Next(M.garage.Length)];
-                Recess(k, a, b, 0f, doorH, open ? 4.8f : 0.1f, door, new Rect(0, 0, 1, 1), M.brick, true, zf);
-                if (open) k.Quad(M.black, new Vector3(a, 0.01f, zf), new Vector3(b, 0.01f, zf), new Vector3(b, 0.01f, zf - 4.8f), new Vector3(a, 0.01f, zf - 4.8f), Vector3.up);
-            }
-            k.Push(new Vector3(0, 0, zf)); WallLocal(k, new Rect(x0, 0f, x1 - x0, h), holes); k.Pop();
-            // back and ends in brick, felt roof with a fascia
-            k.Quad(M.brick, new Vector3(x0, 0, zb), new Vector3(x1, 0, zb), new Vector3(x1, h, zb), new Vector3(x0, h, zb), Vector3.back);
-            k.Quad(M.brick, new Vector3(x0, 0, zb), new Vector3(x0, h, zb), new Vector3(x0, h, zf), new Vector3(x0, 0, zf), Vector3.left);
-            k.Quad(M.brick, new Vector3(x1, 0, zb), new Vector3(x1, h, zb), new Vector3(x1, h, zf), new Vector3(x1, 0, zf), Vector3.right);
-            k.Box(M.felt, new Vector3(x0 - 0.12f, h, zb - 0.12f), new Vector3(x1 + 0.12f, h + 0.12f, zf + 0.2f));
-            k.Box(M.white, new Vector3(x0 - 0.13f, h - 0.1f, zf + 0.2f), new Vector3(x1 + 0.13f, h + 0.13f, zf + 0.24f));
-            var body = k.Build("LockUps", parent, false);
-            var col = body.AddComponent<BoxCollider>(); col.center = new Vector3((x0 + x1) * 0.5f, h * 0.5f, (zf + zb) * 0.5f); col.size = new Vector3(x1 - x0, h, GarageD);
+            // the bays face +z here, so their frame is turned round: local x runs from x1 back to x0
+            var fr = new GameObject("Lock-ups").transform; fr.SetParent(parent, false); fr.localPosition = new Vector3(x1, 0f, zf); fr.localRotation = Quaternion.Euler(0, 180f, 0);
+            var mats = new Material[GarageCount]; for (int i = 0; i < GarageCount; i++) mats[i] = M.garage[rng.Next(M.garage.Length)];
+            Lockup.Build(fr, "Estate Lock-ups", GarageCount, GarageW, GarageD, h, doorH, pier * 0.5f, M.brick, M.felt, i => mats[i], 808, new HashSet<int> { GarageCount - 1 - 5 });
             ground.Box(M.asphalt, new Vector3(x0 - 0.5f, 0f, zf), new Vector3(x1 + 0.5f, 0.05f, zf + 7f), 16);
             var gg = ground.Build("EstateGround", parent, true); if (gg != null) gg.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }

@@ -78,7 +78,7 @@ namespace ASBO.EditorTools
             foreach (var t in built)
                 foreach (var r in t.GetComponentsInChildren<MeshRenderer>(true))
                 {
-                    bool moves = r.GetComponentInParent<Transform>() != null && r.transform.parent != null && r.transform.parent.name == "CraneTop" || r.name.StartsWith("Live"); // "Live": lit at runtime (traffic lights)
+                    bool moves = r.GetComponentInParent<Transform>() != null && r.transform.parent != null && r.transform.parent.name == "CraneTop" || r.name.StartsWith("Live") || r.GetComponentInParent<ASBO.Slice.PropDoor>(true) != null || (r.transform.parent != null && r.transform.parent.name.StartsWith("Garage door")); // doors swing // "Live": lit at runtime (traffic lights)
                     GameObjectUtility.SetStaticEditorFlags(r.gameObject, moves ? 0 : StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic | StaticEditorFlags.ReflectionProbeStatic);
                     r.receiveGI = ReceiveGI.LightProbes; r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.BlendProbes;
                 }
