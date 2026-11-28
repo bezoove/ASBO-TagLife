@@ -66,6 +66,20 @@ namespace ASBO.Slice
             Debug.Log($"[ASBO] gangs: {I.members.Count} out on the three estates");
         }
 
+        /// <summary>Which crew a person runs with (-1: nobody's).</summary>
+        public static int GangOf(Person p) { if (I == null || p == null) return -1; foreach (var m in I.members) if (m.p == p) return m.gang; return -1; }
+        public static Vector3 DealerPos(int g) => DealerAt[g];
+        public static bool IsDealer(Person p) { if (I == null || p == null) return false; foreach (var m in I.members) if (m.p == p) return m.dealer; return false; }
+        /// <summary>Every crew member on foot (not riding, not dealing): for the crews' grudges and the jobs.</summary>
+        public static void Foot(List<(Person p, int gang)> into) { into.Clear(); if (I == null) return; foreach (var m in I.members) if (m.p != null && m.ride == null && !m.dealer && !m.p.dead) into.Add((m.p, m.gang)); }
+        /// <summary>A squad member sent after the player: one of the crew's own, in its colours, often tooled up.</summary>
+        public static Person Squad(Vector3 at, int gang)
+        {
+            if (I == null) return null; var m = I.Make(at, gang, TownPlan.Turfs[gang].colour); if (m == null) return null;
+            if (Random.value < 0.5f) Weapon(m.p, Random.Range(0, 3)); return m.p;
+        }
+        public static void Drop(Person p) { if (I == null || p == null) return; I.members.RemoveAll(m => m.p == p); Destroy(p.gameObject); }
+
         Member Make(Vector3 at, int gang, Color col)
         {
             var p = World.MakePerson(at, col * 0.55f, new Color(0.08f, 0.08f, 0.09f), "Gang" + gang);
@@ -106,9 +120,9 @@ namespace ASBO.Slice
                 float d = (m.p.transform.position - pp).sqrMagnitude; if (d < 22f * 22f) seen++;
                 if (d < nd) { nd = d; nearest = m; }
             }
-            if (turf < 0 || seen == 0 || pc.InCar) { heat = Mathf.Max(0f, heat - 0.5f * 0.6f); return; }
+            if (turf < 0 || seen == 0 || pc.InCar || Crews.Affiliation == turf) { heat = Mathf.Max(0f, heat - 0.5f * 0.6f); return; }
             if (heatGang != turf) { heatGang = turf; heat = 0f; }
-            heat += 0.5f * (pc.Crouched ? 0.35f : 1f) * Mathf.Min(3, seen) * 0.5f;
+            heat += 0.5f * (pc.Crouched ? 0.35f : 1f) * Mathf.Min(3, seen) * 0.5f * (Crews.Standing[turf] >= 25f ? 0.3f : Crews.Hates(turf) ? 4f : 1f);
             if (heat > 5f && Time.time > warnT)
             {
                 warnT = Time.time + 25f;
@@ -140,6 +154,7 @@ namespace ASBO.Slice
             foreach (var m in I.members)
                 if (m.dealer && m.p != null && (m.p.transform.position - pp).sqrMagnitude < 2.8f * 2.8f)
                 {
+                    if (Crews.Hates(m.gang)) { World.Toast("\"You've got some front coming here. Get lost before I call the lads.\"", 1); return true; }
                     if (I.heatGang == m.gang && I.heat > 10f) { World.Toast("He looks straight through you. Not from round here, are you?", 1); return true; }
                     menuGang = m.gang; menuT = Time.time + 12f; return true;
                 }
@@ -150,15 +165,18 @@ namespace ASBO.Slice
             if (menuGang < 0 || Time.time > menuT || Gangs.Player == null) { menuGang = -1; return; }
             float s = Mathf.Max(1f, Screen.height / 720f); float w = 300 * s, h = 52 * s, x = Screen.width * 0.5f - w * 0.5f, y = Screen.height * 0.36f;
             var st = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(18 * s), wordWrap = true };
-            GUI.Box(new Rect(x - 10, y - 46 * s, w + 20, h * 4 + 60 * s), "");
+            bool join = Crews.CanJoin(menuGang); int rows = join ? 6 : 5;
+            GUI.Box(new Rect(x - 10, y - 46 * s, w + 20, h * rows + 60 * s + rows * 4), "");
             var lab = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(18 * s), alignment = TextAnchor.MiddleCenter }; lab.normal.textColor = Color.white;
             GUI.Label(new Rect(x, y - 40 * s, w, 34 * s), "\"What you after?\"", lab);
             if (GUI.Button(new Rect(x, y, w, h), "Whack  £10  (sorts your head right out)", st)) Buy(Drugs.Kind.Whack, 10f);
             if (GUI.Button(new Rect(x, y + h + 4, w, h), "Fizz  £10  (gets you going)", st)) Buy(Drugs.Kind.Fizz, 10f);
             if (GUI.Button(new Rect(x, y + (h + 4) * 2, w, h), "Wow  £15  (you'll see things)", st)) Buy(Drugs.Kind.Wow, 15f);
-            if (GUI.Button(new Rect(x, y + (h + 4) * 3, w, h), "Nothing. Laters.", st)) menuGang = -1;
+            if (GUI.Button(new Rect(x, y + (h + 4) * 3, w, h), "Got any work?", st)) { int g = menuGang; menuGang = -1; Missions.OfferFrom(g); }
+            if (join && GUI.Button(new Rect(x, y + (h + 4) * 4, w, h), "I want in. Proper.", st)) { int g = menuGang; menuGang = -1; Crews.Join(g); }
+            if (GUI.Button(new Rect(x, y + (h + 4) * (join ? 5 : 4), w, h), "Nothing. Laters.", st)) menuGang = -1;
         }
-        static void Buy(Drugs.Kind k, float price) { menuGang = -1; if (!Econ.Spend(price, k.ToString())) return; Drugs.Take(k); }
+        static void Buy(Drugs.Kind k, float price) { int g = menuGang; menuGang = -1; if (!Econ.Spend(price, k.ToString())) return; Drugs.Take(k); if (g >= 0) Crews.Bump(g, 1.5f); }
     }
 
     /// <summary>

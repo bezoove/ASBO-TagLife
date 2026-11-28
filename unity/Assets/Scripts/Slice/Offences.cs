@@ -14,8 +14,11 @@ namespace ASBO.Slice
         static float last;
 
         /// <summary>A crime has happened at 'at'. If somebody can see the player, it counts.</summary>
+        /// <summary>Every crime, seen or not: the crews care what happens on their ends.</summary>
+        public static System.Action<string, Vector3> OnCrime;
         public static void Report(string what, float heat, Vector3 at)
         {
+            OnCrime?.Invoke(what, at);
             var pc = Object.FindFirstObjectByType<PlayerCtl>(); if (pc == null) return;
             Person by = null;
             foreach (var p in Person.All)

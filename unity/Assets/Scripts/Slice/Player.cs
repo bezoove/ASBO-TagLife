@@ -82,6 +82,8 @@ namespace ASBO.Slice
 
         bool wasGrounded = true; float fallSpeed; Fighter fighter; bool lockedThisFrame, clickLock, facing; float lookT, holdR = 1.25f;
         public bool InCar => inCar; bool touch;
+        /// <summary>The car you're driving (null on foot), and how fast it's going.</summary>
+        public Transform Vehicle => inCar ? VehT : null; public float VehicleSpeed => inCar ? VehSpeed : 0f;
         Vector2 lookAdd;
         /// <summary>Camera turn from touch drags (degrees).</summary>
         public void AddLook(Vector2 deg) { lookAdd += deg; }
