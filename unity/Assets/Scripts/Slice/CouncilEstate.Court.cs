@@ -39,9 +39,11 @@ namespace ASBO.Slice
                 (new Vector3(x0, 0, z0), -90f, Tower.height, true),   // west: the way in, off the footpath
             };
             var rng = new System.Random(1964);
+            courtWins = new List<TowerInterior.WinRec>();
             foreach (var f in faces)
             {
                 k.Push(Matrix4x4.TRS(f.o, Quaternion.Euler(0, f.yaw, 0), Vector3.one));
+                faceO = f.o; faceYaw = f.yaw;
                 TowerFace(k, f.len, f.entrance, f.len > 16f, rng);
                 k.Pop();
             }
@@ -72,6 +74,14 @@ namespace ASBO.Slice
             ground.Box(M.slabs, new Vector3(x0 - 3f, 0f, ez - 2.6f), new Vector3(x0, 0.06f, ez + 2.6f), 2);
             var body = k.Build("Tower", parent, false);
             var col = body.AddComponent<BoxCollider>(); col.center = new Vector3(Tower.center.x, top * 0.5f, Tower.center.y); col.size = new Vector3(Tower.width, top, Tower.height);
+            // the inside: framed with its front on the west face (the entrance), x running north to south along it, depth east
+            {
+                float len = Tower.height; int nb = Mathf.Max(3, Mathf.RoundToInt(len / 3.4f)); float bw = len / nb; int mid = nb / 2;
+                float exa = mid * bw + 0.16f, exb = (mid + 1) * bw - 0.16f;
+                TowerInterior.Bake(parent, new Vector3(x0, 0f, z1), 90f, "Hawthorn Court", Tower.height, Tower.width, TowerFH, TowerFH, TowerFloors,
+                    len - (exa + exb) * 0.5f, 1.6f, len - exb, len - exa, TowerFH - 0.14f, 1.25f, 1.25f, 1964, courtWins, new List<Collider> { col });
+                courtWins = null;
+            }
             var gg = ground.Build("EstateGround", parent, true); if (gg != null) gg.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
@@ -111,14 +121,28 @@ namespace ASBO.Slice
                         Window(k, hole.xMin, hole.xMax, hole.yMin, hole.yMax, 0f, AtlasGround(0), true);
                         continue;
                     }
-                    if (balconies && j % 3 == 1) { Balcony(k, xa, xb, ya, yb, rng); continue; }
+                    if (balconies && j % 3 == 1) { Balcony(k, xa, xb, ya, yb, rng); RecWin(xa + 0.2f, xb - 0.2f, ya + 0.02f, ya + 2.1f); continue; }
                     // spandrel panel, window above it
                     float sill = ya + 0.85f, head = yb - 0.15f;
                     k.Quad(M.towerPanel, new Vector3(xa, ya, 0f), new Vector3(xb, ya, 0f), new Vector3(xb, sill, 0f), new Vector3(xa, sill, 0f), Vector3.forward);
                     k.Quad(M.concrete, new Vector3(xa, head, 0f), new Vector3(xb, head, 0f), new Vector3(xb, yb, 0f), new Vector3(xa, yb, 0f), Vector3.forward);
                     var uv = AtlasUpper(rng.Next(3)); uv.width = 0.5f; uv.x = rng.Next(2) * 0.5f;
                     Window(k, xa, xb, sill, head, 0f, uv, true);
+                    RecWin(xa, xb, sill, head);
                 }
+        }
+
+        static List<TowerInterior.WinRec> courtWins; static Vector3 faceO; static float faceYaw;
+        /// <summary>Note a window (in the current face's frame) for the tower's interior, in the interior's frame.</summary>
+        static void RecWin(float xa, float xb, float ya, float yb)
+        {
+            if (courtWins == null) return;
+            var q = Quaternion.Euler(0, faceYaw, 0); Vector3 pa = faceO + q * new Vector3(xa, 0, 0), pb = faceO + q * new Vector3(xb, 0, 0);
+            // interior frame: x' = z1 - z, z' = x - x0
+            float ax = Tower.yMax - pa.z, bx = Tower.yMax - pb.z, az = pa.x - Tower.xMin, bz = pb.x - Tower.xMin;
+            int y = Mathf.RoundToInt(faceYaw); char sd = y == 0 ? 'L' : y == 90 ? 'B' : y == 180 ? 'R' : 'F';
+            bool fb = sd == 'F' || sd == 'B';
+            courtWins.Add(new TowerInterior.WinRec { side = sd, a0 = fb ? Mathf.Min(ax, bx) : Mathf.Min(az, bz), a1 = fb ? Mathf.Max(ax, bx) : Mathf.Max(az, bz), y0 = ya, y1 = yb });
         }
 
         /// <summary>A wall cell of one material with one rectangular hole in it.</summary>
@@ -159,9 +183,15 @@ namespace ASBO.Slice
             k.Quad(M.concrete, new Vector3(xb, ya, 0f), new Vector3(xb, yb, 0f), new Vector3(xb, yb, -d), new Vector3(xb, ya, -d), Vector3.left);
             k.Quad(M.step, new Vector3(xa, 0.06f, 0f), new Vector3(xb, 0.06f, 0f), new Vector3(xb, 0.06f, -d), new Vector3(xa, 0.06f, -d), Vector3.up);
             var uv = AtlasPatio();
-            float dh = 2.3f;
-            k.QuadUV(M.windows, new Vector3(xa, 0.06f, -d), new Vector3(xb, 0.06f, -d), new Vector3(xb, dh, -d), new Vector3(xa, dh, -d), Vector3.forward,
-                new Vector2(uv.xMin + 0.06f, uv.yMin), new Vector2(uv.xMax - 0.06f, uv.yMin), new Vector2(uv.xMax - 0.06f, uv.yMax), new Vector2(uv.xMin + 0.06f, uv.yMax));
+            float dh = 2.3f, xc = (xa + xb) * 0.5f;
+            // glazed side lights either side of a real door opening (the interior hangs the leaf); concrete over
+            float u0 = uv.xMin + 0.06f, u1 = uv.xMax - 0.06f;
+            float Uat(float x) => Mathf.Lerp(u0, u1, (x - xa) / (xb - xa));
+            foreach (var (a, b) in new[] { (xa, xc - 0.55f), (xc + 0.55f, xb) })
+                k.QuadUV(M.windows, new Vector3(a, 0.06f, -d), new Vector3(b, 0.06f, -d), new Vector3(b, dh, -d), new Vector3(a, dh, -d), Vector3.forward,
+                    new Vector2(Uat(a), uv.yMin), new Vector2(Uat(b), uv.yMin), new Vector2(Uat(b), uv.yMax), new Vector2(Uat(a), uv.yMax));
+            k.Quad(M.concrete, new Vector3(xc - 0.55f, 2.15f, -d), new Vector3(xc + 0.55f, 2.15f, -d), new Vector3(xc + 0.55f, dh, -d), new Vector3(xc - 0.55f, dh, -d), Vector3.forward);
+            foreach (float px in new[] { xc - 0.55f, xc + 0.5f }) k.Box(M.lampCol, new Vector3(px, 0.06f, -d - 0.04f), new Vector3(px + 0.05f, 2.2f, -d + 0.04f));
             k.Quad(M.concrete, new Vector3(xa, dh, -d), new Vector3(xb, dh, -d), new Vector3(xb, yb, -d), new Vector3(xa, yb, -d), Vector3.forward);
             k.Box(M.glow, new Vector3((xa + xb) * 0.5f - 0.4f, yb - 0.05f, -d * 0.6f), new Vector3((xa + xb) * 0.5f + 0.4f, yb, -d * 0.4f));
         }

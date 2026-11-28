@@ -21,13 +21,13 @@ namespace ASBO.Slice
             IEnumerator Start()
             {
                 yield return new WaitForSeconds(1f);
-                var list = new System.Collections.Generic.List<Home>(Home.All); list.RemoveAll(x => x == null); list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+                var list = new System.Collections.Generic.List<Home>(Home.All); list.RemoveAll(x => x == null || x.shop || x.variant == null || !x.variant.StartsWith("g")); list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
                 int bad = 0, total = 0, diag = 0, dbgN = 0; var sb = new System.Text.StringBuilder();
                 foreach (var h in list)
                 {
                     foreach (var d in h.doors) if (d.door != null) foreach (var c in d.door.GetComponentsInChildren<Collider>()) c.enabled = false;
                     Physics.SyncTransforms();
-                    var zr = h.zoneRects[0]; float cs = 0.1f; int nx = Mathf.CeilToInt((zr.xMax - zr.xMin) / cs), nz = Mathf.CeilToInt((HomeBuilder.D1 - HomeBuilder.D0) / cs);
+                    var zr = h.zoneRects[0]; float cs = 0.1f; int nx = Mathf.CeilToInt((zr.xMax - zr.xMin) / cs), nz = Mathf.CeilToInt((HomeBuilder.HD1 - HomeBuilder.HD0) / cs);
                     Home.RoomRec start = null; foreach (var r in h.rooms) if (r.type == "hall" && r.lv == 0 && r.use != "stairfoot") { start = r; break; }
                     if (start == null) foreach (var r in h.rooms) if (r.lv == 0) { start = r; break; }
                     var seen = new System.Collections.Generic.HashSet<long>(); var q = new System.Collections.Generic.Queue<Vector3>(); var reached = new System.Collections.Generic.List<Vector3>();
@@ -35,11 +35,11 @@ namespace ASBO.Slice
                     int guard = 0;
                     while (q.Count > 0 && guard++ < 200000)
                     {
-                        var p = q.Dequeue(); long key = ((long)Mathf.RoundToInt((p.x - zr.xMin) / cs) * 4096 + Mathf.RoundToInt((p.z + HomeBuilder.D1) / cs)) * 64 + Mathf.RoundToInt(p.y / 0.5f);
+                        var p = q.Dequeue(); long key = ((long)Mathf.RoundToInt((p.x - zr.xMin) / cs) * 4096 + Mathf.RoundToInt((p.z + HomeBuilder.HD1) / cs)) * 64 + Mathf.RoundToInt(p.y / 0.5f);
                         if (!seen.Add(key)) continue; reached.Add(p);
                         foreach (var dv in new[] { new Vector2(cs, 0), new Vector2(-cs, 0), new Vector2(0, cs), new Vector2(0, -cs) })
                         {
-                            float nxp = p.x + dv.x, nzp = p.z + dv.y; if (nxp < zr.xMin || nxp > zr.xMax || nzp > -HomeBuilder.D0 || nzp < -HomeBuilder.D1) continue;
+                            float nxp = p.x + dv.x, nzp = p.z + dv.y; if (nxp < zr.xMin || nxp > zr.xMax || nzp > -HomeBuilder.HD0 || nzp < -HomeBuilder.HD1) continue;
                             Vector3 wp = h.transform.TransformPoint(new Vector3(nxp, p.y + 0.45f, nzp));
                             bool watch = h == list[0] && nxp > 4.5f && nxp < 5.0f && -nzp > 3.3f && -nzp < 3.8f && dbgN < 14;
                             if (!Physics.Raycast(wp, Vector3.down, out var hit, 0.95f, ~0, QueryTriggerInteraction.Ignore)) { if (watch) { dbgN++; sb.Append($"\n  watch ({nxp:0.00},{-nzp:0.00}) from y{p.y:0.00}: no ground"); } continue; }
@@ -153,7 +153,7 @@ namespace ASBO.Slice
         public static void Map(int house, int lv)
         {
             var list = new System.Collections.Generic.List<Home>(Home.All); list.RemoveAll(x => x == null); list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
-            var h = list[house]; float x0 = h.zoneRects[0].xMin - 0.2f; float y = HomeBuilder.Y[lv];
+            var h = list[house]; float x0 = h.zoneRects[0].xMin - 0.2f; float y = HomeBuilder.HY[lv];
             foreach (var dd in h.doors) if (dd.door != null) foreach (var c in dd.door.GetComponentsInChildren<Collider>()) c.enabled = false;
             Physics.SyncTransforms();
             var sb = new System.Text.StringBuilder($"[ASBO] map {h.name} [{h.variant}] floor {lv} (u across 0.2..5.2, d down 0.1..8.5)\n");

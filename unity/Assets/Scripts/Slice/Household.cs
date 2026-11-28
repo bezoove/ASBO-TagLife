@@ -125,6 +125,14 @@ namespace ASBO.Slice
             new Loot("Gold bracelet", 350f), new Loot("Proper camera, lenses and all", 380f), new Loot("Stash: a bag of whack", 280f, false, "drugs"), new Loot("Bag of fizz", 180f, false, "drugs"), new Loot("Wad of cash in a sock", 320f, true)
         };
 
+        /// <summary>What's sticking out of the post boxes in a block's lobby.</summary>
+        public static Loot PostLoot(System.Random r)
+        {
+            var a = new[] { new Loot("Birthday card with a tenner in it", 10f, true), new Loot("Somebody's parcel: trainers", 45f), new Loot("Somebody's parcel: a phone case", 6f), new Loot("A gift card", 25f),
+                new Loot("Somebody's parcel: perfume", 30f), new Loot("Catalogue", 1f), new Loot("Somebody's new bank card", 15f), new Loot("Somebody's parcel: vitamins", 8f), new Loot("A pools win cheque", 40f) };
+            return a[r.Next(a.Length)];
+        }
+
         /// <summary>What a shopkeeper's stock is worth to a fence: small, saleable, and plenty of it behind the counter.</summary>
         public static Loot StockLoot(string kind, System.Random r)
         {

@@ -30,11 +30,12 @@ namespace ASBO.Slice
         public Home Build(Transform grp)
         {
             CotMats.Init();
-            parent = grp; Layout(); Assign();
+            parent = grp; if (flat) FlatLayout(); else Layout(); Assign();
             ceilM = Flat(new Color(0.92f, 0.91f, 0.88f), 0.1f); glassM = CotMats.glassClear; skirtM = Flat(Shade(H.trim, 0.97f), 0.4f);
             var go = new GameObject(name); root = go.transform; root.SetParent(grp, false);
             home = go.AddComponent<Home>(); home.H = H; home.name = name;
-            Slabs(); Walls(); Stairs(); Guards(); Liners(); Facings();
+            if (flat) { FlatSlabs(); Walls(); FlatOuter(); }
+            else { Slabs(); Walls(); Stairs(); Guards(); Liners(); Facings(); }
             Furnish();
             Finish();
             return home;
@@ -174,8 +175,9 @@ namespace ASBO.Slice
         }
         void ExteriorSkin(Wall w, float a, float b, float y0, float y1, float half, float side)
         {
+            if (w.bare) return;
             float s0 = side < 0 ? w.at - half - 0.03f : w.at + half, s1 = side < 0 ? w.at - half : w.at + half + 0.03f;
-            Piece(CouncilEstate.M.white, w.axis, s0, s1, a, b, y0, y1);
+            Piece(flat && fs != null && fs.outside != null ? fs.outside : CouncilEstate.M.white, w.axis, s0, s1, a, b, y0, y1);
         }
 
         void MakeDoor(Wall w, (float c, float w, bool leaf, string tag) g)

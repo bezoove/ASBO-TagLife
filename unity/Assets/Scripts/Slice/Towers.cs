@@ -41,8 +41,16 @@ namespace ASBO.Slice
         }
 
         /// <summary>A window on a wall: the glazed unit from the atlas, a concrete sill under it and a reveal head over it.</summary>
+        /// <summary>While a point block is being built, every window it gets is noted here for the interior to cut through.</summary>
+        static List<TowerInterior.WinRec> rec;
         static void Win(MeshKit k, Vector3 o, Vector3 r, Vector3 n, float x0, float x1, float yb, float yt, int cell, Material sill = null)
         {
+            if (rec != null)
+            {
+                Vector3 pa = o + r * x0, pb = o + r * x1; char sd = n.z < -0.5f ? 'F' : n.x > 0.5f ? 'R' : n.z > 0.5f ? 'B' : 'L';
+                bool fb = sd == 'F' || sd == 'B';
+                rec.Add(new TowerInterior.WinRec { side = sd, a0 = fb ? Mathf.Min(pa.x, pb.x) : Mathf.Min(pa.z, pb.z), a1 = fb ? Mathf.Max(pa.x, pb.x) : Mathf.Max(pa.z, pb.z), y0 = yb, y1 = yt });
+            }
             var uv = Cell(cell); Vector3 off = n * 0.025f;
             Vector3 a = o + r * x0 + Vector3.up * yb + off, b = o + r * x1 + Vector3.up * yb + off, c = o + r * x1 + Vector3.up * yt + off, d = o + r * x0 + Vector3.up * yt + off;
             k.QuadUV(TownMats.towerWin, a, b, c, d, n, new Vector2(uv.xMin, uv.yMin), new Vector2(uv.xMax, uv.yMin), new Vector2(uv.xMax, uv.yMax), new Vector2(uv.xMin, uv.yMax));
@@ -90,6 +98,7 @@ namespace ASBO.Slice
             Material wall = s.style == Style.BrownBrick ? TownMats.brownBrick : s.style == Style.GreyPanel ? TownMats.panel : TownMats.pebble;
             Material band = s.style == Style.BrownBrick ? TownMats.panel : s.style == Style.GreyPanel ? TownMats.panelDark : TownMats.panel;
             float W = s.w, D = s.d, top = GF + (s.storeys - 1) * FH;
+            var wrec = new List<TowerInterior.WinRec>(); rec = wrec;
             // the four faces: origin, along, outward normal, length
             var faces = new (Vector3 o, Vector3 r, Vector3 n, float len)[]
             {
@@ -105,9 +114,11 @@ namespace ASBO.Slice
                     float dx0 = W * 0.5f - 1.6f, dx1 = W * 0.5f + 1.6f;
                     Wall(k, TownMats.panelDark, o, r, n, dx0, 0f, GF); Wall(k, TownMats.panelDark, o + r * dx1, r, n, len - dx1, 0f, GF);
                     Wall(k, TownMats.panelDark, o + r * dx0, r, n, dx1 - dx0, 2.6f, GF);
-                    // glazed entrance doors set back, a concrete canopy over
-                    k.Box(TownMats.glassDark, new Vector3(dx0, 0f, 1.2f), new Vector3(dx1, 2.6f, 1.3f));
-                    k.Box(TownMats.steel, new Vector3(W * 0.5f - 0.04f, 0f, 1.15f), new Vector3(W * 0.5f + 0.04f, 2.6f, 1.2f));
+                    // glazed entrance screen set back, a real door in the middle of it (the interior hangs the leaf), a concrete canopy over
+                    k.Box(TownMats.glassDark, new Vector3(dx0, 0f, 1.2f), new Vector3(W * 0.5f - 0.55f, 2.6f, 1.3f));
+                    k.Box(TownMats.glassDark, new Vector3(W * 0.5f + 0.55f, 0f, 1.2f), new Vector3(dx1, 2.6f, 1.3f));
+                    k.Box(TownMats.glassDark, new Vector3(W * 0.5f - 0.55f, 2.15f, 1.2f), new Vector3(W * 0.5f + 0.55f, 2.6f, 1.3f));
+                    foreach (float px in new[] { W * 0.5f - 0.55f, W * 0.5f + 0.5f }) k.Box(TownMats.steel, new Vector3(px, 0f, 1.17f), new Vector3(px + 0.05f, 2.6f, 1.31f));
                     foreach (float x in new[] { dx0, dx1 }) k.Box(TownMats.panelDark, new Vector3(x - 0.15f, 0f, 0f), new Vector3(x + 0.15f, 2.6f, 1.25f));
                     k.Box(TownMats.panel, new Vector3(dx0 - 1.2f, 2.65f, -1.8f), new Vector3(dx1 + 1.2f, 2.9f, 0.05f));
                     k.Box(TownMats.steel, new Vector3(dx1 + 0.3f, 1.2f, -0.06f), new Vector3(dx1 + 0.6f, 1.6f, 0f)); // the door entry panel
@@ -171,20 +182,23 @@ namespace ASBO.Slice
             for (int a = 0; a < 3; a++) { float ax = 1.5f + a * 1.6f; k.Box(TownMats.steel, new Vector3(ax, top + 0.75f, D - 1.5f), new Vector3(ax + 0.04f, top + 3.5f, D - 1.46f)); k.Box(TownMats.steel, new Vector3(ax - 0.6f, top + 3.1f, D - 1.5f), new Vector3(ax + 0.6f, top + 3.14f, D - 1.46f)); }
             // graffiti round the bottom: the local gang's tags
             Graffiti(k, faces, rng, s.seed % 3);
-            Lobby(inside, W, s.name);
+            rec = null;
             var body = k.Build("Tower", g, false, ShadowCastingMode.On);
-            inside.Build("Interior", g, true, ShadowCastingMode.Off);
-            // colliders: the tower above the ground floor solid, the ground floor walls round the lobby
-            Coll(g, new Vector3(0, GF, 0), new Vector3(W, top + 0.8f, D));
-            Coll(g, new Vector3(0, 0, 0), new Vector3(W * 0.5f - 1.6f, GF, D)); Coll(g, new Vector3(W * 0.5f + 1.6f, 0, 0), new Vector3(W, GF, D));
-            Coll(g, new Vector3(W * 0.5f - 1.6f, 0, 7.2f), new Vector3(W * 0.5f + 1.6f, GF, D));
+            // colliders while nobody's near: the whole block solid above the ground floor, solid round the entrance; the interior swaps them out
+            var baked = new List<Collider>
+            {
+                Coll(g, new Vector3(0, GF, 0), new Vector3(W, top + 0.8f, D)),
+                Coll(g, new Vector3(0, 0, 0), new Vector3(W * 0.5f - 1.6f, GF, D)), Coll(g, new Vector3(W * 0.5f + 1.6f, 0, 0), new Vector3(W, GF, D)),
+                Coll(g, new Vector3(W * 0.5f - 1.6f, 0, 1.3f), new Vector3(W * 0.5f + 1.6f, GF, D)),
+            };
+            TowerInterior.Bake(g, Vector3.zero, 0f, s.name, W, D, GF, FH, s.storeys, W * 0.5f, 1.3f, W * 0.5f - 1.6f, W * 0.5f + 1.6f, 2.6f, 0f, 0f, s.seed * 97 + 11, wrec, baked);
             return g;
         }
 
-        static void Coll(Transform g, Vector3 mn, Vector3 mx)
+        static BoxCollider Coll(Transform g, Vector3 mn, Vector3 mx)
         {
             var c = new GameObject("Solid").AddComponent<BoxCollider>(); c.transform.SetParent(g, false);
-            c.center = (mn + mx) * 0.5f; c.size = mx - mn;
+            c.center = (mn + mx) * 0.5f; c.size = mx - mn; return c;
         }
 
         static void Plate(MeshKit k, Vector3 at, string text)

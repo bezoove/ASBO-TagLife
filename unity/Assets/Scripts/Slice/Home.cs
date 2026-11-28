@@ -109,6 +109,11 @@ namespace ASBO.Slice
             return s.label;
         }
         static string Short(string t) => t;
+        static readonly string[] Notices =
+        {
+            "RESIDENTS MEETING THURSDAY. Somebody has written 'boring' under it.", "LOST CAT. Answers to Tyson. Do not approach.", "The council will be inspecting the lifts. The notice is from 2019.",
+            "NO BALL GAMES. NO DOGS. NO LOITERING. NO FUN.", "Whoever keeps nicking parcels: we know who you are. (Flat 12)", "Bulky waste collection: just leave it on the landing like everyone else does."
+        };
 
         /// <summary>The nearest thing in this home TALK would do something with, from where the player stands facing fwd.</summary>
         public bool Nearest(Vector3 me, Vector3 fwd, out int best, out float score)
@@ -140,6 +145,9 @@ namespace ASBO.Slice
                 case "light": ToggleLight(i, w); break;
                 case "flush": pw.Say("Flush. It takes three goes."); break;
                 case "window": pw.Say("Net curtains, twitching."); break;
+                case "chute": pw.Say(Random.value < 0.5f ? "The chute's jammed solid. Somebody's shoved a mattress down it." : "A warm, sour blast comes up the chute. You shut it quick."); break;
+                case "read": pw.Say(Notices[Random.Range(0, Notices.Length)]); break;
+                case "lift": { var ti = GetComponent<TowerInterior>(); if (ti != null) ti.CallLift(i); else pw.Say("The lift's broken."); break; }
                 default: pw.Say(s.label); break;
             }
         }
@@ -154,8 +162,8 @@ namespace ASBO.Slice
             NoiseBus.Emit(w, s.tag == "drawers" || s.tag == "cupboard" || s.tag == "wardrobe" ? 7f : 4f, pc.transform);
             yield return new WaitForSeconds(Mathf.Max(0.5f, d) + 1.2f + (s.hidden ? 1.5f : 0f));
             var rng = new System.Random(H.id * 997 + i * 31 + (int)(Mathf.Abs(s.pos.x) * 100f));
-            var loot = s.tag == "till" ? new Household.Loot("Till money", Mathf.Round(25f + (float)rng.NextDouble() * 120f), true) : s.tag == "stock" ? Household.StockLoot(shopKind, rng) : Household.Roll(H, rng, s.hidden);
-            float emptyChance = s.tag == "till" ? 0.2f : s.tag == "stock" ? 0.35f : s.tag == "fridge" || s.tag == "bathcab" || s.tag == "basket" || s.tag == "coats" ? 0.7f : s.hidden ? 0.25f : 0.5f;
+            var loot = s.tag == "post" ? Household.PostLoot(rng) : s.tag == "till" ? new Household.Loot("Till money", Mathf.Round(25f + (float)rng.NextDouble() * 120f), true) : s.tag == "stock" ? Household.StockLoot(shopKind, rng) : Household.Roll(H, rng, s.hidden);
+            float emptyChance = s.tag == "post" ? 0.55f : s.tag == "till" ? 0.2f : s.tag == "stock" ? 0.35f : s.tag == "fridge" || s.tag == "bathcab" || s.tag == "basket" || s.tag == "coats" ? 0.7f : s.hidden ? 0.25f : 0.5f;
             emptyChance += H.stuff < 0.3f ? 0.15f : -0.1f;
             if (H.kind == Household.Kind.Vacant) emptyChance = 0.95f;
             if (rng.NextDouble() < emptyChance) { pw.Say(Empty(rng)); yield break; }
@@ -194,6 +202,8 @@ namespace ASBO.Slice
                 case "counter": return "You rummage under the counter...";
                 case "bin": return "You go through the bin...";
                 case "fakeback": return "You feel for a false back...";
+                case "post": return "You fish about in the post boxes...";
+                case "bins": return "You lift the lid and hold your breath...";
                 default: return "You poke about in it...";
             }
         }

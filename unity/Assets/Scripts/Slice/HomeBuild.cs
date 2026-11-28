@@ -14,10 +14,16 @@ namespace ASBO.Slice
     /// </summary>
     public partial class HomeBuilder
     {
-        public const float W = CouncilEstate.W, D = CouncilEstate.D, FF = CouncilEstate.FF;
-        public const float U0 = 0.2f, U1 = W - 0.2f, D0 = 0.12f, D1 = D - 0.12f, PT = 0.1f;
-        public static readonly float[] Y = { 0.15f, 2.6f, 5.2f };      // floor tops
-        public static readonly float[] C = { 2.4f, 5.0f, 7.6f };       // ceiling undersides
+        public const float FF = CouncilEstate.FF, PT = 0.1f;
+        // the terrace house's frame (static, for the tests); every builder carries its own copy so a flat can be any size
+        public const float HD0 = 0.12f, HD1 = CouncilEstate.D - 0.12f;
+        public static readonly float[] HY = { 0.15f, 2.6f, 5.2f };      // floor tops
+        public float W = CouncilEstate.W, D = CouncilEstate.D;
+        public float U0 = 0.2f, U1 = CouncilEstate.W - 0.2f, D0 = HD0, D1 = HD1;
+        public float[] Y = { 0.15f, 2.6f, 5.2f };      // floor tops
+        public float[] C = { 2.4f, 5.0f, 7.6f };       // ceiling undersides
+        /// <summary>A single-level flat (in a tower or a block) instead of a terrace house: see HomeBuild.Flat.cs.</summary>
+        public bool flat; public int Levels => flat ? 1 : 3;
 
         public class Room
         {
@@ -30,10 +36,10 @@ namespace ASBO.Slice
         }
         public class Wall
         {
-            public int lv; public char axis; public float at, from, to, thick = PT; public List<(float c, float w, bool leaf, string tag)> gaps = new List<(float, float, bool, string)>();
+            public int lv; public char axis; public float at, from, to, thick = PT; public bool bare; public List<(float c, float w, bool leaf, string tag)> gaps = new List<(float, float, bool, string)>();
         }
         public class Door { public int lv; public char axis; public float at, c; public Room a, b; public PropDoor leaf; public string tag; }
-        public class Win { public int lv; public bool front; public float u0, u1, sill, head; }
+        public class Win { public int lv; public bool front; public char side; public float u0, u1, sill, head; public char Side => side != '\0' ? side : (front ? 'F' : 'B'); }
         public class Void { public int lv; public Rect r; }
 
         // set by the caller

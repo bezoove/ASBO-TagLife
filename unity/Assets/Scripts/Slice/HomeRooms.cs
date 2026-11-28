@@ -22,7 +22,7 @@ namespace ASBO.Slice
                 gar.role = role; if (role == "mancave" || role == "gym" || role == "bedroom") gar.use = "converted";
             }
             // living upstairs: the front room on the first floor becomes the kitchen-diner and the ground floor back becomes the lounge
-            bool liveUp = H.upsideDown && upper1 != 2 && !vacant;
+            bool liveUp = !flat && H.upsideDown && upper1 != 2 && !vacant;
             var lounge = Find(1, "lounge");
             if (lounge != null) { if (liveUp) { lounge.type = "kitchen"; lounge.role = "upstairsKitchen"; } else lounge.role = "lounge"; }
             foreach (var r in rooms)
@@ -71,7 +71,7 @@ namespace ASBO.Slice
         {
             why = ""; unreached.Clear(); const float cs = 0.1f, rad = 0.31f;
             int nx = Mathf.CeilToInt((U1 - U0) / cs), nd = Mathf.CeilToInt((D1 - D0) / cs); bool ok = true;
-            for (int lv = 0; lv < 3; lv++)
+            for (int lv = 0; lv < Levels; lv++)
             {
                 if (onlyLv >= 0 && lv != onlyLv) continue;
                 var blocked = new bool[nx, nd];
@@ -152,7 +152,7 @@ namespace ASBO.Slice
             }
             // every room: windows dressed, radiator, ceiling light and switch; then the mess
             foreach (var r in rooms) { Dress(r); if (H.Occupied && !skip.Contains(r)) Mess(r); }
-            foreach (var w in wins) if (w.lv >= 0) { float y0 = Y[w.lv] + w.sill, y1 = Y[w.lv] + w.head; var rm = RoomAt(w.lv, (w.u0 + w.u1) * 0.5f, w.front ? D0 + 0.3f : D1 - 0.3f); if (rm != null && rm.type != "garage" && H.Occupied) Curtains(w.u0, w.u1, y0, y1, w.front, w.lv); }
+            foreach (var w in wins) if (w.lv >= 0) { var wi = WinIn(w); var rm = RoomAt(w.lv, wi.x, wi.y); if (rm != null && rm.type != "garage" && H.Occupied) Curtains(w); }
         }
 
         // ------------------------------------------------------------------ every room
@@ -181,10 +181,13 @@ namespace ASBO.Slice
             // a radiator under the first window on a front or back wall
             foreach (var w in wins)
             {
-                if (w.lv != r.lv || r.type == "garage") continue; float mu = (w.u0 + w.u1) * 0.5f; var rm = RoomAt(r.lv, mu, w.front ? D0 + 0.3f : D1 - 0.3f); if (rm != r) continue;
+                if (w.lv != r.lv || r.type == "garage") continue; float mu = (w.u0 + w.u1) * 0.5f; var wi = WinIn(w); var rm = RoomAt(r.lv, wi.x, wi.y); if (rm != r) continue;
                 if (w.sill > 0.85f || w.sill < 0.5f) { if (w.sill < 0.5f) continue; }
                 if (w.u1 - w.u0 > 3.5f && w.sill < 0.8f) { mu = w.u0 + 0.9f; }
-                furn.Push(P(mu, Y[r.lv], w.front ? D0 + 0.001f : D1 - 0.001f), w.front ? 0f : 180f); Radiator(Mathf.Min(1.1f, w.u1 - w.u0 - 0.2f)); furn.Pop();
+                char sd = w.Side;
+                if (sd == 'F' || sd == 'B') { furn.Push(P(mu, Y[r.lv], sd == 'F' ? D0 + 0.001f : D1 - 0.001f), sd == 'F' ? 0f : 180f); }
+                else { furn.Push(P(sd == 'L' ? U0 + 0.001f : U1 - 0.001f, Y[r.lv], mu), WorldYaw(sd == 'L' ? -1f : 1f, 0f)); }
+                Radiator(Mathf.Min(1.1f, w.u1 - w.u0 - 0.2f)); furn.Pop();
                 break;
             }
         }
@@ -285,7 +288,7 @@ namespace ASBO.Slice
             bool done = KitchenRun(r, sides[0][0], order);
             if (!done || (r.u1 - r.u0) * (r.d1 - r.d0) > 11f) KitchenRun(r, sides[1][0], new List<int> { 4, 1, 1, 3 });
             float area = (r.u1 - r.u0) * (r.d1 - r.d0);
-            if (thin < 1 && area > 9f && Mathf.Min(r.u1 - r.u0, r.d1 - r.d0) > 3.0f && (H.era >= 1 || H.kind == Household.Kind.Family))
+            if (thin < 1 && area > 9f && Mathf.Min(r.u1 - r.u0, r.d1 - r.d0) > 3.0f && (H.era >= 1 || H.kind == Household.Kind.Family) && !(flat && (up || area < 12f)))
             {
                 float w = 1.2f; bool along = (r.u1 - r.u0) >= (r.d1 - r.d0);
                 if (PutAt(r, r.Cu, r.Cd, w, 0.75f, 0.76f, along, () => DiningTable(w, 0.75f, 2, 0.74f), "rummage", "Look on the table", "table", false, 0.5f)) { var c = lastCand; for (int i = 0; i < 2; i++) { bool a = i == 0; float cu = along ? c.cu + (a ? -0.3f : 0.3f) : c.cu + (a ? -0.55f : 0.55f), cd = along ? c.cd + (a ? -0.55f : 0.55f) : c.cd + (a ? -0.3f : 0.3f); var fp = new Rect(cu - 0.22f, cd - 0.22f, 0.44f, 0.44f); if (!OkLoose(r, fp)) continue; r.taken.Add(fp); float fu = along ? 0 : (a ? 1 : -1), fd = along ? (a ? 1 : -1) : 0; furn.Push(P(cu, Y[r.lv], cd), WorldYaw(fu, fd)); Chair(); furn.Pop(); solids.Add((P(cu, Y[r.lv] + 0.45f, cd), new Vector3(0.44f, 0.9f, 0.44f), 0f)); HardRect(r.lv, fp); AddSpot(r, "sit", "Sit down", "chair", cu, cd, Y[r.lv], fu, fd, false, 0.45f); } }
@@ -467,9 +470,10 @@ namespace ASBO.Slice
             {
                 var bc = cols.AddComponent<BoxCollider>(); bc.center = s.c; bc.size = new Vector3(Mathf.Max(0.02f, s.s.x), Mathf.Max(0.02f, s.s.y), Mathf.Max(0.02f, s.s.z));
             }
-            float xa = x0 + U0, xb = x0 + W - 0.2f;
-            home.zoneRects.Add(Rect.MinMaxRect(Mathf.Min(xa, xb), -D1, Mathf.Max(xa, xb), -D0));
-            home.variant = $"g{ground}-u{upper1}-s{upper2}-m{(mirror ? 1 : 0)}"; home.centre = P(W * 0.5f, 3.0f, D * 0.5f); home.radius = 7f;
+            Vector3 za = P(U0, 0f, D0), zb = P(U1, 0f, D1);
+            home.zoneRects.Add(Rect.MinMaxRect(Mathf.Min(za.x, zb.x), Mathf.Min(za.z, zb.z), Mathf.Max(za.x, zb.x), Mathf.Max(za.z, zb.z)));
+            if (flat) { home.variant = flatVariant; home.centre = P(W * 0.5f, Y[0] + 1.3f, D * 0.5f); home.radius = Mathf.Max(7f, 0.62f * Mathf.Max(W, D)); home.midZ = -D * 0.5f; home.halfD = D * 0.5f + 0.3f; }
+            else { home.variant = $"g{ground}-u{upper1}-s{upper2}-m{(mirror ? 1 : 0)}"; home.centre = P(W * 0.5f, 3.0f, D * 0.5f); home.radius = 7f; }
             home.Setup(new[] { inGo, trimGo, glassGo, decoGo }, furnGo);
         }
         static void SetLayer(GameObject g, int l) { g.layer = l; foreach (Transform t in g.transform) SetLayer(t.gameObject, l); }

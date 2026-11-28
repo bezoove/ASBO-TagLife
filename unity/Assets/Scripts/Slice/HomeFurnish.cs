@@ -30,11 +30,11 @@ namespace ASBO.Slice
                     Rect q = w.axis == 'u' ? new Rect(g.c - g.w / 2 - 0.05f, w.at - 0.95f, g.w + 0.1f, 1.9f) : new Rect(w.at - 0.95f, g.c - g.w / 2 - 0.05f, 1.9f, g.w + 0.1f);
                     clear[w.lv].Add(q);
                 }
-            clear[0].Add(new Rect(2.15f, D1 - 0.95f, 1.0f, 0.95f));        // back door swing
+            if (!flat) clear[0].Add(new Rect(2.15f, D1 - 0.95f, 1.0f, 0.95f));        // back door swing
             foreach (var v in voids) clear[v.lv].Add(new Rect(v.r.x - 0.2f, v.r.y - 0.2f, v.r.width + 0.4f, v.r.height + 0.4f));
             for (int l = 0; l < 3; l++) foreach (var b in blocks[l]) clear[l].Add(new Rect(b.x - 0.05f, b.y - 0.05f, b.width + 0.1f, b.height + 0.1f));
             // the stairs' landings need room to move
-            clear[0].Add(new Rect(4.3f, 3.4f, 0.9f, 1.1f)); clear[1].Add(new Rect(U0, D0, 1.4f, 1.4f)); clear[1].Add(new Rect(3.3f, D0, 1.9f, 1.0f)); clear[2].Add(new Rect(U0, 4.0f, 1.2f, 1.0f));
+            if (!flat) { clear[0].Add(new Rect(4.3f, 3.4f, 0.9f, 1.1f)); clear[1].Add(new Rect(U0, D0, 1.4f, 1.4f)); clear[1].Add(new Rect(3.3f, D0, 1.9f, 1.0f)); clear[2].Add(new Rect(U0, 4.0f, 1.2f, 1.0f)); }
         }
 
         Rect Inner(Room r)
@@ -50,7 +50,7 @@ namespace ASBO.Slice
             var big = new Rect(fp.x - pad, fp.y - pad, fp.width + pad * 2, fp.height + pad * 2);
             foreach (var t in r.taken) if (t.Overlaps(big)) return false;
             foreach (var c in clear[r.lv]) if (c.Overlaps(fp)) return false;
-            foreach (var w in wins) if (w.lv == r.lv && (wall == 'F' ? w.front : wall == 'B' ? !w.front : false) && h > w.sill - 0.02f && fp.xMax > w.u0 && fp.xMin < w.u1) return false;
+            foreach (var w in wins) if (w.lv == r.lv && wall == w.Side && h > w.sill - 0.02f && ((wall == 'F' || wall == 'B') ? fp.xMax > w.u0 && fp.xMin < w.u1 : fp.yMax > w.u0 && fp.yMin < w.u1)) return false;
             if (wall == 'x') foreach (var w in wins) if (w.lv == r.lv) { }
             return true;
         }
@@ -255,6 +255,20 @@ namespace ASBO.Slice
         void Ashtray() { Cy(Flat(new Color(0.5f, 0.5f, 0.52f), 0.5f), 0, 0, 0, 0.07f, 0.02f); for (int i = 0; i < 3; i++) B(Flat(new Color(0.9f, 0.85f, 0.75f)), R(-0.04f, 0.04f), 0.02f, R(-0.04f, 0.04f), 0.01f, 0.01f, 0.05f); }
         void DogBed() { Cy(Fab(new Color(0.5f, 0.35f, 0.25f)), 0, 0, 0, 0.35f, 0.12f, 12); Cy(Fab(new Color(0.65f, 0.5f, 0.4f)), 0, 0.1f, 0, 0.28f, 0.03f, 12); Cy(FlatM(new Color(0.7f, 0.7f, 0.7f), 0.7f, 0.5f), 0.5f, 0, 0.1f, 0.1f, 0.05f, 8); }
         void Airer() { foreach (float x in new[] { -0.4f, 0.4f }) B(metal, x, 0f, 0, 0.03f, 0.9f, 0.5f); for (int i = 0; i < 5; i++) B(Flat(Color.HSVToRGB(R(0f, 1f), 0.35f, 0.9f), 0.05f), 0, 0.85f - i * 0.06f, 0, 0.85f, 0.04f, 0.5f - i * 0.02f); }
+        /// <summary>Curtains or a blind on any window (flats have them on the side walls too).</summary>
+        void Curtains(Win wn)
+        {
+            char sd = wn.Side; float y0 = Y[wn.lv] + wn.sill, y1 = Y[wn.lv] + wn.head;
+            if (sd == 'F' || sd == 'B') { Curtains(wn.u0, wn.u1, y0, y1, sd == 'F', wn.lv); return; }
+            float u = sd == 'L' ? U0 + 0.08f : U1 - 0.1f, a = wn.u0, b = wn.u1; var m = Fab(H.curtain);
+            Bx(deco, black, u - 0.03f, u + 0.03f, y1 + 0.08f, y1 + 0.1f, a - 0.1f, b + 0.1f);
+            float w = Mathf.Clamp((b - a) * 0.22f, 0.22f, 0.5f);
+            if (H.era <= 2) { Bx(deco, m, u - 0.03f, u + 0.04f, y0 - 0.25f, y1 + 0.08f, a - 0.08f, a - 0.08f + w); Bx(deco, m, u - 0.03f, u + 0.04f, y0 - 0.25f, y1 + 0.08f, b + 0.08f - w, b + 0.08f); }
+            else Bx(deco, Flat(new Color(0.88f, 0.88f, 0.86f), 0.1f), u - 0.015f, u + 0.015f, y1 - (y1 - y0) * 0.4f, y1 + 0.06f, a, b);
+            if (H.era <= 1) Bx(deco, Flat(new Color(0.95f, 0.95f, 0.92f), 0.05f), sd == 'L' ? u + 0.008f : u - 0.012f, sd == 'L' ? u + 0.012f : u - 0.008f, y0, y0 + (y1 - y0) * 0.5f, a, b);
+        }
+        /// <summary>A point just inside a window, to find the room it belongs to.</summary>
+        Vector2 WinIn(Win w) { char sd = w.Side; float m = (w.u0 + w.u1) * 0.5f; return sd == 'F' ? new Vector2(m, D0 + 0.3f) : sd == 'B' ? new Vector2(m, D1 - 0.3f) : sd == 'L' ? new Vector2(U0 + 0.3f, m) : new Vector2(U1 - 0.3f, m); }
         void Curtains(float u0, float u1, float y0, float y1, bool front, int lv)
         {
             float d = front ? D0 + 0.08f : D1 - 0.1f; var m = H.era <= 1 ? Fab(H.curtain) : Fab(H.curtain);
@@ -263,8 +277,8 @@ namespace ASBO.Slice
             Bx(deco, black, u0 - 0.1f, u1 + 0.1f, y1 + 0.08f, y1 + 0.1f, d - 0.03f, d + 0.03f);
             float w = Mathf.Clamp((u1 - u0) * 0.22f, 0.22f, 0.5f);
             if (H.era <= 2) { Bx(deco, m, u0 - 0.08f, u0 - 0.08f + w, y0 - 0.25f, y1 + 0.08f, d - 0.03f, d + 0.04f); Bx(deco, m, u1 + 0.08f - w, u1 + 0.08f, y0 - 0.25f, y1 + 0.08f, d - 0.03f, d + 0.04f); }
-            else Bx(deco, Flat(new Color(0.88f, 0.88f, 0.86f), 0.1f), u0, u1, y0 + (y1 - y0) * 0.1f, y1 + 0.06f, d - 0.015f, d + 0.015f);   // roller blind, half down
-            if (net > 0.5f) Bx(deco, Flat(new Color(0.95f, 0.95f, 0.92f), 0.05f), u0, u1, y0, y1, d - 0.012f, d - 0.008f);
+            else Bx(deco, Flat(new Color(0.88f, 0.88f, 0.86f), 0.1f), u0, u1, y1 - (y1 - y0) * 0.4f, y1 + 0.06f, d - 0.015f, d + 0.015f);   // roller blind, part down
+            if (net > 0.5f) Bx(deco, Flat(new Color(0.95f, 0.95f, 0.92f), 0.05f), u0, u1, y0, y0 + (y1 - y0) * 0.5f, d - 0.012f, d - 0.008f);   // cafe nets on the bottom half
         }
     }
 
