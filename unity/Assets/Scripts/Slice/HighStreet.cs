@@ -14,7 +14,7 @@ namespace ASBO.Slice
     /// office; on the estate, Hawthorn Parade with a corner shop and a kebab shop. Ten units stand empty, to let (whitewashed,
     /// boarded, shuttered, or with the last business's faded board still up) for the story. Every name is made up. Built into the scene by the editor with the rest of the town.
     /// </summary>
-    public static class HighStreet
+    public static partial class HighStreet
     {
         public const string RootName = "HighStreet";
         public const float NorthFront = -22.4f, SouthFront = -37.7f, Depth = 11f, NorthStartX = -52f, SouthEndX = -86f;
@@ -128,7 +128,7 @@ namespace ASBO.Slice
                     Era.Sixties => Sixties(k, x0, x1, u, rng),
                     _ => Victorian(k, x0, x1, u, rng),
                 };
-                cols.Add((new Vector3((x0 + x1) * 0.5f, h * 0.5f, -Depth * 0.5f), new Vector3(u.w, h, Depth)));
+                if (WithInteriors && u.era != Era.Pub) ShopInterior(g, u, x0, x1, h, name, i); else cols.Add((new Vector3((x0 + x1) * 0.5f, h * 0.5f, -Depth * 0.5f), new Vector3(u.w, h, Depth)));
             }
             var body = k.Build("Buildings", g, false);
             foreach (var (c, s) in cols) { var bc = body.AddComponent<BoxCollider>(); bc.center = c; bc.size = s; }
@@ -179,13 +179,29 @@ namespace ASBO.Slice
             if (lintel) k.Box(M.stone, new Vector3(x0 - 0.1f, y1, Mathf.Min(z, z + s * 0.04f)), new Vector3(x1 + 0.1f, y1 + 0.25f, Mathf.Max(z, z + s * 0.04f)));
         }
 
+        /// <summary>The glazed front from the atlas, with the painted door cut out for a real doorway (the door is on the right of each atlas cell, so at the low-x end of the shop).</summary>
+        static void ShopFace(MeshKit k, int shop, float a, float b, float fy0)
+        {
+            var uv = Front(shop);
+            if (!WithInteriors) { Face(k, M.shops, a, b, 0f, fy0, -0.22f, uv); return; }
+            float L = b - a, xc = a + 0.16f * L; doorC = xc; float d0 = xc - 0.5f, d1 = xc + 0.5f, hd = 2.15f;
+            Rect Sub(float xs0, float xs1, float ys0, float ys1)
+            {
+                float u0 = uv.xMax - (xs1 - a) / L * uv.width, u1 = uv.xMax - (xs0 - a) / L * uv.width, v0 = uv.yMin + ys0 / fy0 * uv.height, v1 = uv.yMin + ys1 / fy0 * uv.height;
+                return new Rect(u0, v0, u1 - u0, v1 - v0);
+            }
+            Face(k, M.shops, a, d0, 0f, fy0, -0.22f, Sub(a, d0, 0f, fy0));
+            Face(k, M.shops, d1, b, 0f, fy0, -0.22f, Sub(d1, b, 0f, fy0));
+            Face(k, M.shops, d0, d1, hd, fy0, -0.22f, Sub(d0, d1, hd, fy0));
+        }
+
         /// <summary>The shopfront: recessed glass and door from the atlas, a fascia board with the name, pilasters and a cornice over.</summary>
         static void Shopfront(MeshKit k, int shop, float x0, float x1, float top)
         {
             const float pil = 0.32f, fasciaH = 0.62f; float fy0 = top - fasciaH - 0.15f, fy1 = top - 0.15f;
             float a = x0 + pil, b = x1 - pil;
             // the glazed front set back in the opening, the opening's soffit and sides
-            Face(k, M.shops, a, b, 0f, fy0, -0.22f, Front(shop));
+            ShopFace(k, shop, a, b, fy0);
             k.Quad(M.frame, new Vector3(a, fy0, 0f), new Vector3(b, fy0, 0f), new Vector3(b, fy0, -0.22f), new Vector3(a, fy0, -0.22f), Vector3.down);
             k.Quad(M.frame, new Vector3(a, 0f, 0f), new Vector3(a, fy0, 0f), new Vector3(a, fy0, -0.22f), new Vector3(a, 0f, -0.22f), Vector3.right);
             k.Quad(M.frame, new Vector3(b, 0f, 0f), new Vector3(b, fy0, 0f), new Vector3(b, fy0, -0.22f), new Vector3(b, 0f, -0.22f), Vector3.left);
@@ -224,13 +240,14 @@ namespace ASBO.Slice
         }
 
         /// <summary>Plain side and back walls of a building in a material (the back gets windows and a door).</summary>
-        static void SidesAndBack(MeshKit k, Material m, float x0, float x1, float h, System.Random rng, bool sashes)
+        static void SidesAndBack(MeshKit k, Material m, float x0, float x1, float h, System.Random rng, bool sashes, float gl = 3.9f)
         {
             k.Quad(m, new Vector3(x0, 0, 0), new Vector3(x0, h, 0), new Vector3(x0, h, -Depth), new Vector3(x0, 0, -Depth), Vector3.left);
             k.Quad(m, new Vector3(x1, 0, 0), new Vector3(x1, h, 0), new Vector3(x1, h, -Depth), new Vector3(x1, 0, -Depth), Vector3.right);
             var holes = new List<Rect>(); float w = x1 - x0;
             float dx = x0 + 0.8f; holes.Add(new Rect(dx, 0f, 0.9f, 2.1f));
-            for (float y = 3.9f; y + 1.6f < h; y += 3f) holes.Add(new Rect(x0 + w * 0.5f - 0.5f, y, 1.0f, 1.6f));
+            for (float y = gl + 0.8f; y + 1.6f < h; y += 3f) holes.Add(new Rect(x0 + w * 0.5f - 0.5f, y, 1.0f, 1.6f));
+            lastBack = new List<Rect>(holes);
             WallHoles(k, m, x0, x1, 0f, h, -Depth, holes, false);
             k.QuadUV(M.frame, new Vector3(dx + 0.9f, 0f, -Depth + 0.08f), new Vector3(dx, 0f, -Depth + 0.08f), new Vector3(dx, 2.1f, -Depth + 0.08f), new Vector3(dx + 0.9f, 2.1f, -Depth + 0.08f), Vector3.back,
                 new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1));
@@ -254,10 +271,11 @@ namespace ASBO.Slice
                     holes.Add(new Rect(wx0, wy0, ww, wy1 - wy0));
                     Win(k, M.sash, SashUV(rng.Next(4)), wx0, wx0 + ww, wy0, wy1, 0f, M.brick, true, true);
                 }
+            lastHoles = holes; lastG = G; lastFH = FH;
             WallHoles(k, M.brick, x0, x1, G, eave, 0f, holes);
             k.Box(M.stone, new Vector3(x0, G + 0.45f, 0f), new Vector3(x1, G + 0.6f, 0.04f), 16);        // first-floor band
             k.Box(M.stone, new Vector3(x0, eave - 0.3f, 0f), new Vector3(x1, eave, 0.18f), 16);           // eaves cornice
-            SidesAndBack(k, M.brick, x0, x1, eave, rng, true);
+            SidesAndBack(k, M.brick, x0, x1, eave, rng, true, G);
             float ridge = Roof(k, x0, x1, eave, 35f, M.brick);
             Chimney(k, x0 + 0.5f, ridge, -Depth * 0.5f);
             return eave;
@@ -274,12 +292,13 @@ namespace ASBO.Slice
                 float wy0 = G + (f - 1) * FH + 0.8f; var r = new Rect(x0 + 0.5f, wy0, w - 1f, 1.4f); holes.Add(r);
                 Win(k, M.windows, AtlasStrip(rng.Next(3)), r.xMin, r.xMax, r.yMin, r.yMax, 0f, M.render, true, false);
             }
+            lastHoles = holes; lastG = G; lastFH = FH;
             WallHoles(k, M.render, x0, x1, G, top + 0.9f, 0f, holes);
             for (int b = 0; b < 3; b++) k.Box(M.render, new Vector3(x0, top + 0.1f + b * 0.2f, 0f), new Vector3(x1, top + 0.18f + b * 0.2f, 0.05f), 16);
             float cx = (x0 + x1) * 0.5f;
             k.Box(M.render, new Vector3(cx - 1.2f, top + 0.9f, -0.3f), new Vector3(cx + 1.2f, top + 1.7f, 0f), 4);   // stepped centre
             k.Box(M.render, new Vector3(cx - 0.6f, top + 1.7f, -0.3f), new Vector3(cx + 0.6f, top + 2.1f, 0f), 4);
-            SidesAndBack(k, M.render, x0, x1, top + 0.9f, rng, false);
+            SidesAndBack(k, M.render, x0, x1, top + 0.9f, rng, false, G);
             k.Quad(M.felt, new Vector3(x0, top + 0.5f, 0f), new Vector3(x1, top + 0.5f, 0f), new Vector3(x1, top + 0.5f, -Depth), new Vector3(x0, top + 0.5f, -Depth), Vector3.up);
             return top + 0.9f;
         }
@@ -297,10 +316,11 @@ namespace ASBO.Slice
                 var r = new Rect(x0 + 0.3f, G + (f - 1) * FH + 0.9f, x1 - x0 - 0.6f, 1.5f); holes.Add(r);
                 Win(k, M.windows, AtlasStrip(rng.Next(3)), r.xMin, r.xMax, r.yMin, r.yMax, 0f, M.concrete, true, false);
             }
+            lastHoles = holes; lastG = G; lastFH = FH;
             WallHoles(k, M.concrete, x0, x1, G, top + 0.5f, 0f, holes);
             k.Box(M.concrete, new Vector3(x0, G - 0.1f, 0f), new Vector3(x1, G + 0.15f, 1.4f));      // canopy over the shopfront
             k.Box(M.felt, new Vector3(x0 - 0.05f, top + 0.4f, -0.05f), new Vector3(x1 + 0.05f, top + 0.6f, 0.15f));
-            SidesAndBack(k, M.buff, x0, x1, top + 0.5f, rng, false);
+            SidesAndBack(k, M.buff, x0, x1, top + 0.5f, rng, false, G);
             k.Quad(M.felt, new Vector3(x0, top + 0.45f, 0f), new Vector3(x1, top + 0.45f, 0f), new Vector3(x1, top + 0.45f, -Depth), new Vector3(x0, top + 0.45f, -Depth), Vector3.up);
             return top + 0.6f;
         }

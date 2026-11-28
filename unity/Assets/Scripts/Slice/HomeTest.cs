@@ -74,6 +74,81 @@ namespace ASBO.Slice
                 Debug.Log($"[ASBO] reach: {bad}/{total} rooms unreachable{sb}"); Destroy(gameObject);
             }
         }
+
+        /// <summary>The same physical flood for the shops and the flats over them (unit footprint: lx across, d 0.14..10.86).</summary>
+        public static void ReachShops() { new GameObject("ShopReach").AddComponent<RunShops>(); }
+        class RunShops : MonoBehaviour
+        {
+            IEnumerator Start()
+            {
+                yield return new WaitForSeconds(1f);
+                var list = new System.Collections.Generic.List<Home>(); foreach (var x in Home.All) if (x != null && x.shop) list.Add(x); list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+                int bad = 0, total = 0, spots = 0, doors = 0, rummage = 0; var sb = new System.Text.StringBuilder();
+                foreach (var h in list)
+                {
+                    foreach (var d in h.doors) if (d.door != null) foreach (var c in d.door.GetComponentsInChildren<Collider>()) c.enabled = false;
+                    Physics.SyncTransforms();
+                    spots += h.spots.Count; doors += h.doors.Count; foreach (var s in h.spots) if (s.kind == "rummage") rummage++;
+                    var zr = h.zoneRects[0]; float cs = 0.1f;
+                    Home.RoomRec start = null; foreach (var r in h.rooms) if (r.type == "shop") { start = r; break; }
+                    var seen = new System.Collections.Generic.HashSet<long>(); var q = new System.Collections.Generic.Queue<Vector3>(); var reached = new System.Collections.Generic.List<Vector3>();
+                    // start just inside the shop door, on the pavement side
+                    Vector3 s0 = start.centre; q.Enqueue(new Vector3(s0.x, s0.y + 0.05f, -1.0f));
+                    // seed from the doorway: find the front door
+                    foreach (var d in h.doors) if (d.tag == "shopfront" && d.door != null) { var lp = h.transform.InverseTransformPoint(d.door.transform.position); q.Clear(); foreach (float ox in new[] { 0f, 0.35f, -0.35f }) q.Enqueue(new Vector3(lp.x + ox, 0.04f, -0.6f)); }
+                    int guard = 0;
+                    while (q.Count > 0 && guard++ < 400000)
+                    {
+                        var p = q.Dequeue(); long key = ((long)Mathf.RoundToInt((p.x - zr.xMin) / cs) * 4096 + Mathf.RoundToInt((p.z + 11f) / cs)) * 64 + Mathf.RoundToInt(p.y / 0.5f);
+                        if (!seen.Add(key)) continue; reached.Add(p);
+                        foreach (var dv in new[] { new Vector2(cs, 0), new Vector2(-cs, 0), new Vector2(0, cs), new Vector2(0, -cs) })
+                        {
+                            float nxp = p.x + dv.x, nzp = p.z + dv.y; if (nxp < zr.xMin || nxp > zr.xMax || nzp > -0.0f || nzp < -10.9f) continue;
+                            Vector3 wp = h.transform.TransformPoint(new Vector3(nxp, p.y + 0.45f, nzp));
+                            if (!Physics.Raycast(wp, Vector3.down, out var hit, 0.95f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                            float gy = h.transform.InverseTransformPoint(hit.point).y; if (gy - p.y > 0.4f || p.y - gy > 0.7f) continue;
+                            Vector3 a = h.transform.TransformPoint(new Vector3(nxp, gy + 0.65f, nzp)), b = h.transform.TransformPoint(new Vector3(nxp, gy + 1.5f, nzp));
+                            if (Physics.CheckCapsule(a, b, 0.28f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                            q.Enqueue(new Vector3(nxp, gy, nzp));
+                        }
+                    }
+                    var miss = new System.Collections.Generic.List<string>(); float topY = 0f; foreach (var p in reached) topY = Mathf.Max(topY, p.y);
+                    foreach (var r in h.rooms)
+                    {
+                        total++; bool ok = false; foreach (var p in reached) if (Mathf.Abs(p.y - r.centre.y) < 0.9f && (p.x - r.centre.x) * (p.x - r.centre.x) + (p.z - r.centre.z) * (p.z - r.centre.z) < 1.6f * 1.6f) { ok = true; break; }
+                        if (!ok) { bad++; miss.Add(r.type + r.lv + (r.use != r.type && r.use != null ? "/" + r.use : "")); }
+                    }
+                    if (miss.Count > 0) sb.Append($"\n  {h.name} [{h.variant}] top y={topY:0.00} reached {reached.Count}, unreachable [{string.Join(",", miss)}]");
+                    foreach (var d in h.doors) if (d.door != null) foreach (var c in d.door.GetComponentsInChildren<Collider>()) c.enabled = true;
+                    yield return null;
+                }
+                Debug.Log($"[ASBO] shopreach: {bad}/{total} rooms unreachable in {list.Count} units; {spots} spots ({rummage} rummage), {doors} doors{sb}"); Destroy(gameObject);
+            }
+        }
+
+        public static void MapShopNamed(string key, int lv) { foreach (var x in Home.All) if (x != null && x.shop && x.name.Replace(" ", "-") == key) { MapShopH(x, lv); return; } Debug.Log("[ASBO] shopmap: no " + key); }
+        public static void MapShop(int idx, int lv)
+        {
+            var list = new System.Collections.Generic.List<Home>(); foreach (var x in Home.All) if (x != null && x.shop) list.Add(x); list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            MapShopH(list[idx], lv);
+        }
+        static void MapShopH(Home h, int lv)
+        { float y = 0f; foreach (var r in h.rooms) if (r.lv == lv) { y = r.centre.y; break; }
+            foreach (var dd in h.doors) if (dd.door != null) foreach (var c in dd.door.GetComponentsInChildren<Collider>()) c.enabled = false;
+            Physics.SyncTransforms(); float x0 = h.zoneRects[0].xMin - 0.12f, wd = h.zoneRects[0].width + 0.24f;
+            var sb = new System.Text.StringBuilder($"[ASBO] shopmap {h.name} [{h.variant}] floor {lv} y={y:0.00} width {wd:0.0}\n");
+            for (float d = 0.1f; d < 11f; d += 0.1f)
+            {
+                for (float u = 0.1f; u < wd; u += 0.1f)
+                {
+                    Vector3 a = h.transform.TransformPoint(new Vector3(x0 + u, y + 0.65f, -d)), b = h.transform.TransformPoint(new Vector3(x0 + u, y + 1.5f, -d));
+                    sb.Append(Physics.CheckCapsule(a, b, 0.28f, ~0, QueryTriggerInteraction.Ignore) ? '#' : '.');
+                }
+                sb.Append('\n');
+            }
+            foreach (var dd in h.doors) if (dd.door != null) foreach (var c in dd.door.GetComponentsInChildren<Collider>()) c.enabled = true;
+            Debug.Log(sb.ToString());
+        }
         /// <summary>ASCII map of the whole floor plan of one (unmirrored) house on one floor: # = capsule blocked, . = free (doors open).</summary>
         public static void Map(int house, int lv)
         {
@@ -170,6 +245,60 @@ namespace ASBO.Slice
                 }
                 Debug.Log($"[ASBO] burgle: used {did}/{tried}, pockets={Pockets.Items.Count} value={Pockets.Value:0} cash={Econ.Cash:0}");
                 Destroy(gameObject);
+            }
+        }
+
+
+        /// <summary>One shot from the middle of a room of a shop, looking along yaw (degrees, unit frame: 0 = towards the back) and pitch (down positive).</summary>
+        public static void ShotRoom(string key, int room, float yaw, float pitch) { var g = new GameObject("ShotRoom").AddComponent<RunShotRoom>(); g.key = key; g.room = room; g.yaw = yaw; g.pitch = pitch; }
+        class RunShotRoom : MonoBehaviour
+        {
+            public string key; public int room; public float yaw, pitch;
+            IEnumerator Start()
+            {
+                yield return new WaitForSeconds(1f);
+                var pc = FindFirstObjectByType<PlayerCtl>(); Home h = null; foreach (var x in Home.All) if (x != null && x.shop && x.name.Replace(" ", "-") == key) h = x;
+                if (pc == null || h == null) { Destroy(gameObject); yield break; }
+                var r = h.rooms[room]; pc.Teleport(h.transform.TransformPoint(new Vector3(r.centre.x, r.centre.y + 0.1f, r.centre.z)), 0f, 12f);
+                var cg = new GameObject("ShotCam"); var cam = cg.AddComponent<Camera>(); cam.fieldOfView = 80f; cam.nearClipPlane = 0.05f; cam.farClipPlane = 80f;
+                var src = Camera.main; if (src != null) { cam.clearFlags = src.clearFlags; cam.backgroundColor = src.backgroundColor; cam.cullingMask = src.cullingMask; }
+                cg.transform.position = h.transform.TransformPoint(new Vector3(r.centre.x, r.centre.y + 1.6f, r.centre.z));
+                cg.transform.rotation = h.transform.rotation * Quaternion.Euler(pitch, 180f - yaw, 0f);
+                var rt = new RenderTexture(1280, 720, 24); cam.targetTexture = rt; yield return new WaitForSeconds(0.8f); cam.Render();
+                var tex = new Texture2D(1280, 720, TextureFormat.RGB24, false); RenderTexture.active = rt; tex.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0); tex.Apply(); RenderTexture.active = null;
+                string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots"); System.IO.File.WriteAllBytes(dir + $"/shotroom_{room}_{(int)yaw}_{(int)pitch}.png", tex.EncodeToPNG());
+                Debug.Log($"[ASBO] shotroom {r.type}{r.lv} done"); Destroy(tex); Destroy(rt); Destroy(cg); Destroy(gameObject);
+            }
+        }
+        public static void TourShop(string key, int maxShots) { var g = new GameObject("ShopTour").AddComponent<RunShopTour>(); g.key = key; g.max = maxShots; }
+        class RunShopTour : MonoBehaviour
+        {
+            public string key; public int max;
+            IEnumerator Start()
+            {
+                yield return new WaitForSeconds(1f);
+                var pc = FindFirstObjectByType<PlayerCtl>(); Home h = null; foreach (var x in Home.All) if (x != null && x.shop && x.name.Replace(" ", "-") == key) h = x;
+                if (pc == null || h == null) { Debug.Log("[ASBO] shoptour: nothing"); Destroy(gameObject); yield break; }
+                Debug.Log($"[ASBO] shoptour: {h.name} kind={h.shopKind} rooms={h.rooms.Count} spots={h.spots.Count}");
+                foreach (Transform ch in h.transform) { var mf = ch.GetComponent<MeshFilter>(); var mr = ch.GetComponent<MeshRenderer>(); if (mf != null && mf.sharedMesh != null) Debug.Log($"[ASBO] shopmesh {ch.name} active={ch.gameObject.activeSelf} verts={mf.sharedMesh.vertexCount} subs={mf.sharedMesh.subMeshCount} bounds={mf.sharedMesh.bounds.min}..{mf.sharedMesh.bounds.max} layer={ch.gameObject.layer} mats={(mr != null ? mr.sharedMaterials.Length : 0)}"); }
+                int shot = 0;
+                foreach (var r in h.rooms)
+                {
+                    if (shot >= max || r.type == "wc") continue;
+                    float hw = Mathf.Abs(r.u1 - r.u0) * 0.5f, hd = Mathf.Abs(r.d1 - r.d0) * 0.5f; Vector3 c = r.centre;
+                    Vector3 lf = new Vector3(c.x - hw + 0.35f, c.y + 1.65f, c.z + hd - 0.35f); Vector3 look = new Vector3(c.x + hw * 0.4f, c.y + 0.9f, c.z - hd * 0.6f) - lf;
+                    pc.Teleport(h.transform.TransformPoint(new Vector3(c.x, c.y + 0.1f, c.z)), 0f, 12f);
+                    var cg = new GameObject("TourCam"); var cam = cg.AddComponent<Camera>(); cam.fieldOfView = 80f; cam.nearClipPlane = 0.05f; cam.farClipPlane = 80f;
+                    var src = Camera.main; if (src != null) { cam.clearFlags = src.clearFlags; cam.backgroundColor = src.backgroundColor; cam.cullingMask = src.cullingMask; }
+                    cg.transform.position = h.transform.TransformPoint(lf); cg.transform.rotation = Quaternion.LookRotation(h.transform.TransformDirection(look));
+                    { var wp = cg.transform.position; string up = Physics.Raycast(wp, Vector3.up, out var hu, 6f, ~0, QueryTriggerInteraction.Ignore) ? hu.collider.name + "@" + hu.distance.ToString("0.0") : "none"; string dn = Physics.Raycast(wp, Vector3.down, out var hd2, 6f, ~0, QueryTriggerInteraction.Ignore) ? hd2.collider.name + "@" + hd2.distance.ToString("0.0") : "none"; Debug.Log($"[ASBO] shotcam {r.type}{r.lv} pos {wp.x:0.0},{wp.y:0.0},{wp.z:0.0} local {lf.x:0.0},{lf.y:0.0},{lf.z:0.0} up {up} down {dn}"); }
+                    var rt = new RenderTexture(1280, 720, 24); cam.targetTexture = rt;
+                    yield return new WaitForSeconds(2.0f); cam.Render();
+                    var tex = new Texture2D(1280, 720, TextureFormat.RGB24, false); RenderTexture.active = rt; tex.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0); tex.Apply(); RenderTexture.active = null;
+                    string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots"); System.IO.File.WriteAllBytes(dir + $"/shop_{key}_{shot}_{r.type}_{r.lv}.png", tex.EncodeToPNG());
+                    Destroy(tex); Destroy(rt); Destroy(cg); shot++;
+                }
+                Debug.Log("[ASBO] shoptour: done"); Destroy(gameObject);
             }
         }
         public static void Tour(int house) { new GameObject("HomeTour").AddComponent<Run>().house = house; }

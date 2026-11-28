@@ -21,6 +21,8 @@ namespace ASBO.Slice
         [System.NonSerialized] public bool[] done; [System.NonSerialized] public bool entered; [System.NonSerialized] public float noticedAt = -99f;
         [System.NonSerialized] public bool tvOn; [System.NonSerialized] GameObject furnGo;
         public string variant; public bool awake, occupantIn; // decided at play from the clock
+        /// <summary>Shops and flats over them: the shop's own opening hours, and which part of the footprint the pooled room light looks at.</summary>
+        public bool shop, openNow; public string shopKind; public float midZ = -4.3f, halfD = 4.6f;
 
         public void Setup(GameObject[] interior, GameObject furniture) { interiorGos = interior; furnGo = furniture; }
         [System.NonSerialized] GameObject[] interiorGos;
@@ -49,6 +51,16 @@ namespace ASBO.Slice
             float hr = GameClock.Hour;
             float home = H == null || !H.Occupied ? 0f : H.kind == Household.Kind.Pensioner || H.kind == Household.Kind.Hoarder ? 0.9f : H.kind == Household.Kind.Student ? 0.6f : (hr > 17f || hr < 8f) ? 0.75f : 0.3f;
             occupantIn = rn.NextDouble() < home; awake = occupantIn && !(hr > 23.5f || hr < 7f) || (occupantIn && rn.NextDouble() < 0.12);
+            if (shop)
+            {
+                // open 8 till 9 if somebody trades from it; otherwise shuttered and alarmed. The flat over it is its own matter.
+                openNow = H != null && H.Occupied && hr >= 8f && hr < 21f; occupantIn = openNow; awake = openNow;
+                foreach (var d in doors)
+                {
+                    if (d.door == null || d.tag != "shopfront") continue;
+                    d.locked = !openNow; d.tier = openNow ? -1 : 1; d.door.lockTag = d.locked ? "home" : "";
+                }
+            }
         }
 
         // ------------------------------------------------------------------ doors
@@ -78,7 +90,8 @@ namespace ASBO.Slice
                     {
                         r.broken = true; r.locked = false; r.door.lockTag = ""; r.door.Toggle(from);
                         World.Toast("The frame splinters and the door gives. Loudly.", 1);
-                        Offences.Report("Breaking in", 24f, c); h.Disturb(c, 1.0f);
+                        Offences.Report("Breaking in", h.shop ? 34f : 24f, c); h.Disturb(c, 1.0f);
+                        if (h.shop) World.Toast("An alarm goes off, somewhere above the door.", 1);
                     }
                     else World.Toast(r.hits == 1 ? "You put your shoulder to it." : need - r.hits <= 1 ? "It's giving. Nearly." : "Thud. It holds.", 0);
                     return true;
@@ -141,13 +154,14 @@ namespace ASBO.Slice
             NoiseBus.Emit(w, s.tag == "drawers" || s.tag == "cupboard" || s.tag == "wardrobe" ? 7f : 4f, pc.transform);
             yield return new WaitForSeconds(Mathf.Max(0.5f, d) + 1.2f + (s.hidden ? 1.5f : 0f));
             var rng = new System.Random(H.id * 997 + i * 31 + (int)(Mathf.Abs(s.pos.x) * 100f));
-            var loot = Household.Roll(H, rng, s.hidden);
-            float emptyChance = s.tag == "fridge" || s.tag == "bathcab" || s.tag == "basket" || s.tag == "coats" ? 0.7f : s.hidden ? 0.25f : 0.5f;
+            var loot = s.tag == "till" ? new Household.Loot("Till money", Mathf.Round(25f + (float)rng.NextDouble() * 120f), true) : s.tag == "stock" ? Household.StockLoot(shopKind, rng) : Household.Roll(H, rng, s.hidden);
+            float emptyChance = s.tag == "till" ? 0.2f : s.tag == "stock" ? 0.35f : s.tag == "fridge" || s.tag == "bathcab" || s.tag == "basket" || s.tag == "coats" ? 0.7f : s.hidden ? 0.25f : 0.5f;
             emptyChance += H.stuff < 0.3f ? 0.15f : -0.1f;
             if (H.kind == Household.Kind.Vacant) emptyChance = 0.95f;
             if (rng.NextDouble() < emptyChance) { pw.Say(Empty(rng)); yield break; }
             Pockets.Take(loot, pw, s.hidden);
-            if (loot.value >= 100f) { Offences.Report("Burglary", 14f, w); }
+            if (loot.value >= 100f || s.tag == "till" || s.tag == "stock") { Offences.Report(shop ? "Robbery" : "Burglary", shop ? 20f : 14f, w); }
+            if (shop && occupantIn && (s.tag == "till" || s.tag == "stock")) Disturb(w, 1f);
         }
         static string Starter(string tag)
         {
@@ -174,6 +188,11 @@ namespace ASBO.Slice
                 case "bag": return "You rip open the black bag...";
                 case "floorboard": return "You prise up the loose floorboard...";
                 case "safe": return "You try the wall safe...";
+                case "till": return "You jemmy the till drawer...";
+                case "stock": return "You go through the stock...";
+                case "rail": return "You go through the rails...";
+                case "counter": return "You rummage under the counter...";
+                case "bin": return "You go through the bin...";
                 case "fakeback": return "You feel for a false back...";
                 default: return "You poke about in it...";
             }
@@ -226,7 +245,7 @@ namespace ASBO.Slice
         {
             var cam = Camera.main; if (cam == null) return;
             Vector3 lp = transform.InverseTransformPoint(cam.transform.position);
-            if (zoneRects.Count == 0 || lp.x < zoneRects[0].xMin || lp.x > zoneRects[0].xMax || Mathf.Abs(lp.z + 4.3f) > 4.6f || (WCentre - cam.transform.position).sqrMagnitude > 60f) return;
+            if (zoneRects.Count == 0 || lp.x < zoneRects[0].xMin || lp.x > zoneRects[0].xMax || Mathf.Abs(lp.z - midZ) > halfD || (WCentre - cam.transform.position).sqrMagnitude > 60f) return;
             RoomRec best = null; float bd = 9f;
             foreach (var r in rooms) { if (Mathf.Abs(r.centre.y - lp.y) > 1.6f) continue; if (lp.y + 1.5f > r.centre.y + 3f) continue; float d = new Vector2(r.centre.x - lp.x, r.centre.z - lp.z).magnitude; if (d < bd) { bd = d; best = r; } }
             if (best == null) return;

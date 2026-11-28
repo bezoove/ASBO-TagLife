@@ -125,6 +125,25 @@ namespace ASBO.Slice
             new Loot("Gold bracelet", 350f), new Loot("Proper camera, lenses and all", 380f), new Loot("Stash: a bag of whack", 280f, false, "drugs"), new Loot("Bag of fizz", 180f, false, "drugs"), new Loot("Wad of cash in a sock", 320f, true)
         };
 
+        /// <summary>What a shopkeeper's stock is worth to a fence: small, saleable, and plenty of it behind the counter.</summary>
+        public static Loot StockLoot(string kind, System.Random r)
+        {
+            switch (kind)
+            {
+                case "grocer": { var l = new[] { new Loot("Carton of cigarettes", 55f), new Loot("Bottles of spirits", 40f), new Loot("Phone top-up cards", 30f), new Loot("Scratchcards", 25f), new Loot("Tin of baby milk", 14f) }; return l[r.Next(l.Length)]; }
+                case "pharmacy": { var l = new[] { new Loot("Codeine, a few boxes", 45f), new Loot("Perfume gift set", 35f), new Loot("Razor blades, whole pack", 20f), new Loot("Baby formula", 18f) }; return l[r.Next(l.Length)]; }
+                case "vape": { var l = new[] { new Loot("Boxes of disposable vapes", 60f), new Loot("Vape kit", 35f), new Loot("Bottles of liquid", 25f) }; return l[r.Next(l.Length)]; }
+                case "charity": { var l = new[] { new Loot("Bag of donated jewellery", 45f), new Loot("Vinyl records", 30f), new Loot("Designer jacket", 50f), new Loot("Silver teapot", 40f) }; return l[r.Next(l.Length)]; }
+                case "bookie": { var l = new[] { new Loot("Float for the machines", 90f, true), new Loot("Betting slips, signed", 0f) }; return l[r.Next(l.Length)]; }
+                case "pound": { var l = new[] { new Loot("Box of tat", 6f), new Loot("Bluetooth speakers", 18f), new Loot("Phone chargers", 12f) }; return l[r.Next(l.Length)]; }
+                case "post": { var l = new[] { new Loot("Unclaimed parcel", 35f), new Loot("Parcel: trainers", 70f), new Loot("Parcel: games console", 120f) }; return l[r.Next(l.Length)]; }
+                case "salon": { var l = new[] { new Loot("Hair straighteners", 40f), new Loot("Clippers, good ones", 50f), new Loot("Boxes of nail gel", 22f) }; return l[r.Next(l.Length)]; }
+                case "laundry": { var l = new[] { new Loot("Change from the machine", 20f, true), new Loot("Somebody's good trainers", 35f), new Loot("Washing powder, pallet of it", 15f) }; return l[r.Next(l.Length)]; }
+                case "food": { var l = new[] { new Loot("Tray of cash", 55f, true), new Loot("Frozen meat, boxes of it", 30f), new Loot("Sack of rice", 12f) }; return l[r.Next(l.Length)]; }
+                default: return Junk[r.Next(Junk.Length)];
+            }
+        }
+
         public static Loot Roll(Household h, System.Random r, bool hidden)
         {
             float w = h.wealth + (hidden ? 0.15f : 0f);
