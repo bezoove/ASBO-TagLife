@@ -146,6 +146,7 @@ namespace ASBO.Slice
                 case "flush": pw.Say("Flush. It takes three goes."); break;
                 case "window": pw.Say("Net curtains, twitching."); break;
                 case "chute": pw.Say(Random.value < 0.5f ? "The chute's jammed solid. Somebody's shoved a mattress down it." : "A warm, sour blast comes up the chute. You shut it quick."); break;
+                case "say": pw.Say(s.tag); break;
                 case "read": pw.Say(Notices[Random.Range(0, Notices.Length)]); break;
                 case "lift": { var ti = GetComponent<TowerInterior>(); if (ti != null) ti.CallLift(i); else pw.Say("The lift's broken."); break; }
                 default: pw.Say(s.label); break;

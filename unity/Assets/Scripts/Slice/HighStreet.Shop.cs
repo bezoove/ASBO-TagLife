@@ -50,9 +50,9 @@ namespace ASBO.Slice
 
         /// <summary>A shop with its flat over in someone else's building (the precinct): frame has the front at z = 0 and the inside to -z, the unit 0..w across.
         /// holes: the upper front windows (x across the unit, y); back: the back wall's openings (the door at 0.8..1.7 and the windows).</summary>
-        public static void UnitInterior(Transform frame, string name, float w, float G, float FH, int storeys, float topH, int cell, float doorX, List<Rect> holes, List<Rect> back)
+        public static void UnitInterior(Transform frame, string name, float w, float G, float FH, int storeys, float topH, int cell, float doorX, List<Rect> holes, List<Rect> back, float depth = Depth)
         {
-            var b = new ShopB { parent = frame, x0 = 0f, w = w, G = G, FH = FH, storeys = Mathf.Max(2, storeys), topH = topH, name = name, unit = default, holes = holes, back = back, doorX = doorX };
+            var b = new ShopB { parent = frame, x0 = 0f, w = w, G = G, FH = FH, storeys = Mathf.Max(2, storeys), topH = topH, name = name, unit = default, holes = holes, back = back, doorX = doorX, dep = depth };
             b.kind = KindOf(cell); if (b.kind == "empty" && cell % 3 != 0) b.kind = new[] { "grocer", "food", "pound", "charity", "salon", "bookie", "laundry", "pharmacy", "vape", "bakery", "post" }[cell % 11];
             b.rng = new System.Random(name.GetHashCode() * 31 + cell);
             b.Build();
@@ -63,7 +63,8 @@ namespace ASBO.Slice
         {
             public Transform parent; public float x0, w, G, FH, topH, doorX; public int storeys; public string name, kind; public Unit unit; public List<Rect> holes, back;
             public System.Random rng; public Household H, S;
-            const float PT = 0.1f, SW = 0.12f, DBack = Depth - 0.14f;
+            const float PT = 0.1f, SW = 0.12f;
+            public float dep = Depth; float DBack => dep - 0.14f;
             const float DS = 4.9f;               // back of the shop floor
             const float AF = 9.9f, AT = 5.15f;   // the lower flight: foot (d) and top (d), 19 treads of 0.25
             float[] Yf, Cf;
@@ -280,14 +281,14 @@ namespace ASBO.Slice
                     shell.Quad(wm, P(L0, y0, fd), P(L0, y1, fd), P(L0, y1, DBack), P(L0, y0, DBack), Vector3.right);
                     shell.Quad(wm, P(L1, y0, DBack), P(L1, y1, DBack), P(L1, y1, fd), P(L1, y0, fd), Vector3.left);
                 }
-                Solid(0f, L0, -0.3f, topH, 0f, Depth); Solid(L1, w, -0.3f, topH, 0f, Depth);                   // the party walls
+                Solid(0f, L0, -0.3f, topH, 0f, dep); Solid(L1, w, -0.3f, topH, 0f, dep);                   // the party walls
                 // back wall: skin with holes, colliders
                 {
                     var wmat = HomeBuilder.Surf("plaster_smooth", 2f, new Color(0.9f, 0.89f, 0.85f), 0.1f);
                     var abs = new List<Rect>(back);
                     WallHoles(shell, wmat, x0 + L0, x0 + L1, 0f, topH, -DBack, abs, true);
                     // collider: whole back wall above the doors/windows; the holes are filled (a back door leaf blocks its own doorway when shut; windows are out of reach)
-                    Solid(0f, 0.8f, -0.3f, topH, DBack, Depth); Solid(1.7f, w, -0.3f, Yf[1], DBack, Depth); Solid(0.8f, 1.7f, 2.12f, Yf[1], DBack, Depth); Solid(0f, w, Yf[1], topH, DBack, Depth);
+                    Solid(0f, 0.8f, -0.3f, topH, DBack, dep); Solid(1.7f, w, -0.3f, Yf[1], DBack, dep); Solid(0.8f, 1.7f, 2.12f, Yf[1], DBack, dep); Solid(0f, w, Yf[1], topH, DBack, dep);
                 }
                 // front: ground skin with the shop door opening; upper skins with the window holes
                 {
@@ -305,7 +306,7 @@ namespace ASBO.Slice
                     Bx(fin, trim, dcl - 0.55f, dcl - 0.5f, 0f, 2.17f, 0.02f, 0.3f); Bx(fin, trim, dcl + 0.5f, dcl + 0.55f, 0f, 2.17f, 0.02f, 0.3f); Bx(fin, trim, dcl - 0.55f, dcl + 0.55f, 2.15f, 2.2f, 0.02f, 0.3f);
                 }
                 // roof: stand-on collider
-                Solid(0f, w, Cf[storeys - 1], topH, 0f, Depth);
+                Solid(0f, w, Cf[storeys - 1], topH, 0f, dep);
                 // the stairs
                 Stairs(L0, L1);
             }
@@ -372,7 +373,7 @@ namespace ASBO.Slice
                 foreach (var s in solids) { var bc = cols.AddComponent<BoxCollider>(); bc.center = s.c; bc.size = new Vector3(Mathf.Max(0.02f, s.s.x), Mathf.Max(0.02f, s.s.y), Mathf.Max(0.02f, s.s.z)); }
                 float xa = x0 + SW, xb = x0 + w - SW;
                 home.zoneRects.Add(Rect.MinMaxRect(Mathf.Min(xa, xb), -DBack, Mathf.Max(xa, xb), -0.14f));
-                home.centre = P(w * 0.5f, 2.0f, Depth * 0.5f); home.radius = 7.5f; home.midZ = -Depth * 0.5f; home.halfD = Depth * 0.5f + 0.4f;
+                home.centre = P(w * 0.5f, 2.0f, dep * 0.5f); home.radius = 7.5f; home.midZ = -dep * 0.5f; home.halfD = dep * 0.5f + 0.4f;
                 home.Setup(new[] { sh, tr, de }, fu);
                 // record rooms for the glow / light switches
                 foreach (var r in rooms) home.rooms.Add(new Home.RoomRec { type = r.type, use = r.use, lv = r.lv, centre = P(r.Cx, Yf[r.lv], r.Cd), u0 = r.lx0, u1 = r.lx1, d0 = r.d0, d1 = r.d1 });

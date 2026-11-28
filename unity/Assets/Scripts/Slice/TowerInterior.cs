@@ -24,6 +24,8 @@ namespace ASBO.Slice
         public bool lifts = true, groundFlats;
         /// <summary>How far the ground floor stands above the street (a plinth): steps up to the door.</summary>
         public float plinth;
+        /// <summary>An office block: every floor's rooms are open-plan offices.</summary>
+        public bool offices;
         public List<WinRec> wins = new List<WinRec>();
         public List<Collider> baked = new List<Collider>();
         public Home core; public bool liftBroken;
@@ -69,12 +71,12 @@ namespace ASBO.Slice
 
         // ================================================================== baking (editor, with the building)
         public static TowerInterior Bake(Transform building, Vector3 pos, float yaw, string block, float W, float D, float GF, float FH, int storeys,
-            float coreX, float lobbyZ, float rx0, float rx1, float rh, float insetL, float insetR, int seed, List<WinRec> wins, List<Collider> baked, bool lifts = true, bool groundFlats = false)
+            float coreX, float lobbyZ, float rx0, float rx1, float rh, float insetL, float insetR, int seed, List<WinRec> wins, List<Collider> baked, bool lifts = true, bool groundFlats = false, bool offices = false)
         {
             var g = new GameObject("Inside"); g.transform.SetParent(building, false); g.transform.localPosition = pos; g.transform.localRotation = Quaternion.Euler(0, yaw, 0);
             var ti = g.AddComponent<TowerInterior>();
             ti.block = block; ti.W = W; ti.D = D; ti.GF = GF; ti.FH = FH; ti.storeys = storeys; ti.coreX = coreX; ti.lobbyZ = lobbyZ; ti.recessX0 = rx0; ti.recessX1 = rx1; ti.recessH = rh;
-            ti.insetL = insetL; ti.insetR = insetR; ti.seed = seed; ti.wins = wins; ti.baked = baked; ti.lifts = lifts; ti.groundFlats = groundFlats; ti.Calc();
+            ti.insetL = insetL; ti.insetR = insetR; ti.seed = seed; ti.wins = wins; ti.baked = baked; ti.lifts = lifts; ti.groundFlats = groundFlats; ti.offices = offices; ti.Calc();
             var rng = new System.Random(seed * 7 + 3);
             ti.liftBroken = !lifts || rng.NextDouble() < 0.22;
             // the common parts: one home for the entrance door, the lifts, the post boxes and the chutes
@@ -216,7 +218,7 @@ namespace ASBO.Slice
             for (int i = 0; i < 4; i++)
             {
                 var s = spans[i]; float wd = s.xb - s.xa;
-                string kind = wd < 2.0f ? "duct" : wd < 3.6f ? "chute" : f == 0 && !groundFlats ? gk[i] : "flat";
+                string kind = wd < 2.0f ? "duct" : wd < 3.6f ? "chute" : offices ? "office" : f == 0 && !groundFlats ? gk[i] : "flat";
                 fl.jobs.Add(new Job { xa = s.xa, xb = s.xb, za = s.za, zb = s.zb, front = s.front, ext = s.ext, bareL = s.bl, bareR = s.br, idx = i, kind = kind });
             }
             try { CoreFloor(fl); } catch (System.Exception e) { Debug.LogException(e); }
@@ -543,6 +545,36 @@ namespace ASBO.Slice
                         Bx(fk, HomeBuilder.Flat(new Color(0.15f, 0.2f, 0.4f), 0.4f), xb - 1.1f, xb - 0.4f, ft + 0.3f, ft + 0.9f, (za + zb) * 0.5f - 0.4f, (za + zb) * 0.5f + 0.4f, true);
                         Bx(fk, HomeBuilder.Flat(new Color(0.85f, 0.8f, 0.7f), 0.1f), xb - 0.25f, xb - 0.05f, ft, ft + 1.9f, za + 0.3f, za + 1.7f, true);
                         Spot("rummage", "Poke about in the junk", "bag", xb - 0.9f, (za + zb) * 0.5f + (j.front ? 0.8f : -0.8f), true);
+                        break;
+                    }
+                case "office":
+                    {
+                        // open plan: rows of desks with screens and chairs, filing cabinets along the wall, a water cooler, the odd plant
+                        var deskTop = HomeBuilder.Flat(new Color(0.75f, 0.72f, 0.66f), 0.4f); var screen = HomeBuilder.Flat(new Color(0.12f, 0.12f, 0.13f), 0.6f); var chairM = HomeBuilder.Flat(new Color(0.15f, 0.2f, 0.35f), 0.3f);
+                        int nx = Mathf.Max(1, Mathf.FloorToInt((xb - xa - 1.2f) / 1.8f)), nz = Mathf.Max(1, Mathf.FloorToInt((zb - za - 2.4f) / 2.2f));
+                        for (int ix = 0; ix < nx; ix++)
+                            for (int iz = 0; iz < nz; iz++)
+                            {
+                                float cx = xa + 1.2f + ix * 1.8f, cz = za + 1.6f + iz * 2.2f;
+                                Bx(fk, deskTop, cx - 0.75f, cx + 0.75f, ft + 0.72f, ft + 0.75f, cz - 0.4f, cz + 0.4f, true);
+                                Bx(fk, grey, cx - 0.72f, cx - 0.68f, ft, ft + 0.72f, cz - 0.35f, cz + 0.35f); Bx(fk, grey, cx + 0.68f, cx + 0.72f, ft, ft + 0.72f, cz - 0.35f, cz + 0.35f);
+                                Bx(fk, screen, cx - 0.25f, cx + 0.25f, ft + 0.8f, ft + 1.12f, cz - 0.05f, cz - 0.02f); Bx(fk, screen, cx - 0.03f, cx + 0.03f, ft + 0.75f, ft + 0.82f, cz - 0.05f, cz);
+                                Bx(fk, chairM, cx - 0.22f, cx + 0.22f, ft + 0.42f, ft + 0.5f, cz + 0.45f, cz + 0.85f); Bx(fk, chairM, cx - 0.22f, cx + 0.22f, ft + 0.5f, ft + 1.0f, cz + 0.85f, cz + 0.9f);
+                                if (rng.NextDouble() < 0.5) Spot("rummage", "Go through the desk drawers", "drawers", cx, cz + 0.65f);
+                                else if (rng.NextDouble() < 0.4) Spot("sit", "Sit at the desk", "chair", cx, cz + 0.65f);
+                            }
+                        float fz = j.front ? za + 0.05f : zb - 0.55f;
+                        for (int i = 0; i < Mathf.Min(5, Mathf.FloorToInt((xb - xa) / 1.2f)); i++)
+                        {
+                            float fx = xa + 0.2f + i * 0.55f; Bx(fk, TownMats.steel, fx, fx + 0.48f, ft, ft + 1.3f, fz, fz + 0.5f, true);
+                            for (int dd = 0; dd < 4; dd++) Bx(fk, grey, fx + 0.04f, fx + 0.44f, ft + 0.1f + dd * 0.3f, ft + 0.12f + dd * 0.3f, j.front ? fz + 0.5f : fz - 0.01f, j.front ? fz + 0.51f : fz);
+                        }
+                        Spot("rummage", "Go through the filing cabinets", "cabinet", xa + 0.9f, j.front ? fz + 0.9f : fz - 0.4f);
+                        fk.Cyl(HomeBuilder.Flat(new Color(0.6f, 0.8f, 0.95f), 0.9f), new Vector3(xb - 0.4f, ft + 0.9f, (za + zb) * 0.5f), 0.14f, 0.4f, 10);
+                        Bx(fk, HomeBuilder.Flat(new Color(0.9f, 0.9f, 0.9f), 0.4f), xb - 0.55f, xb - 0.25f, ft, ft + 0.9f, (za + zb) * 0.5f - 0.15f, (za + zb) * 0.5f + 0.15f, true);
+                        Spot("tap", "Have a drink from the cooler", "kettle", xb - 0.9f, (za + zb) * 0.5f);
+                        Bx(fk, CouncilEstate.M.glow, (xa + xb) * 0.5f - 1.5f, (xa + xb) * 0.5f - 0.3f, ch - 0.05f, ch, (za + zb) * 0.5f - 0.1f, (za + zb) * 0.5f + 0.1f);
+                        Bx(fk, CouncilEstate.M.glow, (xa + xb) * 0.5f + 0.3f, (xa + xb) * 0.5f + 1.5f, ch - 0.05f, ch, (za + zb) * 0.5f - 0.1f, (za + zb) * 0.5f + 0.1f);
                         break;
                     }
                 default: // drying room

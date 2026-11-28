@@ -17,7 +17,7 @@ namespace ASBO.Slice
     ///  - Thornbury Road: a corner parade and houses by the manor, and a parade on the east side before the casino.
     /// Every name is made up (Art/Town/street_shopfronts*.png, street_signs.png).
     /// </summary>
-    public static class Infill
+    public static partial class Infill
     {
         public const string RootName = "Infill";
         // building lines: the back of each road's pavement (the high street's are 7.6 m off the centreline)
@@ -291,11 +291,14 @@ namespace ASBO.Slice
             // the engine house next door (gable to the lane) and the chimney behind it
             a.Frame(new Vector3(-86f, 0f, 66f), 180f);
             k.Box(stone, V(-0.05f, -0.6f, -12.05f), V(12.05f, 0.45f, 0.05f));
-            FacBox(k, 0f, 12f, 12f, 0.45f, 8.2f, 0f, B04, B04, Brick, Brick);
+            FrontWithDoors(k, B04, 12f, 0.45f, 8.2f, 0f, new[] { 6f });
+            FacWall(k, Brick, V(0, 0, -12f), V(12f, 0, -12f), 0.45f, 8.2f, 0f, Vector3.back); FacWall(k, B04, V(0, 0, 0), V(0, 0, -12f), 0.45f, 8.2f, 0f, Vector3.left); FacWall(k, Brick, V(12f, 0, 0), V(12f, 0, -12f), 0.45f, 8.2f, 0f, Vector3.right);
             k.Box(stone, V(-0.12f, 7.9f, -12.12f), V(12.12f, 8.2f, 0.12f));
             k.Push(Matrix4x4.TRS(V(0f, 0f, -12f), Quaternion.Euler(0, -90f, 0), Vector3.one)); Pitched(k, 0f, 12f, 12f, 8.2f, 30f, brick); k.Pop();
-            k.Box(wood, V(4.6f, 0.45f, 0f), V(7.4f, 4.2f, 0.12f)); k.Box(stone, V(4.4f, 4.2f, -0.02f), V(7.6f, 4.5f, 0.16f));
-            a.Solid(V(0, 0, -12f), V(12f, 8.2f, 0)); a.End();
+            k.Box(wood, V(4.6f, 2.65f, 0f), V(7.4f, 4.2f, 0.12f)); k.Box(stone, V(4.4f, 4.2f, -0.02f), V(7.6f, 4.5f, 0.16f));
+            Steps(a, 6f, 0.45f);
+            HallInside(a, "Engine House", 12f, 12f, 0.45f, 7.9f, 6f, new List<(Vector3, Vector3, float, float)>(), Engine);
+            a.End();
             var c = V(-91.5f, 0f, 84f);
             k.Box(brick, c + V(-2.1f, -0.6f, -2.1f), c + V(2.1f, 4f, 2.1f)); k.Box(stone, c + V(-2.25f, 4f, -2.25f), c + V(2.25f, 4.35f, 2.25f));
             k.Cyl(brick, c + V(0, 4.35f, 0), 1.7f, 29.5f, 14, false, 1.0f);
@@ -310,18 +313,20 @@ namespace ASBO.Slice
         {
             var k = a.k;
             k.Box(stone, V(-0.05f, -0.6f, -D - 0.05f), V(L + 0.05f, 0.45f, 0.05f));
-            FacBox(k, 0f, L, D, 0.45f, h, 0f, B04, Brick, B04, Brick);
+            FrontWithDoors(k, B04, L, 0.45f, h, 0f, new[] { L * 0.5f });
+            FacWall(k, B04, V(0, 0, -D), V(L, 0, -D), 0.45f, h, 0f, Vector3.back); FacWall(k, Brick, V(0, 0, 0), V(0, 0, -D), 0.45f, h, 0f, Vector3.left); FacWall(k, Brick, V(L, 0, 0), V(L, 0, -D), 0.45f, h, 0f, Vector3.right);
             k.Box(stone, V(-0.12f, h - 0.3f, -D - 0.12f), V(L + 0.12f, h, 0.12f));
             Pitched(k, 0f, L, D, h, 24f, brick);
             // door between the windows: a painted door and a stone surround, the board over, a lamp
             float cx = L * 0.5f;
-            k.Box(stone, V(cx - 1.2f, 0.45f, 0f), V(cx + 1.2f, 3.4f, 0.18f), 32);
-            k.QuadUV(doors, V(cx + 0.9f, 0.45f, 0.19f), V(cx - 0.9f, 0.45f, 0.19f), V(cx - 0.9f, 3.0f, 0.19f), V(cx + 0.9f, 3.0f, 0.19f), Vector3.forward,
-                new Vector2(0.258f, 0), new Vector2(0.492f, 0), new Vector2(0.492f, 1), new Vector2(0.258f, 1));
+            k.Box(stone, V(cx - 1.2f, 2.65f, 0f), V(cx + 1.2f, 3.4f, 0.18f), 32);
+            Steps(a, cx, 0.45f);
             k.Box(frame, V(cx - 3.2f, 3.6f, 0f), V(cx + 3.2f, 4.9f, 0.12f));
             SignQuad(k, Bld.SignCell(sign), V(cx, 4.25f, 0.13f), Vector3.forward, 6.2f, 1.03f);
             a.detail.Box(glow, V(cx - 0.15f, 3.45f, 0.2f), V(cx + 0.15f, 3.6f, 0.5f));
-            a.Solid(V(0, 0, -D), V(L, h, 0));
+            var wins = new List<(Vector3, Vector3, float, float)>();
+            FacWins(B04, V(0, 0, 0), V(L, 0, 0), 0.45f, h, 0f, Vector3.forward, 2.6f, wins); FacWins(B04, V(0, 0, -D), V(L, 0, -D), 0.45f, h, 0f, Vector3.back, 2.6f, wins);
+            HallInside(a, "Wend Snooker Club", L, D, 0.45f, h - 0.3f, cx, wins, Snooker);
         }
 
         /// <summary>Flats in grey brick: the photographed front on every side, a flat roof behind a parapet, a stair
@@ -441,8 +446,12 @@ namespace ASBO.Slice
             SignQuad(k, Bld.SignCell(2), V(L * 0.5f, G + 0.575f, 2.51f), Vector3.forward, 6.2f, 1.03f);
             SignQuad(k, Bld.SignCell(3), V(L * 0.5f + 3.6f, 1.9f, -set + 0.03f), Vector3.forward, 3.2f, 0.53f);
             SignQuad(k, Bld.SignCell(11), V(L * 0.25f, G + 9f, 0.05f), Vector3.forward, 7f, 1.16f);
-            a.Solid(V(0, 0, -D), V(L, top + 0.8f, -set));
-            foreach (float x in new[] { 0.3f, L * 0.5f, L - 0.3f }) a.Solid(V(x - 0.3f, 0f, -set), V(x + 0.3f, G, 0f));
+            int osi = a.solids.Count; a.Solid(V(0, 0, -D), V(L, top + 0.8f, -set));
+            foreach (float x in new[] { 0.3f, L - 0.3f }) a.Solid(V(x - 0.3f, 0f, -set), V(x + 0.3f, G, 0f));
+            a.Solid(V(L * 0.5f - 0.3f, 0f, -0.6f), V(L * 0.5f + 0.3f, G, 0f));
+            // the offices inside: the reception behind the glass, the lifts and stair, six floors of open-plan rooms
+            var ti = TowerInterior.Bake(a.root, a.f.MultiplyPoint3x4(V(L, 0f, 0f)), a.f.rotation.eulerAngles.y + 180f, "Northway House", L, D, G, 3.5f, 6, L * 0.5f, set, 0.3f, L - 0.3f, G, 0f, 0f, 4470, new List<TowerInterior.WinRec>(), new List<Collider>(), true, false, true);
+            a.links.Add((ti, osi));
         }
 
         /// <summary>Kestrel Chambers (1889): shops in a stone ground floor, two tall storeys of arched windows over on both
@@ -451,7 +460,7 @@ namespace ASBO.Slice
         {
             var k = a.k; const float G = 4.4f, top = 12.9f; float L = cells.Length * unit;
             k.Box(stone, V(-0.05f, -0.6f, -D - 0.05f), V(L + 0.05f, 0.3f, 0.05f));
-            for (int i = 0; i < cells.Length; i++) Shopfront(k, shops2, 1024f, cells[i], i * unit, (i + 1) * unit, G);
+            for (int i = 0; i < cells.Length; i++) Shopfront(k, shops2, 1024f, cells[i], i * unit, (i + 1) * unit, G, true);
             // the corner end (local +x: Kestrel Road): stone ground floor with a door to the offices over
             FacWall(k, new Fac { m = stone, w = 2f, h = 2f }, V(L, 0, 0), V(L, 0, -D), 0.3f, G, 0f, Vector3.right);
             k.Quad(glass, V(L + 0.03f, 0.3f, -D * 0.5f + 0.8f), V(L + 0.03f, 0.3f, -D * 0.5f - 0.8f), V(L + 0.03f, 3f, -D * 0.5f - 0.8f), V(L + 0.03f, 3f, -D * 0.5f + 0.8f), Vector3.right);
@@ -459,7 +468,7 @@ namespace ASBO.Slice
             FacWall(k, F08, V(0, 0, 0), V(L, 0, 0), G, top, G, Vector3.forward);
             FacWall(k, F08, V(L, 0, 0), V(L, 0, -D), G, top, G, Vector3.right);
             FacWall(k, Brick, V(0, 0, 0), V(0, 0, -D), 0.3f, top + 1.1f, 0f, Vector3.left);
-            FacWall(k, Brick, V(0, 0, -D), V(L, 0, -D), 0.3f, top + 1.1f, 0f, Vector3.back);
+            BackWithDoors(k, Brick, L, D, 0.3f, top + 1.1f, 0f, cells.Length, unit);
             k.Box(stone, V(0f, G - 0.05f, 0f), V(L + 0.3f, G + 0.3f, 0.3f)); k.Box(stone, V(L, G - 0.05f, -D), V(L + 0.3f, G + 0.3f, 0f));
             k.Box(stone, V(-0.05f, top, -D - 0.05f), V(L + 0.45f, top + 0.5f, 0.45f));                         // cornice
             FacWall(k, new Fac { m = stone, w = 2f, h = 2f }, V(0, 0, 0f), V(L, 0, 0f), top + 0.5f, top + 1.1f, 0f, Vector3.forward);
@@ -467,7 +476,36 @@ namespace ASBO.Slice
             FlatRoof(k, 0f, L, D, top + 0.4f, top + 1.1f, stone);
             k.Box(stone, V(L * 0.5f - 3.4f, top + 1.1f, 0f), V(L * 0.5f + 3.4f, top + 2.4f, 0.25f));
             SignQuad(k, Bld.SignCell(6), V(L * 0.5f, top + 1.75f, 0.26f), Vector3.forward, 6f, 1.0f);
-            a.Solid(V(0, 0, -D), V(L, top + 1.1f, 0));
+            var wins = new List<(Vector3, Vector3, float, float)>(); FacWins(F08, V(0, 0, 0), V(L, 0, 0), G, top, G, Vector3.forward, 2.0f, wins);
+            Units(a, "Kestrel Chambers", cells, unit, D, 0.3f, G, (top - G) * 0.5f, 3, top + 1.1f, wins);
+        }
+
+        /// <summary>The shops in a facade parade, each with its rooms over (the high street's shop builder), in the area's frame (front z = 0, inside to -z).</summary>
+        static void Units(Area a, string name, int[] cells, float unit, float D, float plinth, float G, float FH, int storeys, float topH, List<(Vector3 p0, Vector3 p1, float ya, float yb)> wins)
+        {
+            for (int i = 0; i < cells.Length; i++)
+            {
+                float x0 = i * unit, x1 = x0 + unit;
+                var fr = new GameObject(name + " " + (i + 1)).transform; fr.SetParent(a.root, false);
+                fr.localPosition = a.f.MultiplyPoint3x4(V(x0, plinth - 0.04f, 0f)); fr.localRotation = a.f.rotation;
+                var holes = new List<Rect>();
+                foreach (var (p0, p1, ya, yb) in wins) { float wa = Mathf.Min(p0.x, p1.x), wb = Mathf.Max(p0.x, p1.x); if (wb <= x0 + 0.2f || wa >= x1 - 0.2f) continue; holes.Add(Rect.MinMaxRect(Mathf.Max(wa, x0 + 0.2f) - x0, ya - (plinth - 0.04f), Mathf.Min(wb, x1 - 0.2f) - x0, yb - (plinth - 0.04f))); }
+                float pil = 0.32f, aa = pil, bb = unit - pil, door = aa + 0.16f * (bb - aa);
+                HighStreet.UnitInterior(fr, name.Replace(" ", "-") + "_shop" + (i + 1), unit, G - (plinth - 0.04f), FH, storeys, topH - (plinth - 0.04f), cells[i], door, holes, new List<Rect> { new Rect(0.8f, 0f, 0.9f, 2.1f) }, D);
+            }
+        }
+
+        /// <summary>The back (z = -D, facing -z) in a material with each unit's back door (0.8..1.7 across it, 2.1 high) cut out.</summary>
+        static void BackWithDoors(MeshKit k, Fac face, float L, float D, float y0, float top, float yBase, int n, float unit)
+        {
+            float x = 0f; var org = V(0, 0, -D);
+            for (int i = 0; i < n; i++)
+            {
+                float d0 = i * unit + 0.8f, d1 = i * unit + 1.7f;
+                FacWall(k, face, V(x, 0, -D), V(d0, 0, -D), y0, top, yBase, Vector3.back, 0.9f, org); FacWall(k, face, V(d0, 0, -D), V(d1, 0, -D), y0 + 2.1f, top, yBase, Vector3.back, 0.9f, org);
+                k.Box(stone, V(d0 - 0.1f, 0f, -D - 0.4f), V(d1 + 0.1f, y0, -D)); x = d1;
+            }
+            FacWall(k, face, V(x, 0, -D), V(L, 0, -D), y0, top, yBase, Vector3.back, 0.9f, org);
         }
 
         /// <summary>The multi-storey car park: the photographed decks on every side, the way in with its barrier and
@@ -522,17 +560,18 @@ namespace ASBO.Slice
         {
             var k = a.k; const float G = 3.9f; float L = cells.Length * unit, top = G + 6f + 0.9f;
             k.Box(stone, V(-0.05f, -0.6f, -D - 0.05f), V(L + 0.05f, 0.15f, 0.05f));
-            for (int i = 0; i < cells.Length; i++) Shopfront(k, shops2, 1024f, cells[i], i * unit, (i + 1) * unit, G);
+            for (int i = 0; i < cells.Length; i++) Shopfront(k, shops2, 1024f, cells[i], i * unit, (i + 1) * unit, G, true);
             FacWall(k, upper, V(0, 0, 0), V(L, 0, 0), G, top, G, Vector3.forward);
             FacWall(k, upper, V(0, 0, 0), V(0, 0, -D), G, top, G, Vector3.left);
             FacWall(k, Brick, V(0, 0, 0), V(0, 0, -D), 0.15f, G, 0f, Vector3.left);
             FacWall(k, Brick, V(L, 0, 0), V(L, 0, -D), 0.15f, top, 0f, Vector3.right);
-            FacWall(k, Brick, V(0, 0, -D), V(L, 0, -D), 0.15f, top, 0f, Vector3.back);
+            BackWithDoors(k, Brick, L, D, 0.15f, top, 0f, cells.Length, unit);
             for (int i = 0; i < cells.Length; i++) { BackWindow(k, i * unit + unit * 0.5f, G + 1f, -D); BackWindow(k, i * unit + unit * 0.5f, G + 4f, -D); }
             k.Box(stone, V(-0.25f, top - 1.1f, -D), V(L, top - 0.8f, 0.25f));                                 // cornice
             k.Box(stone, V(-0.12f, top, -D - 0.12f), V(L + 0.12f, top + 0.15f, 0.12f));
             FlatRoof(k, 0f, L, D, top - 0.9f, top, brick);
-            a.Solid(V(0, 0, -D), V(L, top, 0));
+            var wins = new List<(Vector3, Vector3, float, float)>(); FacWins(upper, V(0, 0, 0), V(L, 0, 0), G, top, G, Vector3.forward, 1.35f, wins);
+            Units(a, "Thornbury Parade", cells, unit, D, 0.15f, G, 3f, 3, top - 0.9f, wins);
         }
 
         /// <summary>Wend Gospel Hall: lancet windows down both sides, the gable to the road with a double door, the board, a steep slate roof.</summary>
@@ -541,17 +580,18 @@ namespace ASBO.Slice
             var k = a.k; const float h = 7.5f;
             k.Box(stone, V(-0.05f, -0.6f, -D - 0.05f), V(W + 0.05f, 0.45f, 0.05f));
             FacWall(k, B02, V(0, 0, 0), V(0, 0, -D), 0.45f, h, 0f, Vector3.left); FacWall(k, B02, V(W, 0, 0), V(W, 0, -D), 0.45f, h, 0f, Vector3.right);
-            FacWall(k, B02, V(0, 0, 0), V(W, 0, 0), 0.45f, h, 0f, Vector3.forward); FacWall(k, Brick, V(0, 0, -D), V(W, 0, -D), 0.45f, h, 0f, Vector3.back);
+            FrontWithDoors(k, B02, W, 0.45f, h, 0f, new[] { W * 0.5f }); FacWall(k, Brick, V(0, 0, -D), V(W, 0, -D), 0.45f, h, 0f, Vector3.back);
             k.Box(stone, V(-0.1f, h - 0.25f, -D - 0.1f), V(W + 0.1f, h, 0.1f));
             k.Push(Matrix4x4.TRS(V(0f, 0f, -D), Quaternion.Euler(0, -90f, 0), Vector3.one)); float ridge = Pitched(k, 0f, D, W, h, 48f, brick); k.Pop();
             // a round window in the gable, the door, the board over it
             k.Push(Matrix4x4.TRS(V(W * 0.5f, h + 2.2f, -0.04f), Quaternion.Euler(90f, 0f, 0f), Vector3.one));
             k.Cyl(stone, Vector3.zero, 0.95f, 0.12f, 16); k.Cyl(glass, V(0f, 0.01f, 0f), 0.72f, 0.12f, 16); k.Pop();
-            k.Box(stone, V(W * 0.5f - 1.5f, 0.45f, 0f), V(W * 0.5f + 1.5f, 3.9f, 0.22f), 32);
-            k.Box(wood, V(W * 0.5f - 1.05f, 0.45f, 0.18f), V(W * 0.5f + 1.05f, 3.4f, 0.26f));
-            k.Box(black, V(W * 0.5f - 0.02f, 0.45f, 0.26f), V(W * 0.5f + 0.02f, 3.4f, 0.28f));
+            k.Box(stone, V(W * 0.5f - 1.5f, 2.65f, 0f), V(W * 0.5f + 1.5f, 3.9f, 0.22f), 32);
+            k.Box(wood, V(W * 0.5f - 1.05f, 2.65f, 0.18f), V(W * 0.5f + 1.05f, 3.4f, 0.26f));
+            Steps(a, W * 0.5f, 0.45f);
             SignQuad(k, Bld.SignCell(7), V(W * 0.5f, 4.6f, 0.04f), Vector3.forward, 5.4f, 0.9f);
-            a.Solid(V(0, 0, -D), V(W, h, 0)); a.Solid(V(0, h, -D), V(W, ridge - 1f, 0));
+            a.Solid(V(0, h, -D), V(W, ridge - 1f, 0));
+            HallInside(a, "Wend Gospel Hall", W, D, 0.45f, h - 0.3f, W * 0.5f, new List<(Vector3, Vector3, float, float)>(), Chapel);
         }
 
         // ------------------------------------------------------------------------------------------ pieces
@@ -664,7 +704,7 @@ namespace ASBO.Slice
         }
 
         /// <summary>A shopfront from an atlas of 512 x 340 cells (atlasH pixels tall) between pilasters, fascia and cornice, on the face at z = 0.</summary>
-        static void Shopfront(MeshKit k, Material atlas, float atlasH, int cell, float x0, float x1, float top)
+        static void Shopfront(MeshKit k, Material atlas, float atlasH, int cell, float x0, float x1, float top, bool door = false)
         {
             const float pil = 0.32f, fasciaH = 0.62f; float fy0 = top - fasciaH - 0.15f, fy1 = top - 0.15f, a = x0 + pil, b = x1 - pil;
             int c = cell % 4, r = cell / 4; float py = r * 340f;
@@ -672,7 +712,14 @@ namespace ASBO.Slice
             var fr = new Rect(c * 0.25f + 0.002f, 1f - (py + 340f) / atlasH, 0.246f, 268f / atlasH);
             void Face(float fx0, float fx1, float y0, float y1, float z, Rect uv) => k.QuadUV(atlas ?? frame, V(fx0, y0, z), V(fx1, y0, z), V(fx1, y1, z), V(fx0, y1, z), Vector3.forward,
                 new Vector2(uv.xMax, uv.yMin), new Vector2(uv.xMin, uv.yMin), new Vector2(uv.xMin, uv.yMax), new Vector2(uv.xMax, uv.yMax));
-            Face(a, b, 0f, fy0, -0.22f, fr);
+            if (!door) Face(a, b, 0f, fy0, -0.22f, fr);
+            else
+            {
+                // a real door in the front (the shop's inside is built behind)
+                float Lw = b - a, xc = a + 0.16f * Lw, d0 = xc - 0.5f, d1 = xc + 0.5f, hd = 2.15f;
+                Rect Sub(float xs0, float xs1, float ys0, float ys1) { float u0 = fr.xMax - (xs1 - a) / Lw * fr.width, u1 = fr.xMax - (xs0 - a) / Lw * fr.width, v0 = fr.yMin + ys0 / fy0 * fr.height, v1 = fr.yMin + ys1 / fy0 * fr.height; return new Rect(u0, v0, u1 - u0, v1 - v0); }
+                Face(a, d0, 0f, fy0, -0.22f, Sub(a, d0, 0f, fy0)); Face(d1, b, 0f, fy0, -0.22f, Sub(d1, b, 0f, fy0)); Face(d0, d1, hd, fy0, -0.22f, Sub(d0, d1, hd, fy0));
+            }
             k.Quad(frame, V(a, fy0, 0f), V(b, fy0, 0f), V(b, fy0, -0.22f), V(a, fy0, -0.22f), Vector3.down);
             k.Quad(frame, V(a, 0f, 0f), V(a, fy0, 0f), V(a, fy0, -0.22f), V(a, 0f, -0.22f), Vector3.right);
             k.Quad(frame, V(b, 0f, 0f), V(b, fy0, 0f), V(b, fy0, -0.22f), V(b, 0f, -0.22f), Vector3.left);

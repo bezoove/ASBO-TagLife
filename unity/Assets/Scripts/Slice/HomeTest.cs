@@ -76,6 +76,47 @@ namespace ASBO.Slice
         }
 
         /// <summary>The same physical flood for the shops and the flats over them (unit footprint: lx across, d 0.14..10.86).</summary>
+        /// <summary>The one-room public buildings (variant "hall"): flood from outside the front door and count the spots you can get to.</summary>
+        public static void ReachHalls() { new GameObject("HallReach").AddComponent<RunHalls>(); }
+        class RunHalls : MonoBehaviour
+        {
+            IEnumerator Start()
+            {
+                yield return new WaitForSeconds(0.5f);
+                foreach (var h in new System.Collections.Generic.List<Home>(Home.All))
+                {
+                    if (h == null || h.variant != "hall") continue;
+                    foreach (var d in h.doors) if (d.door != null) foreach (var c in d.door.GetComponentsInChildren<Collider>()) c.enabled = false;
+                    Physics.SyncTransforms(); var zr = h.zoneRects[0]; const float cs = 0.1f; var tr = h.transform;
+                    var seen = new System.Collections.Generic.HashSet<long>(); var q = new System.Collections.Generic.Queue<Vector3>(); var reached = new System.Collections.Generic.List<Vector3>();
+                    var fd = h.doors.Count > 0 && h.doors[0].door != null ? tr.InverseTransformPoint(h.doors[0].door.transform.position) : new Vector3(zr.center.x, 0.45f, 0f);
+                    float Snap(float v) => Mathf.Round(v / cs) * cs; float y0 = h.rooms.Count > 0 ? h.rooms[0].centre.y : 0.45f;
+                    foreach (float ox in new[] { -0.3f, 0f, 0.3f }) q.Enqueue(new Vector3(Snap(h.doors[0].door.transform.localPosition.x + ox), 0.02f, Snap(1.0f)));
+                    int guard = 0;
+                    while (q.Count > 0 && guard++ < 300000)
+                    {
+                        var p = q.Dequeue(); long key = ((long)Mathf.RoundToInt((p.x + 50f) / cs) * 8192 + Mathf.RoundToInt((p.z + 50f) / cs)) * 64 + Mathf.RoundToInt(p.y / 0.3f);
+                        if (!seen.Add(key)) continue; reached.Add(p);
+                        foreach (var dv in new[] { new Vector2(cs, 0), new Vector2(-cs, 0), new Vector2(0, cs), new Vector2(0, -cs) })
+                        {
+                            float nx = p.x + dv.x, nz = p.z + dv.y; if (nx < zr.xMin - 1f || nx > zr.xMax + 1f || nz < zr.yMin - 1f || nz > 1.5f) continue;
+                            Vector3 wp = tr.TransformPoint(new Vector3(nx, p.y + 0.45f, nz));
+                            if (!Physics.Raycast(wp, Vector3.down, out var hit, 1.2f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                            float gy = tr.InverseTransformPoint(hit.point).y; if (gy - p.y > 0.4f || p.y - gy > 0.7f) continue;
+                            if (Physics.CheckCapsule(tr.TransformPoint(new Vector3(nx, gy + 0.65f, nz)), tr.TransformPoint(new Vector3(nx, gy + 1.5f, nz)), 0.28f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                            q.Enqueue(new Vector3(nx, gy, nz));
+                        }
+                    }
+                    int ok = 0; var miss = new System.Collections.Generic.List<string>(); int inside = 0; foreach (var p in reached) if (zr.Contains(new Vector2(p.x, p.z))) inside++;
+                    foreach (var sp in h.spots) { bool g = false; foreach (var p in reached) if (Mathf.Abs(p.y - sp.pos.y) < 0.7f && (p.x - sp.pos.x) * (p.x - sp.pos.x) + (p.z - sp.pos.z) * (p.z - sp.pos.z) < 1.2f) { g = true; break; } if (g) ok++; else miss.Add(sp.tag); }
+                    foreach (var d in h.doors) if (d.door != null) foreach (var c in d.door.GetComponentsInChildren<Collider>()) c.enabled = true;
+                    Debug.Log($"[ASBO] hallreach {h.name}: {inside} cells inside, spots {ok}/{h.spots.Count} reachable [{string.Join(",", miss)}]");
+                    yield return null;
+                }
+                Destroy(gameObject);
+            }
+        }
+
         public static void ReachShops() { new GameObject("ShopReach").AddComponent<RunShops>(); }
         class RunShops : MonoBehaviour
         {
