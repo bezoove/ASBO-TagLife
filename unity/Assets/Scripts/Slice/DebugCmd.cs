@@ -190,6 +190,11 @@ namespace ASBO.Slice
             Debug.Log($"[ASBO] solidcheck: sets with solids={holders} tried={tried} solid={ok} other={miss} {bad}");
         }
         public static void CrouchTest() { new GameObject("CrouchTest").AddComponent<CrouchTestRun>(); }
+        public static void PhotoPropTest()
+        {
+            var pc = Object.FindFirstObjectByType<PlayerCtl>(); int n = PhotoProps.Count; var g = n > 0 && pc != null ? PhotoProps.Spawn("cereal", pc.transform.position + pc.transform.forward * 1.5f + Vector3.up * 0.5f, pc.transform.rotation) : null;
+            Debug.Log($"[ASBO] photoprop: kinds={n} spawned={(g != null)}");
+        }
         public static void PoliceTest() { new GameObject("PoliceTest").AddComponent<PoliceTestRun>(); }
         public static void MobTest() { new GameObject("MobTest").AddComponent<MobTestRun>(); }
         public static void BrawlHits(float secs) { var r = new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); r.onHit = true; r.secs = secs; r.kickFinish = true; }

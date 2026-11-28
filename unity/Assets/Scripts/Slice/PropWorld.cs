@@ -94,7 +94,7 @@ namespace ASBO.Slice
                     PickUp(t); return true;
                 case PropLib.Kind.Sit:
                     var s = t.set; Vector3 p = s.World(t.i); Quaternion q = s.Rot(t.i);
-                    pc.SitOn(p + q * new Vector3(0f, Mathf.Max(0f, e.seat - 0.46f), -0.06f), q.eulerAngles.y); return true;
+                    pc.SitOn(p + q * new Vector3(0f, Mathf.Max(0f, e.seat - 0.46f), e.id.Contains("stool") ? -0.16f : -0.10f), q.eulerAngles.y); return true;
                 case PropLib.Kind.Use: Action(t); return true;
             }
             return false;

@@ -95,6 +95,7 @@ namespace ASBO.Slice
                 float r = Random.value * total; Kind pick = kinds[0]; foreach (var k in kinds) { r -= k.weight; if (r <= 0f) { pick = k; break; } }
                 Spawn(pick.id, hit.point + Vector3.up * 0.06f, Quaternion.Euler(0f, Random.value * 360f, 0f)); made++;
             }
+            PhotoProps.Scatter(3);
         }
     }
 }

@@ -655,7 +655,7 @@ namespace ASBO.Slice
             {
                 var P = PlayerFighter;
                 if (!Active) { Active = true; koed.Clear(); PlayerStarted = false; barkT = Time.time; }
-                if (P != null && other == P && !n.aggr) PlayerStarted = true;
+                if (P != null && other == P && !n.aggr) { PlayerStarted = true; Offences.Report("Fighting", 18f, n.transform.position); }
                 if (P != null && other == P) P.stanceT = 6f;
                 Spread(n, other);
             }

@@ -59,7 +59,9 @@ namespace ASBO.Slice
                 var hit = c.collider != null ? c.collider.GetComponentInParent<Person>() : null;
                 if (hit != null && !hit.isPlayer && !hit.dead && v > 4f && rb != null && rb.mass > 0.15f)
                 {
-                    hit.Knockout((c.relativeVelocity * -0.4f).WithY(0f), 2.5f, v > 9f);
+                    var vf = hit.GetComponent<Fighter>(); var pfi = Fighter.Session.PlayerFighter;
+                    if (v <= 9f && vf != null && pfi != null && !vf.Down) vf.Engage(pfi); // a glancing hit: they come back at you
+                    else hit.Knockout((c.relativeVelocity * -0.4f).WithY(0f), 2.5f, v > 9f);
                     Offences.Report("Assault", 28f, transform.position);
                 }
             }
