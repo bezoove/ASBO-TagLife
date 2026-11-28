@@ -79,7 +79,7 @@ namespace ASBO.Slice
         {
             if (!LoadMats()) return null;
             var root = new GameObject(RootName).transform; root.SetParent(parent, false);
-            foreach (var b in Blocks) Terrace(root, b);
+            houseSeq = 0; foreach (var b in Blocks) Terrace(root, b);
             Roads(root);
             Court(root);
             Debug.Log($"[ASBO] estate: {Blocks.Length} terraces, {Houses().Count} houses");
@@ -87,6 +87,7 @@ namespace ASBO.Slice
         }
 
         /// <summary>One terrace: walls with their openings, windows, porches, garages, roof, gutters, plus its plots in front and behind.</summary>
+        static int houseSeq; const bool withInteriors = true;
         static void Terrace(Transform root, Block b)
         {
             var rng = new System.Random(b.seed);
@@ -105,7 +106,7 @@ namespace ASBO.Slice
                 float sx0 = mirror ? x0 + 0.25f : x0 + 4.5f, sx1 = mirror ? x0 + 0.9f : x1 - 0.25f;
                 // ground floor: garage, porch, little window
                 frontHoles.Add(new Rect(gx0, 0, 2.4f, 2.1f)); Recess(k, gx0, gx1, 0f, 2.1f, 0.12f, M.garage[garageCol], new Rect(0, 0, 1, 1), M.white, true);
-                frontHoles.Add(new Rect(px0, 0, 1.3f, 2.3f)); Porch(k, px0, px1, doorV);
+                frontHoles.Add(new Rect(px0, 0, 1.3f, 2.3f)); Porch(k, px0, px1, doorV, !withInteriors);
                 frontHoles.Add(new Rect(sx0, 0.95f, sx1 - sx0, 1.15f)); Window(k, sx0, sx1, 0.95f, 2.1f, 0f, AtlasGround(wg), true);
                 // upper floors: cream panel under a full-width window band
                 for (int f = 1; f <= 2; f++)
@@ -126,6 +127,15 @@ namespace ASBO.Slice
                 // downpipes on every other party wall, front and back
                 if (i % 2 == 0) foreach (float z in new[] { 0.06f, -D - 0.06f }) k.Box(M.black, new Vector3(x0 - 0.04f, 0f, z - 0.04f), new Vector3(x0 + 0.04f, Eave - 0.2f, z + 0.04f));
                 Plot(plots, fences, x0, x1, gx0, gx1, px0, px1, mirror, i == b.n - 1);
+                if (withInteriors)
+                {
+                    var hr = new System.Random(b.seed * 7919 + i * 131 + 17);
+                    var hb = new HomeBuilder { x0 = x0, mirror = mirror, rng = hr, seed = b.seed + i, name = b.name + "_house" + (i + 1) };
+                    if (i == 0) hb.endU0 = !mirror; if (i == 0 && mirror) hb.endW = true;   // low-x gable
+                    if (i == b.n - 1) { if (mirror) hb.endU0 = true; else hb.endW = true; } // high-x gable
+                    hb.H = Household.Make(houseSeq++, hr);
+                    hb.Build(g);
+                }
             }
             k.Box(M.black, new Vector3(len - 0.04f, 0f, 0.02f), new Vector3(len + 0.04f, Eave - 0.2f, 0.1f));
             Wall(k, new Rect(0, 0, len, Eave), 0f, frontHoles, true);
@@ -133,7 +143,8 @@ namespace ASBO.Slice
             Gable(k, 0f, -1, rng); Gable(k, len, 1, rng);
             Roof(k, len);
             var body = k.Build("Terrace", g, false);
-            var col = body.AddComponent<BoxCollider>(); col.center = new Vector3(len * 0.5f, Eave * 0.5f, -D * 0.5f); col.size = new Vector3(len, Eave, D);
+            if (!withInteriors) { var col = body.AddComponent<BoxCollider>(); col.center = new Vector3(len * 0.5f, Eave * 0.5f, -D * 0.5f); col.size = new Vector3(len, Eave, D); }
+            else { var rc = body.AddComponent<BoxCollider>(); rc.center = new Vector3(len * 0.5f, Eave + 0.4f, -D * 0.5f); rc.size = new Vector3(len, 0.8f, D); }
             var pg = plots.Build("EstateGround", g, true); if (pg != null) pg.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             fences.Build("EstateFences", g, true);
         }
@@ -202,7 +213,7 @@ namespace ASBO.Slice
         }
 
         /// <summary>The recessed porch: white boarded sides and soffit, the front door in the back wall, a concrete step.</summary>
-        static void Porch(MeshKit k, float x0, float x1, int doorV)
+        static void Porch(MeshKit k, float x0, float x1, int doorV, bool doorLeaf = true)
         {
             const float depth = 1.0f, h = 2.3f;
             // back wall with the door in the middle
@@ -211,7 +222,7 @@ namespace ASBO.Slice
             k.Quad(M.white, new Vector3(dx1, 0, z), new Vector3(x1, 0, z), new Vector3(x1, h, z), new Vector3(dx1, h, z), Vector3.forward);
             k.Quad(M.white, new Vector3(dx0, 2.05f, z), new Vector3(dx1, 2.05f, z), new Vector3(dx1, h, z), new Vector3(dx0, h, z), Vector3.forward);
             var uv = DoorUV(doorV);
-            k.QuadUV(M.doors, new Vector3(dx0, 0.15f, z + 0.01f), new Vector3(dx1, 0.15f, z + 0.01f), new Vector3(dx1, 2.05f, z + 0.01f), new Vector3(dx0, 2.05f, z + 0.01f), Vector3.forward,
+            if (doorLeaf) k.QuadUV(M.doors, new Vector3(dx0, 0.15f, z + 0.01f), new Vector3(dx1, 0.15f, z + 0.01f), new Vector3(dx1, 2.05f, z + 0.01f), new Vector3(dx0, 2.05f, z + 0.01f), Vector3.forward,
                 new Vector2(uv.xMin, uv.yMin), new Vector2(uv.xMax, uv.yMin), new Vector2(uv.xMax, uv.yMax), new Vector2(uv.xMin, uv.yMax));
             k.Quad(M.white, new Vector3(x0, 0, 0), new Vector3(x0, h, 0), new Vector3(x0, h, z), new Vector3(x0, 0, z), Vector3.right);
             k.Quad(M.white, new Vector3(x1, 0, 0), new Vector3(x1, h, 0), new Vector3(x1, h, z), new Vector3(x1, 0, z), Vector3.left);

@@ -51,7 +51,7 @@ namespace ASBO.Slice
                 // the Abbots Wend scene holds the static world (prefabs, terrain, baked lighting, baked NavMesh)
                 Look.ApplyPost(Root);
                 GameAudio.Create(Root); Perf.Create(Root); Social.Create(Root); GameClock.Create(Root); Tag.Create(Root); LightBudget.Create(Root);
-                Estate.Attach(); TudorManor.Attach();
+                Estate.Attach(); TudorManor.Attach(); Home.AttachAll();
                 Dressing.Place(Root); Gangs.Spawn(Root);
                 Nav.UseBaked();
             }

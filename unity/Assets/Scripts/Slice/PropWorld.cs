@@ -14,7 +14,7 @@ namespace ASBO.Slice
     {
         public static PropWorld I;
         PlayerCtl pc; Transform hand; GameObject held; PropLib.Entry heldE; bool heldDrunk; float useT;
-        struct Target { public PropSet set; public int i; public PropDoor door; public PropLib.Entry e; public Vector3 at; public Throwable th; }
+        struct Target { public PropSet set; public int i; public PropDoor door; public PropLib.Entry e; public Vector3 at; public Throwable th; public Home home; public int spot; }
         Target? near; static GUIStyle style; string toastText; float toastT;
         readonly HashSet<string> flags = new HashSet<string>();
         Transform loose; bool littered;
@@ -53,9 +53,15 @@ namespace ASBO.Slice
                 Vector3 c = th.transform.position + Vector3.up * 0.05f; Vector3 dd = c - me; dd.y = 0f; if (dd.sqrMagnitude > 1.3f) continue;
                 float sc = Score(me, fwd, c, th.entry); if (sc < best) { best = sc; near = new Target { th = th, e = th.entry, at = c }; }
             }
+            foreach (var h in Home.All)
+            {
+                if (h == null || !h.gameObject.activeInHierarchy) continue;
+                if (h.Nearest(me, fwd, out int hs, out float hsc) && hsc - 0.35f < best) { best = hsc - 0.35f; near = new Target { home = h, spot = hs, at = h.transform.TransformPoint(h.spots[hs].pos) }; }
+            }
             foreach (var d in PropDoor.All)
             {
                 if (d == null || d.leaf == null) continue;
+                if ((d.leaf.position - me).sqrMagnitude > 9f) continue;
                 Vector3 c = d.leaf.position + Vector3.up * 1.0f; var e = PropLib.Get(d.id); if (e == null) continue;
                 float sc = Score(me, fwd, c, e) - 0.5f; if (sc < best) { best = sc; near = new Target { door = d, e = e, at = c }; }
             }
@@ -84,6 +90,7 @@ namespace ASBO.Slice
                 PutDown(); return true;
             }
             var t = near.Value; useT = Time.time;
+            if (t.home != null) { t.home.Use(this, pc, t.spot); return true; }
             if (t.door != null) { Door(t.door); return true; }
             var e = t.e;
             switch (e.kind)
@@ -102,6 +109,7 @@ namespace ASBO.Slice
 
         void Door(PropDoor d)
         {
+            if (Home.TryRec(d, out var hh, out var hr) && hr.locked && d.target < 0.5f) { Say("Locked. You could always put your boot through it."); if (GameAudio.I != null) GameAudio.I.Knock(d.leaf.position, 2f, false); return; }
             if (d.target < 0.5f)
             {
                 if (d.lockTag == "vault" && !flags.Contains("code")) { Say("A keypad and a time lock. It wants a four-digit code."); return; }
@@ -296,6 +304,7 @@ namespace ASBO.Slice
         public static bool Strike(Vector3 from, Vector3 fwd, float reach, float impulse)
         {
             if (I == null) return false;
+            if (Home.Kick(from, fwd, reach)) return true;
             fwd.y = 0f; fwd.Normalize(); float best = 99f; PropSet bs = null; int bi = -1;
             foreach (var s in PropSet.All)
             {
@@ -328,7 +337,8 @@ namespace ASBO.Slice
             else if (near != null)
             {
                 var n = near.Value;
-                if (n.door != null) t = k + (n.door.target > 0.5f ? "Shut the door" : n.e.label);
+                if (n.home != null) t = k + n.home.Prompt(n.spot);
+                else if (n.door != null) t = k + (n.door.target > 0.5f ? "Shut the door" : n.e.label);
                 else t = k + (n.e.kind == PropLib.Kind.Pickup ? (n.e.cash > 0f ? "Take the " + n.e.label.ToLower() : "Pick up " + Article(n.e.label)) : n.e.label);
             }
             else if (held != null) t = k + (heldE != null && !heldDrunk && !string.IsNullOrEmpty(heldE.drink) ? "Drink" : heldE != null && !heldDrunk && !string.IsNullOrEmpty(heldE.food) ? "Eat" : "Put it down") + "    PUNCH: Throw";
