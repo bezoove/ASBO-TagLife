@@ -27,10 +27,77 @@ namespace ASBO.Slice
             public float doorU;
             /// <summary>The front door's leaf faces this tag ("front").</summary>
             public bool ground;
+            // ---- one storey of a two-storey terraced house: the front (d = 0) is outside too, a stair up the hall
+            public bool house, upper;
+            /// <summary>Front windows (along u, y0, y1 as the far wall's), and the front and back doors (u centres) on the ground floor.</summary>
+            public List<Vector4> winsF = new List<Vector4>(); public List<float> doorsF = new List<float>(), doorsB = new List<float>();
+            /// <summary>Ground floor: where the ceiling stays open over the stair (the floor above's void).</summary>
+            public Rect ceilVoid;
+            /// <summary>Floor to floor (for the stair).</summary>
+            public float storeyH = 2.9f;
         }
         public FlatSpec fs; string flatVariant = "flat";
 
         // ------------------------------------------------------------------ the plan
+        /// <summary>One storey of a terraced house: the hall from the front door with the stair up the party wall, the front room beside it and the
+        /// kitchen across the back; upstairs the front bedroom across the front, the landing round the stairwell, the bathroom, the back bedroom.</summary>
+        void HouseLayout()
+        {
+            const int L = 0;
+            float du = fs.doorU; bool left = du < W * 0.5f;
+            float h0 = left ? U0 : U1 - 1.9f, h1 = h0 + 1.9f, s0 = left ? U0 : U1 - 0.9f, s1 = s0 + 0.9f, wallU = left ? h1 : h0;
+            float run = 15 * 0.25f, sd0 = D0 + 1.2f, sd1 = sd0 + run, pass = left ? (s1 + h1) * 0.5f : (h0 + s0) * 0.5f;
+            if (!fs.upper)
+            {
+                float dh = Mathf.Max(sd1 + 0.25f, D1 - 3.1f);
+                AddRoom(L, "hall", h0, h1, D0, dh);
+                AddRoom(L, "lounge", left ? h1 : U0, left ? U1 : h0, D0, dh);
+                var kit = AddRoom(L, "kitchen", U0, U1, dh, D1); kit.use = "diner";
+                var w1 = AddWall(L, 'd', wallU, D0, dh); Gap(w1, D0 + 0.75f, 0.85f);
+                var w2 = AddWall(L, 'u', dh, U0, U1); Gap(w2, pass, 0.82f);
+                if (Chance(0.4)) Gap(w2, left ? (h1 + U1) * 0.5f : (U0 + h0) * 0.5f, 1.2f, false, "tall");
+                blocks[0].Add(new Rect(s0, sd0, s1 - s0, run));
+                fs.ceilVoid = new Rect(s0, sd0 + 0.6f, s1 - s0, sd1 - sd0 - 0.6f);
+            }
+            else
+            {
+                float fz = sd0 + 0.6f, dh2 = sd1 + 1.1f;
+                AddRoom(L, "bed", U0, U1, D0, fz);
+                var land = AddRoom(L, "landing", h0, h1, fz, dh2); land.use = "stairtop";
+                AddRoom(L, "bath", left ? h1 : U0, left ? U1 : h0, fz, dh2);
+                AddRoom(L, "bed", U0, U1, dh2, D1);
+                var wf = AddWall(L, 'u', fz, U0, U1); Gap(wf, pass, 0.8f);
+                var wb = AddWall(L, 'd', wallU, fz, dh2); Gap(wb, (fz + dh2) * 0.5f, 0.78f);
+                var wk = AddWall(L, 'u', dh2, U0, U1); Gap(wk, pass, 0.8f);
+                voids.Add(new Void { lv = 0, r = new Rect(s0, fz, s1 - s0, sd1 - fz) });
+            }
+            // the party walls
+            var pl = AddWall(L, 'd', U0 * 0.5f, 0f, D, U0); pl.bare = true;
+            var pr = AddWall(L, 'd', W - (W - U1) * 0.5f, 0f, D, W - U1); pr.bare = true;
+            stairS0 = s0; stairS1 = s1; stairD0 = sd0; stairD1 = sd1;
+            flatVariant = "house-" + (fs.upper ? "up" : "down") + (left ? "-l" : "-r");
+        }
+        float stairS0, stairS1, stairD0, stairD1;
+
+        /// <summary>The stair (ground floor builds it, up to the floor above), or the guard round the stairwell (upstairs).</summary>
+        void HouseStair()
+        {
+            if (!fs.upper)
+            {
+                var tread = Surf(H.floorHall.StartsWith("carpet") ? "carpet_hex" : "wood_slats_dark", 1.2f, H.floorHall.StartsWith("carpet") ? H.carpet : Color.white, 0.2f);
+                const int n = 16; float rise = fs.storeyH / n;
+                for (int i = 1; i < n; i++) Bx(shell, tread, stairS0, stairS1, Y[0], Y[0] + i * rise, stairD0 + (i - 1) * 0.25f, stairD0 + i * 0.25f, true);
+                Rail(stairS1, stairD0, stairD1, Y[0], Y[0] + fs.storeyH, 'd');
+            }
+            else
+            {
+                var gm = Flat(Shade(H.trim, 0.95f), 0.4f); float fz = stairD0 + 0.6f;
+                Bx(fin, gm, stairS1 - 0.03f, stairS1 + 0.03f, Y[0] + 0.9f, Y[0] + 0.95f, fz, stairD1, false);
+                { Vector3 ga = P(stairS1 - 0.03f, Y[0], fz), gb = P(stairS1 + 0.03f, Y[0] + 1.0f, stairD1); solids.Add(((ga + gb) * 0.5f, Vector3.Max(ga, gb) - Vector3.Min(ga, gb), 0f)); }
+                for (float d = fz + 0.1f; d < stairD1; d += 0.12f) Bx(fin, gm, stairS1 - 0.015f, stairS1 + 0.015f, Y[0], Y[0] + 0.9f, d, d + 0.03f, false);
+            }
+        }
+
         void FlatLayout()
         {
             const int L = 0;
@@ -133,36 +200,39 @@ namespace ASBO.Slice
         // ------------------------------------------------------------------ floor, ceiling
         void FlatSlabs()
         {
-            // the slab itself is a collider only: the flat below's ceilings are its underside
-            solids.Add((P(W * 0.5f, Y[0] - 0.13f, D * 0.5f), new Vector3(W, 0.26f, D), 0f));
+            // the slab itself is a collider only: the flat below's ceilings are its underside (round the stairwell in a house)
+            foreach (var q in Cut(new Rect(0f, 0f, W, D), 0)) solids.Add((P(q.center.x, Y[0] - 0.13f, q.center.y), new Vector3(q.width, 0.26f, q.height), 0f));
             foreach (var r in rooms)
             {
-                Bx(fin, FloorMat(r), r.u0, r.u1, Y[0] - 0.012f, Y[0], r.d0, r.d1, false);
-                Bx(shell, ceilM, r.u0, r.u1, C[0], C[0] + 0.02f, r.d0, r.d1, false);
+                foreach (var q in Cut(r.Rect, 0)) Bx(fin, FloorMat(r), q.xMin, q.xMax, Y[0] - 0.012f, Y[0], q.yMin, q.yMax, false);
+                var cl = new List<Rect> { r.Rect }; if (fs.ceilVoid.width > 0f) cl = RectMinus(r.Rect, fs.ceilVoid);
+                foreach (var q in cl) Bx(shell, ceilM, q.xMin, q.xMax, C[0], C[0] + 0.02f, q.yMin, q.yMax, false);
             }
+            if (fs.house) HouseStair();
         }
 
         // ------------------------------------------------------------------ outside walls with their windows
         void FlatOuter()
         {
+            if (fs.house) { OuterSide('F', fs.winsF, fs.doorsF); OuterSide('B', fs.winsB, fs.doorsB); return; }
             OuterSide('B', fs.winsB);
             if (fs.extSide == 'L' || fs.extSide == 'R') OuterSide(fs.extSide, fs.winsS);
         }
 
         /// <summary>One outside wall: solid cells (with colliders) round its window holes, the inside face skinned per room, each window framed and glazed.</summary>
-        void OuterSide(char side, List<Vector4> wsrc)
+        void OuterSide(char side, List<Vector4> wsrc, List<float> doorUs = null)
         {
-            bool alongU = side == 'B';
+            bool alongU = side == 'B' || side == 'F';
             float lo = alongU ? U0 : D0, hi = alongU ? U1 : D1, y0 = Y[0], y1 = C[0];
             // the wall's thickness band across the axis
-            float tA = side == 'B' ? D1 : side == 'L' ? 0f : U1, tB = side == 'B' ? D : side == 'L' ? U0 : W;
-            float inner = side == 'B' ? D1 : side == 'L' ? U0 : U1;
+            float tA = side == 'B' ? D1 : side == 'F' ? 0f : side == 'L' ? 0f : U1, tB = side == 'B' ? D : side == 'F' ? D0 : side == 'L' ? U0 : W;
+            float inner = side == 'B' ? D1 : side == 'F' ? D0 : side == 'L' ? U0 : U1;
             // partitions that meet this wall: keep a solid band round them
             var cuts = new List<float>();
             foreach (var w in walls)
             {
                 if (w.lv != 0) continue;
-                if (alongU && w.axis == 'd' && w.to >= D1 - 0.05f && w.at > U0 + 0.05f && w.at < U1 - 0.05f) cuts.Add(w.at);
+                if (alongU && w.axis == 'd' && (side == 'F' ? w.from <= D0 + 0.05f : w.to >= D1 - 0.05f) && w.at > U0 + 0.05f && w.at < U1 - 0.05f) cuts.Add(w.at);
                 if (!alongU && w.axis == 'u' && w.at > D0 + 0.05f && w.at < D1 - 0.05f && (side == 'L' ? w.from <= U0 + 0.05f : w.to >= U1 - 0.05f)) cuts.Add(w.at);
             }
             var holes = new List<Vector4>();
@@ -179,9 +249,12 @@ namespace ASBO.Slice
                 }
                 foreach (var p in parts) holes.Add(new Vector4(p.x, p.y, ya, yb));
             }
+            var doorHoles = new List<Vector4>();
+            if (doorUs != null) foreach (float du in doorUs) doorHoles.Add(new Vector4(du - 0.46f, du + 0.46f, y0, y0 + 2.05f));
+            var allHoles = new List<Vector4>(holes); allHoles.AddRange(doorHoles);
             // grid of cells
             var xs = new SortedSet<float> { 0f, alongU ? W : D }; var ys = new SortedSet<float> { y0, y1 };
-            foreach (var h in holes) { xs.Add(h.x); xs.Add(h.y); ys.Add(h.z); ys.Add(h.w); }
+            foreach (var h in allHoles) { xs.Add(h.x); xs.Add(h.y); ys.Add(h.z); ys.Add(h.w); }
             var X = new List<float>(xs); var Yl = new List<float>(ys);
             for (int j = 0; j < Yl.Count - 1; j++)
             {
@@ -190,15 +263,25 @@ namespace ASBO.Slice
                 {
                     float xa = X[i], xb = X[i + 1]; if (xb - xa < 1e-4f) continue;
                     float cx = (xa + xb) * 0.5f, cy = (ya + yb) * 0.5f; bool inHole = false;
-                    foreach (var h in holes) if (cx > h.x && cx < h.y && cy > h.z && cy < h.w) { inHole = true; break; }
+                    foreach (var h in allHoles) if (cx > h.x && cx < h.y && cy > h.z && cy < h.w) { inHole = true; break; }
                     if (inHole) continue;
                     if (alongU) Bx(shell, ceilM, xa, xb, ya, yb, tA, tB, true); else Bx(shell, ceilM, tA, tB, ya, yb, xa, xb, true);
                     if (cx < lo || cx > hi) continue;
-                    var r = alongU ? RoomAt(0, cx, D1 - 0.3f) : RoomAt(0, side == 'L' ? U0 + 0.3f : U1 - 0.3f, cx);
+                    var r = alongU ? RoomAt(0, cx, side == 'F' ? D0 + 0.3f : D1 - 0.3f) : RoomAt(0, side == 'L' ? U0 + 0.3f : U1 - 0.3f, cx);
                     if (r == null) continue;
                     float s0 = side == 'B' || side == 'R' ? inner - 0.03f : inner, s1 = side == 'B' || side == 'R' ? inner : inner + 0.03f;
-                    OuterSkin(r, alongU ? 'u' : 'd', s0, s1, Mathf.Max(xa, lo), Mathf.Min(xb, hi), ya, yb, side == 'L');
+                    OuterSkin(r, alongU ? 'u' : 'd', s0, s1, Mathf.Max(xa, lo), Mathf.Min(xb, hi), ya, yb, side == 'L' || side == 'F');
                 }
+            }
+            // the doors: a leaf in the middle of the wall's thickness, a frame round it inside
+            foreach (var h in doorHoles)
+            {
+                float uc = (h.x + h.y) * 0.5f, mid = (tA + tB) * 0.5f; bool front = side == 'F';
+                var dleaf = PropDoor.Make(root, front ? "door_steel" : "door", P(uc, Y[0], mid) - root.localPosition, 0f, front ? "front" : "back");
+                if (dleaf != null) { doors.Add(new Door { lv = 0, axis = 'u', at = mid, c = uc, leaf = dleaf, tag = front ? "front" : "back" }); home.doors.Add(new Home.DoorRec { door = dleaf, tag = front ? "front" : "back", lv = 0, tier = front ? H.doorTier : (rng.NextDouble() < 0.4 ? 0 : 1) }); }
+                float din = front ? D0 : D1, k = 0.05f, t = 0.14f;
+                Bx(fin, skirtM, h.x - k, h.x, h.z, h.w + 0.05f, din - t * 0.5f, din + t * 0.5f); Bx(fin, skirtM, h.y, h.y + k, h.z, h.w + 0.05f, din - t * 0.5f, din + t * 0.5f);
+                Bx(fin, skirtM, h.x - k, h.y + k, h.w, h.w + 0.05f, din - t * 0.5f, din + t * 0.5f);
             }
             // the windows
             var frame = H.era == 0 ? Flat(new Color(0.22f, 0.22f, 0.24f), 0.5f) : Flat(Shade(H.trim, 0.98f), 0.5f);
@@ -219,7 +302,7 @@ namespace ASBO.Slice
                 // sill board inside (not under a door to a balcony)
                 if (h.z > y0 + 0.3f)
                 {
-                    float sa = side == 'B' ? D1 - 0.1f : side == 'L' ? U0 - 0.02f : U1 - 0.1f, sb = side == 'B' ? D1 + 0.02f : side == 'L' ? U0 + 0.1f : U1 + 0.02f;
+                    float sa = side == 'B' ? D1 - 0.1f : side == 'F' ? D0 - 0.02f : side == 'L' ? U0 - 0.02f : U1 - 0.1f, sb = side == 'B' ? D1 + 0.02f : side == 'F' ? D0 + 0.1f : side == 'L' ? U0 + 0.1f : U1 + 0.02f;
                     var white = Flat(Shade(H.trim, 0.98f), 0.5f);
                     if (alongU) Bx(fin, white, h.x - 0.03f, h.y + 0.03f, h.z - 0.005f, h.z + 0.02f, sa, sb); else Bx(fin, white, sa, sb, h.z - 0.005f, h.z + 0.02f, h.x - 0.03f, h.y + 0.03f);
                 }
@@ -236,7 +319,7 @@ namespace ASBO.Slice
             if (ya <= Y[0] + 0.01f && !wet)
             {
                 bool neg = axis == 'u' ? true : !left; // skirting stands proud towards the room
-                if (axis == 'u') Piece(skirtM, 'u', s0 - 0.012f, s1, a, b, ya, ya + 0.1f);
+                if (axis == 'u') { if (left) Piece(skirtM, 'u', s0, s1 + 0.012f, a, b, ya, ya + 0.1f); else Piece(skirtM, 'u', s0 - 0.012f, s1, a, b, ya, ya + 0.1f); }
                 else Piece(skirtM, 'd', left ? s0 : s0 - 0.012f, left ? s1 + 0.012f : s1, a, b, ya, ya + 0.1f);
             }
         }

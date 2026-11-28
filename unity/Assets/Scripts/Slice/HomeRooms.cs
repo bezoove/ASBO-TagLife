@@ -93,7 +93,7 @@ namespace ASBO.Slice
                     }
                 // seed
                 float su, sd;
-                if (lv == 0) { var hl = rooms.Find(q => q.lv == 0 && q.type == "hall" && q.use != "stairfoot"); su = hl.Cu; sd = hl.Cd; } else if (lv == 1) { su = 4.75f; sd = 0.56f; } else { su = 0.65f; sd = 4.6f; }
+                if (lv == 0) { var hl = rooms.Find(q => q.lv == 0 && q.type == "hall" && q.use != "stairfoot") ?? rooms.Find(q => q.lv == 0 && q.type == "landing") ?? rooms[0]; su = hl.Cu; sd = hl.Cd; if (flat && fs != null && fs.upper) { su = (stairS0 + stairS1) * 0.5f; sd = stairD1 + 0.5f; } } else if (lv == 1) { su = 4.75f; sd = 0.56f; } else { su = 0.65f; sd = 4.6f; }
                 int six = Mathf.Clamp(Mathf.FloorToInt((su - U0) / cs), 0, nx - 1), sid = Mathf.Clamp(Mathf.FloorToInt((sd - D0) / cs), 0, nd - 1);
                 var seen = new bool[nx, nd]; var qu = new Queue<Vector2Int>();
                 for (int rr = 0; rr < 8 && qu.Count == 0; rr++)

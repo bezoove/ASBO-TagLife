@@ -206,12 +206,20 @@ namespace ASBO.Slice
             var k = a.k; var f = face.Wide(w); var rng = new System.Random(seed * 31);
             const float eave = 6.2f; float len = n * w;
             k.Box(stone, V(-0.04f, -0.6f, -d - 0.04f), V(len + 0.04f, 0.42f, 0.04f));                       // plinth
-            FacWall(k, f, V(0, 0, 0), V(len, 0, 0), 0.42f, eave, 0f, Vector3.forward, 3f, V(len, 0, 0));
+            // the front in the photograph with a real doorway at each house (the house is built inside), the back in brick with its back doors
+            var dxs = new float[n]; var bds = new float[n];
+            for (int i = 0; i < n; i++) { float hx0 = i * w, hx1 = hx0 + w; bool lf = i % 2 == 0; dxs[i] = lf ? hx0 + 0.25f * w : hx1 - 0.25f * w; bds[i] = lf ? hx0 + w * 0.28f : hx0 + w * 0.72f; }
+            {
+                float x = 0f; var org = V(len, 0, 0);
+                foreach (float dd in dxs) { FacWall(k, f, V(x, 0, 0), V(dd - 0.46f, 0, 0), 0.42f, eave, 0f, Vector3.forward, 3f, org); FacWall(k, f, V(dd - 0.46f, 0, 0), V(dd + 0.46f, 0, 0), 2.49f, eave, 0f, Vector3.forward, 3f, org); x = dd + 0.46f; }
+                FacWall(k, f, V(x, 0, 0), V(len, 0, 0), 0.42f, eave, 0f, Vector3.forward, 3f, org);
+            }
+            var fwins = new List<(Vector3, Vector3, float, float)>(); FacWins(f, V(0, 0, 0), V(len, 0, 0), 0.42f, eave, 0f, Vector3.forward, 1.5f, fwins);
             for (int i = 0; i < n; i++)
             {
                 float x0 = i * w, x1 = x0 + w; bool left = i % 2 == 0;
-                float dx = left ? x0 + 0.25f * w : x1 - 0.25f * w;                                             // the door where a ground floor window would be
-                Door(k, dx, rng.Next(4));
+                float dx = dxs[i];                                                                              // the door where a ground floor window would be
+                Door(k, dx, rng.Next(4), true); a.Solid(V(dx - 0.65f, 0f, 0f), V(dx + 0.65f, 0.42f, 0.38f)); k.Box(stone, V(dx - 0.75f, 0f, 0.38f), V(dx + 0.75f, 0.21f, 0.7f)); a.Solid(V(dx - 0.75f, 0f, 0.38f), V(dx + 0.75f, 0.21f, 0.7f));
                 // garden: low wall with a gap at the path, the path, a divider to the next house
                 float gz = garden - 0.15f;
                 k.Box(brick, V(x0, 0f, gz - 0.11f), V(dx - 0.6f, 0.75f, gz + 0.11f)); k.Box(brick, V(dx + 0.6f, 0f, gz - 0.11f), V(x1, 0.75f, gz + 0.11f));
@@ -222,9 +230,10 @@ namespace ASBO.Slice
                 float bx = left ? x1 - 1.2f : x0 + 0.6f; Bin(a.detail, V(bx, 0f, gz - 0.9f), rng);
                 // the back: plain brick, two windows up, a window and the back door down
                 BackWindow(k, x0 + w * 0.3f, 3.8f, -d); BackWindow(k, x0 + w * 0.7f, 3.8f, -d); BackWindow(k, left ? x0 + w * 0.7f : x0 + w * 0.3f, 1.0f, -d);
-                float bd = left ? x0 + w * 0.28f : x0 + w * 0.72f;
-                k.QuadUV(doors, V(bd + 0.45f, 0.42f, -d - 0.02f), V(bd - 0.45f, 0.42f, -d - 0.02f), V(bd - 0.45f, 2.45f, -d - 0.02f), V(bd + 0.45f, 2.45f, -d - 0.02f), Vector3.back,
-                    new Vector2(0.75f + 0.008f, 0), new Vector2(0.992f, 0), new Vector2(0.992f, 1), new Vector2(0.758f, 1));
+                float bd = bds[i];
+                k.Box(stone, V(bd - 0.6f, 0f, -d - 0.38f), V(bd + 0.6f, 0.42f, -d)); a.Solid(V(bd - 0.6f, 0f, -d - 0.38f), V(bd + 0.6f, 0.42f, -d)); k.Box(stone, V(bd - 0.7f, 0f, -d - 0.7f), V(bd + 0.7f, 0.21f, -d - 0.38f)); a.Solid(V(bd - 0.7f, 0f, -d - 0.7f), V(bd + 0.7f, 0.21f, -d - 0.38f));
+                // the house inside: two storeys, the stair up the hall
+                TerraceHouse(a, TerraceName(seed) + " " + (i + 1), x0, w, d, dx - x0, bd - x0, left, fwins, seed * 100 + i);
                 // the yard: walls, the gate onto the alley
                 float yz = -d - yard;
                 if (i > 0) k.Box(brick, V(x0 - 0.1f, 0f, yz), V(x0 + 0.1f, 1.8f, -d));
@@ -239,13 +248,46 @@ namespace ASBO.Slice
             // ends and back
             FacWall(k, Brick, V(0, 0, 0), V(0, 0, -d), 0.42f, eave, 0f, Vector3.left);
             FacWall(k, Brick, V(len, 0, 0), V(len, 0, -d), 0.42f, eave, 0f, Vector3.right);
-            FacWall(k, Brick, V(0, 0, -d), V(len, 0, -d), 0.42f, eave, 0f, Vector3.back);
+            {
+                float x = 0f; var org = V(0, 0, -d); var bs = new List<float>(bds); bs.Sort();
+                foreach (float bb in bs) { FacWall(k, Brick, V(x, 0, -d), V(bb - 0.46f, 0, -d), 0.42f, eave, 0f, Vector3.back, 0.9f, org); FacWall(k, Brick, V(bb - 0.46f, 0, -d), V(bb + 0.46f, 0, -d), 2.49f, eave, 0f, Vector3.back, 0.9f, org); x = bb + 0.46f; }
+                FacWall(k, Brick, V(x, 0, -d), V(len, 0, -d), 0.42f, eave, 0f, Vector3.back, 0.9f, org);
+            }
             k.Box(stone, V(0f, eave - 0.32f, 0f), V(len, eave - 0.12f, 0.12f), 16);                           // dentil course under the gutter
             float ridge = Pitched(k, 0f, len, d, eave, 37f, brick);
             for (int i = 0; i <= n; i++) Chimney(k, Mathf.Clamp(i * w, 0.5f, len - 0.5f), ridge, -d * 0.5f, brick);
             // satellite dishes on a few
             for (int i = 0; i < n; i++) if (rng.Next(3) == 0) Dish(a.detail, V(i * w + 0.6f, eave - 1.2f, 0.02f), Vector3.forward);
-            a.Solid(V(0, 0, -d), V(len, eave, 0));
+        }
+        static string TerraceName(int seed) => seed == 1 ? "Mafeking Terrace" : seed == 2 ? "Northway Terrace" : "Thornbury Terrace";
+
+        /// <summary>One terraced house: the ground floor and the floor over it, each laid out and furnished by the home builder for the one household.</summary>
+        static void TerraceHouse(Area a, string name, float x0, float w, float d, float doorU, float backU, bool left, List<(Vector3 p0, Vector3 p1, float ya, float yb)> fwins, int seed)
+        {
+            var rng = new System.Random(seed * 13 + 5); var H = Household.Make(seed + 3000, rng);
+            const float plinth = 0.42f, storey = 2.9f;
+            for (int st = 0; st < 2; st++)
+            {
+                float fy = plinth + st * storey;
+                var fr = new GameObject(name + (st == 0 ? "" : " upstairs")).transform; fr.SetParent(a.root, false);
+                fr.localPosition = a.f.MultiplyPoint3x4(V(x0, fy, 0f)); fr.localRotation = a.f.rotation;
+                var spec = new HomeBuilder.FlatSpec { house = true, upper = st == 1, doorU = doorU, storeyH = storey };
+                foreach (var (p0, p1, ya, yb) in fwins)
+                {
+                    float wa = Mathf.Min(p0.x, p1.x) - x0, wb = Mathf.Max(p0.x, p1.x) - x0; if (wb <= 0.2f || wa >= w - 0.2f) continue;
+                    if (ya < fy - 0.1f || ya >= fy + storey - 0.1f) continue;
+                    if (st == 0 && wb > doorU - 0.6f && wa < doorU + 0.6f) continue;           // the door is where that window would be
+                    spec.winsF.Add(new Vector4(wa, wb, ya - fy, yb - fy));
+                }
+                // the back: upstairs two windows, downstairs one beside the back door (as BackWindow draws them), in u reversed? no: u = x - x0 on the back as well
+                if (st == 1) { spec.winsB.Add(new Vector4(w * 0.3f - 0.55f, w * 0.3f + 0.55f, 3.8f - fy, 5.1f - fy)); spec.winsB.Add(new Vector4(w * 0.7f - 0.55f, w * 0.7f + 0.55f, 3.8f - fy, 5.1f - fy)); }
+                else { float gx = left ? w * 0.7f : w * 0.3f; spec.winsB.Add(new Vector4(gx - 0.55f, gx + 0.55f, 1.0f - fy, 2.3f - fy)); spec.doorsF.Add(doorU); spec.doorsB.Add(backU); }
+                var hb = new HomeBuilder { flat = true, rng = new System.Random(seed * 7 + st), seed = seed * 2 + st, name = fr.name, x0 = 0f, mirror = false };
+                hb.W = w; hb.D = d; hb.U0 = 0.12f; hb.U1 = w - 0.12f; hb.D0 = 0.14f; hb.D1 = d - 0.14f;
+                float c = st == 0 ? storey - 0.25f : 2.55f; hb.Y = new[] { 0.02f, 0.02f + storey, 0.02f + 2 * storey }; hb.C = new[] { c, c + storey, c + 2 * storey };
+                hb.H = H; hb.fs = spec;
+                var home = hb.Build(fr); home.label = name;
+            }
         }
 
         /// <summary>Wend Mill: five storeys of red brick with the windows on every floor, a cornice and parapet with the
@@ -682,10 +724,10 @@ namespace ASBO.Slice
         }
 
         /// <summary>A front door on the face at z = 0, centred at x: one of the four doors, a fanlight, a stone surround, lintel and step.</summary>
-        static void Door(MeshKit k, float x, int style)
+        static void Door(MeshKit k, float x, int style, bool real = false)
         {
             float u0 = style * 0.25f + 0.008f, u1 = u0 + 0.234f;
-            k.QuadUV(doors, V(x + 0.5f, 0.42f, 0.03f), V(x - 0.5f, 0.42f, 0.03f), V(x - 0.5f, 2.45f, 0.03f), V(x + 0.5f, 2.45f, 0.03f), Vector3.forward,
+            if (!real) k.QuadUV(doors, V(x + 0.5f, 0.42f, 0.03f), V(x - 0.5f, 0.42f, 0.03f), V(x - 0.5f, 2.45f, 0.03f), V(x + 0.5f, 2.45f, 0.03f), Vector3.forward,
                 new Vector2(u0, 0), new Vector2(u1, 0), new Vector2(u1, 1), new Vector2(u0, 1));
             k.Quad(glass, V(x - 0.5f, 2.5f, 0.03f), V(x + 0.5f, 2.5f, 0.03f), V(x + 0.5f, 2.85f, 0.03f), V(x - 0.5f, 2.85f, 0.03f), Vector3.forward);
             k.Box(white, V(x - 0.5f, 2.45f, 0.02f), V(x + 0.5f, 2.5f, 0.06f));

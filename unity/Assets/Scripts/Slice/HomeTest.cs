@@ -85,35 +85,73 @@ namespace ASBO.Slice
                 yield return new WaitForSeconds(0.5f);
                 foreach (var h in new System.Collections.Generic.List<Home>(Home.All))
                 {
-                    if (h == null || h.variant != "hall") continue;
+                    if (h == null || !(h.variant == "hall" || (h.variant != null && h.variant.StartsWith("house-down"))) || h.doors.Count == 0 || h.doors[0].door == null) continue;
+                    bool house = h.variant.StartsWith("house");
                     foreach (var d in h.doors) if (d.door != null) foreach (var c in d.door.GetComponentsInChildren<Collider>()) c.enabled = false;
+                    Home upH = null; if (house) { var ug = GameObject.Find(h.name + " upstairs"); if (ug != null) upH = ug.GetComponentInChildren<Home>(); if (upH != null) foreach (var d in upH.doors) if (d.door != null) foreach (var c in d.door.GetComponentsInChildren<Collider>()) c.enabled = false; }
                     Physics.SyncTransforms(); var zr = h.zoneRects[0]; const float cs = 0.1f; var tr = h.transform;
                     var seen = new System.Collections.Generic.HashSet<long>(); var q = new System.Collections.Generic.Queue<Vector3>(); var reached = new System.Collections.Generic.List<Vector3>();
                     var fd = h.doors.Count > 0 && h.doors[0].door != null ? tr.InverseTransformPoint(h.doors[0].door.transform.position) : new Vector3(zr.center.x, 0.45f, 0f);
                     float Snap(float v) => Mathf.Round(v / cs) * cs; float y0 = h.rooms.Count > 0 ? h.rooms[0].centre.y : 0.45f;
-                    foreach (float ox in new[] { -0.3f, 0f, 0.3f }) q.Enqueue(new Vector3(Snap(h.doors[0].door.transform.localPosition.x + ox), 0.02f, Snap(1.0f)));
-                    int guard = 0;
+                    var fdr = h.doors.Find(x => x.tag == "front" && x.door != null) ?? h.doors[0]; float fdx = tr.InverseTransformPoint(fdr.door.transform.position).x;
+                    float sy = house ? -0.4f : 0.02f; foreach (float ox in new[] { -0.3f, 0f, 0.3f }) q.Enqueue(new Vector3(Snap(fdx + ox), sy, Snap(1.0f)));
+                    { var sp = tr.TransformPoint(new Vector3(Snap(fdx), sy + 0.45f, Snap(1.0f))); bool hh0 = Physics.Raycast(sp, Vector3.down, out var h0, 1.2f, ~0, QueryTriggerInteraction.Ignore); Debug.Log($"[ASBO] reachseed {h.name}: fdx {fdx:0.00} ray {hh0} {(hh0 ? h0.collider.name + "@" + tr.InverseTransformPoint(h0.point).y.ToString("0.00") : "")} zr {zr}"); }
+                    int guard = 0; var rj = new int[4]; string rjn = null, rjh = null; float ymax = -9f;
                     while (q.Count > 0 && guard++ < 300000)
                     {
                         var p = q.Dequeue(); long key = ((long)Mathf.RoundToInt((p.x + 50f) / cs) * 8192 + Mathf.RoundToInt((p.z + 50f) / cs)) * 64 + Mathf.RoundToInt(p.y / 0.3f);
-                        if (!seen.Add(key)) continue; reached.Add(p);
+                        if (!seen.Add(key)) continue; reached.Add(p); if (p.y > ymax) ymax = p.y;
                         foreach (var dv in new[] { new Vector2(cs, 0), new Vector2(-cs, 0), new Vector2(0, cs), new Vector2(0, -cs) })
                         {
-                            float nx = p.x + dv.x, nz = p.z + dv.y; if (nx < zr.xMin - 1f || nx > zr.xMax + 1f || nz < zr.yMin - 1f || nz > 1.5f) continue;
+                            float nx = p.x + dv.x, nz = p.z + dv.y; if (nx < zr.xMin - 1f || nx > zr.xMax + 1f || nz < zr.yMin - 1f || nz > 1.5f) { rj[0]++; continue; }
                             Vector3 wp = tr.TransformPoint(new Vector3(nx, p.y + 0.45f, nz));
-                            if (!Physics.Raycast(wp, Vector3.down, out var hit, 1.2f, ~0, QueryTriggerInteraction.Ignore)) continue;
-                            float gy = tr.InverseTransformPoint(hit.point).y; if (gy - p.y > 0.4f || p.y - gy > 0.7f) continue;
-                            if (Physics.CheckCapsule(tr.TransformPoint(new Vector3(nx, gy + 0.65f, nz)), tr.TransformPoint(new Vector3(nx, gy + 1.5f, nz)), 0.28f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                            if (!Physics.Raycast(wp, Vector3.down, out var hit, 1.2f, ~0, QueryTriggerInteraction.Ignore)) { rj[1]++; if (p.y > 0.5f && rjh == null) rjh = $"noray@{nx:0.0},{p.y:0.00},{nz:0.0}"; continue; }
+                            float gy = tr.InverseTransformPoint(hit.point).y; if (gy - p.y > 0.4f || p.y - gy > 0.7f) { rj[2]++; if (p.y > 0.5f && rjh == null) rjh = $"step {hit.collider.name}@{nx:0.0},{p.y:0.00}->{gy:0.00},{nz:0.0}"; continue; }
+                            var cap = Physics.OverlapCapsule(tr.TransformPoint(new Vector3(nx, gy + 0.65f, nz)), tr.TransformPoint(new Vector3(nx, gy + 1.5f, nz)), 0.28f, ~0, QueryTriggerInteraction.Ignore);
+                            if (cap.Length > 0) { rj[3]++; if ((p.y > 0.5f || (nz < 0.1f && nz > -0.6f && Mathf.Abs(nx - fdx) < 0.6f)) && rjh == null) rjh = "cap " + cap[0].name + "/" + (cap[0].transform.parent != null ? cap[0].transform.parent.name : "-") + $"@{nx:0.0},{gy:0.00},{nz:0.0}"; if (rjn == null) rjn = cap[0].name + "/" + (cap[0].transform.parent != null ? cap[0].transform.parent.name : "") + "@" + nx.ToString("0.0") + "," + gy.ToString("0.00") + "," + nz.ToString("0.0"); continue; }
                             q.Enqueue(new Vector3(nx, gy, nz));
                         }
                     }
                     int ok = 0; var miss = new System.Collections.Generic.List<string>(); int inside = 0; foreach (var p in reached) if (zr.Contains(new Vector2(p.x, p.z))) inside++;
+                    Debug.Log($"[ASBO] reachrej {h.name}: reached {reached.Count}, bounds {rj[0]} noray {rj[1]} step {rj[2]} capsule {rj[3]} first {rjn} ymax {ymax:0.00} high {rjh}");
+                    if (house)
+                    {
+                        // every room downstairs and up (the upstairs home is a sibling named "<name> upstairs"), by its u, d rect
+                        var homes = new System.Collections.Generic.List<Home> { h }; var upg = GameObject.Find(h.name + " upstairs"); if (upg != null) { var uh = upg.GetComponentInChildren<Home>(); if (uh != null) homes.Add(uh); }
+                        int rt = 0, rb = 0; var rmiss = new System.Collections.Generic.List<string>();
+                        foreach (var hh2 in homes) foreach (var rr in hh2.rooms)
+                        {
+                            rt++; bool got = false;
+                            foreach (var p in reached) { var lp = hh2.transform.InverseTransformPoint(tr.TransformPoint(p)); if (Mathf.Abs(lp.y - rr.centre.y) < 0.6f && Mathf.Abs(lp.x - rr.centre.x) < (rr.u1 - rr.u0) * 0.5f - 0.15f && Mathf.Abs(lp.z - rr.centre.z) < (rr.d1 - rr.d0) * 0.5f - 0.15f) { got = true; break; } }
+                            if (!got) { rb++; rmiss.Add(rr.type + (hh2 == h ? "0" : "1")); }
+                        }
+                        foreach (var d in h.doors) if (d.door != null) foreach (var c in d.door.GetComponentsInChildren<Collider>()) c.enabled = true;
+                        if (upH != null) foreach (var d in upH.doors) if (d.door != null) foreach (var c in d.door.GetComponentsInChildren<Collider>()) c.enabled = true;
+                        Debug.Log($"[ASBO] housereach {h.name} [{h.variant}]: rooms {rt - rb}/{rt} [{string.Join(",", rmiss)}], up home {(homes.Count > 1 ? "found" : "MISSING")}");
+                        yield return null; continue;
+                    }
                     foreach (var sp in h.spots) { bool g = false; foreach (var p in reached) if (Mathf.Abs(p.y - sp.pos.y) < 0.7f && (p.x - sp.pos.x) * (p.x - sp.pos.x) + (p.z - sp.pos.z) * (p.z - sp.pos.z) < 1.2f) { g = true; break; } if (g) ok++; else miss.Add(sp.tag); }
                     foreach (var d in h.doors) if (d.door != null) foreach (var c in d.door.GetComponentsInChildren<Collider>()) c.enabled = true;
                     Debug.Log($"[ASBO] hallreach {h.name}: {inside} cells inside, spots {ok}/{h.spots.Count} reachable [{string.Join(",", miss)}]");
                     yield return null;
                 }
                 Destroy(gameObject);
+            }
+        }
+
+        /// <summary>Pictures from inside a named object: the player stood at (local) at, the camera at cam looking at look, all in that object's frame.</summary>
+        public static void ShotIn(string goName, float ax, float ay, float az, float cx, float cy, float cz, float lx, float ly, float lz, string tag)
+        { var r = new GameObject("ShotIn").AddComponent<RunShotIn>(); r.n = goName.Replace("-", " "); r.at = new Vector3(ax, ay, az); r.cam = new Vector3(cx, cy, cz); r.look = new Vector3(lx, ly, lz); r.tag2 = tag; }
+        class RunShotIn : MonoBehaviour
+        {
+            public string n, tag2; public Vector3 at, cam, look;
+            IEnumerator Start()
+            {
+                var g = GameObject.Find(n); if (g == null) { Debug.Log("[ASBO] shotin: no " + n); Destroy(gameObject); yield break; }
+                var pc = FindFirstObjectByType<PlayerCtl>(); var t = g.transform; var hm = g.GetComponent<Home>(); if (hm != null) { at += hm.centre; cam += hm.centre; look += hm.centre; }
+                pc.Teleport(t.TransformPoint(at), 0f, 10f); yield return new WaitForSeconds(1.2f);
+                Vector3 a = t.TransformPoint(cam), b = t.TransformPoint(look); DebugCmd.ShotAt(a.x, a.y, a.z, b.x, b.y, b.z, "in_" + tag2);
+                Debug.Log($"[ASBO] shotin {n} {tag2}: player at {pc.transform.position}"); Destroy(gameObject);
             }
         }
 

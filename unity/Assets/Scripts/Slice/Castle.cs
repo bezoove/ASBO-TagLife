@@ -196,7 +196,13 @@ namespace ASBO.Slice
             var k = new MeshKit();
             const float w = 12f, h = 17f;
             Vector3 a = p + new Vector3(-w / 2, 0, -w / 2), b = p + new Vector3(w / 2, h, w / 2);
-            k.Box(M.stone, a, b, 4);
+            k.Box(M.stone, a, b, 4 | 32);
+            // the north face in pieces round the first-floor doorway
+            {
+                float zf = w / 2, dx0 = -w / 2 + 5.6f, dx1 = -w / 2 + 7.0f;
+                void Fq(float xa, float xb, float ya, float yb) { if (xb - xa > 0.01f && yb - ya > 0.01f) k.Quad(M.stone, p + new Vector3(xa, ya, zf), p + new Vector3(xb, ya, zf), p + new Vector3(xb, yb, zf), p + new Vector3(xa, yb, zf), Vector3.forward); }
+                Fq(-w / 2, dx0, 0f, h); Fq(dx1, w / 2, 0f, h); Fq(dx0, dx1, 0f, 4.0f); Fq(dx0, dx1, 6.4f, h);
+            }
             // a plinth that splays out at the bottom, string courses
             k.Box(M.stone2, p + new Vector3(-w / 2 - 0.5f, 0, -w / 2 - 0.5f), p + new Vector3(w / 2 + 0.5f, 1.2f, w / 2 + 0.5f), 4);
             foreach (float yy in new[] { 6f, 11.5f }) k.Box(M.stone2, p + new Vector3(-w / 2 - 0.12f, yy, -w / 2 - 0.12f), p + new Vector3(w / 2 + 0.12f, yy + 0.3f, w / 2 + 0.12f), 4);
@@ -229,11 +235,85 @@ namespace ASBO.Slice
             for (int s = 0; s < 14; s++)
                 k.Box(M.stone2, p + new Vector3(-w / 2 + 1f + s * 0.32f, 0f, w / 2 + 0.6f), p + new Vector3(-w / 2 + 1.32f + s * 0.32f, 0.3f + s * 0.27f, w / 2 + 2.2f));
             k.Box(M.stone2, p + new Vector3(-w / 2 + 5.4f, 0f, w / 2 + 0.6f), p + new Vector3(-w / 2 + 7.2f, 4.0f, w / 2 + 2.2f));
-            k.Box(M.dark, p + new Vector3(-w / 2 + 5.6f, 4.0f, w / 2), p + new Vector3(-w / 2 + 7.0f, 6.4f, w / 2 + 0.03f));
             k.Box(M.timber, p + new Vector3(-w / 2 + 5.65f, 4.0f, w / 2 + 0.05f), p + new Vector3(-w / 2 + 6.1f, 6.3f, w / 2 + 0.75f));
             var g = k.Build("CastleKeep", root, false);
-            var bc = g.AddComponent<BoxCollider>(); bc.center = p + new Vector3(0, h / 2, 0); bc.size = new Vector3(w, h, w);
-            var st = g.AddComponent<BoxCollider>(); st.center = p + new Vector3(-w / 2 + 4f, 1.6f, w / 2 + 1.4f); st.size = new Vector3(6.5f, 3.2f, 1.6f);
+            // the steps: one collider per step so you can walk up them
+            for (int s = 0; s < 14; s++) { var sc = g.AddComponent<BoxCollider>(); sc.center = p + new Vector3(-w / 2 + 1.16f + s * 0.32f, (0.3f + s * 0.27f) * 0.5f, w / 2 + 1.4f); sc.size = new Vector3(0.32f, 0.3f + s * 0.27f, 1.6f); }
+            var tp = g.AddComponent<BoxCollider>(); tp.center = p + new Vector3(-w / 2 + 6.3f, 2.0f, w / 2 + 1.4f); tp.size = new Vector3(1.8f, 4.0f, 1.6f);
+            KeepInside(root, p, w, h);
+        }
+
+        /// <summary>
+        /// Inside the keep: walls a metre and a half thick, the undercroft filled with rubble, the hall on the first floor
+        /// (through the door at the top of the steps) with its fireplace, rotten table and somebody's camp, a timber stair up
+        /// the west wall to the solar on the second floor, half its floor fallen through, and the sky showing through the roof.
+        /// </summary>
+        static void KeepInside(Transform root, Vector3 p, float w, float h)
+        {
+            TownMats.Load(); CotMats.Init();
+            var b = new Bld(root, "Keep Inside"); const float t = 1.5f; float i0 = -w / 2 + t, i1 = w / 2 - t;
+            Vector3 P(float x, float y, float z) => p + new Vector3(x, y, z);
+            var stone = M.stone; var wood = M.timber ?? M.stone2; var dark = M.dark;
+            // the thick walls: inner faces (the outside box is one-sided), solid through
+            float dx0 = -w / 2 + 5.6f, dx1 = -w / 2 + 7.0f;
+            void Face(Vector3 a0, Vector3 a1, Vector3 a2, Vector3 a3, Vector3 n) => b.inK.Quad(stone, a0, a1, a2, a3, n);
+            Face(P(i0, 4f, i1), P(i1, 4f, i1), P(i1, h, i1), P(i0, h, i1), Vector3.back);   // north (the door cut below)
+            Face(P(i0, 4f, i0), P(i1, 4f, i0), P(i1, h, i0), P(i0, h, i0), Vector3.forward);
+            Face(P(i0, 4f, i0), P(i0, 4f, i1), P(i0, h, i1), P(i0, h, i0), Vector3.right);
+            Face(P(i1, 4f, i0), P(i1, 4f, i1), P(i1, h, i1), P(i1, h, i0), Vector3.left);
+            b.Solid(P(-w / 2, 0f, i1), P(dx0, h, w / 2)); b.Solid(P(dx1, 0f, i1), P(w / 2, h, w / 2)); b.Solid(P(dx0, 0f, i1), P(dx1, 4.0f, w / 2)); b.Solid(P(dx0, 6.4f, i1), P(dx1, h, w / 2));
+            b.Solid(P(-w / 2, 0f, -w / 2), P(w / 2, h, i0)); b.Solid(P(-w / 2, 0f, i0), P(i0, h, i1)); b.Solid(P(i1, 0f, i0), P(w / 2, h, i1));
+            // the doorway through the wall: reveals and a flagged threshold
+            b.inK.Quad(stone, P(dx0, 4f, w / 2), P(dx0, 4f, i1), P(dx0, 6.4f, i1), P(dx0, 6.4f, w / 2), Vector3.right);
+            b.inK.Quad(stone, P(dx1, 4f, i1), P(dx1, 4f, w / 2), P(dx1, 6.4f, w / 2), P(dx1, 6.4f, i1), Vector3.left);
+            b.inK.Quad(stone, P(dx0, 6.4f, w / 2), P(dx1, 6.4f, w / 2), P(dx1, 6.4f, i1), P(dx0, 6.4f, i1), Vector3.down);
+            b.inK.Quad(M.stone2, P(dx0, 4.0f, i1), P(dx1, 4.0f, i1), P(dx1, 4.0f, w / 2), P(dx0, 4.0f, w / 2), Vector3.up);
+            // the undercroft is rubble: the hall's floor is flags on top of it
+            b.Box(M.stone2, P(i0, 0f, i0), P(i1, 4.0f, i1), true);
+            // arrow slits through the walls: dark slots on the inner faces
+            for (int f = 0; f < 2; f++) foreach (float xx in new[] { -3.2f, 0f, 3.2f })
+                {
+                    float yy = 8f + f * 5f; if (yy > h - 1f) continue;
+                    b.furnK.Box(dark, P(xx - 0.12f, yy - 0.7f, i0 + 0.01f), P(xx + 0.12f, yy + 0.7f, i0 + 0.02f));
+                    b.furnK.Box(dark, P(i1 - 0.02f, yy - 0.7f, xx - 0.12f), P(i1 - 0.01f, yy + 0.7f, xx + 0.12f));
+                }
+            // the solar floor at 9.5 m: timber on joists, the middle fallen through, the stair coming up the west wall
+            const float y2 = 9.5f;
+            b.Box(wood, P(i0, y2 - 0.2f, 0.6f), P(i1, y2, i1), true);                    // north part
+            b.Box(wood, P(i0 + 1.1f, y2 - 0.2f, i0), P(i0 + 3.2f, y2, 0.6f), true);       // a strip along the stair's top
+            b.Box(wood, P(i1 - 2.2f, y2 - 0.2f, i0), P(i1, y2, 0.6f), true);
+            for (int j = 0; j < 6; j++) b.furnK.Box(wood, P(i0, y2 - 0.45f, i0 + 0.4f + j * 1.5f), P(i1, y2 - 0.2f, i0 + 0.6f + j * 1.5f));
+            b.Box(wood, P(i0 + 3.2f, y2, 0.55f), P(i1 - 2.2f, y2 + 1.0f, 0.6f), true);   // a rail along the broken edge
+            // the stair: timber treads up the west wall from the door end (north) to the south, then onto the solar
+            int n = 21; float rise = (y2 - 4f) / n;
+            for (int s = 1; s <= n; s++)
+            {
+                float z1 = i1 - 0.8f - (s - 1) * 0.3f, z0 = z1 - 0.3f, ty = 4f + s * rise;
+                b.Box(M.stone2, P(i0, 4f, z0), P(i0 + 1.0f, ty, z1), true);                                       // solid masonry steps
+                b.Box(wood, P(i0 + 0.97f, ty, z0), P(i0 + 1.03f, ty + 0.95f, z1), true);                         // the hand rail, stepping up with them
+            }
+            // the roof: a timber ceiling with daylight showing through the holes
+            b.inK.Quad(wood, P(i0, h - 0.6f, i0), P(i1, h - 0.6f, i0), P(i1, h - 0.6f, i1), P(i0, h - 0.6f, i1), Vector3.down);
+            // the hall: a fireplace in the east wall, a rotten table, squatters' camp
+            b.Box(M.stone2, P(i1 - 0.4f, 4f, -1.2f), P(i1, 6.2f, 1.2f), true); b.furnK.Box(dark, P(i1 - 0.41f, 4f, -0.8f), P(i1 - 0.4f, 5.4f, 0.8f));
+            for (int a = 0; a < 5; a++) b.furnK.Box(HomeBuilder.Flat(new Color(0.25f, 0.2f, 0.18f), 0.1f), P(i1 - 1.2f + a * 0.1f, 4.01f, -0.3f + a * 0.12f), P(i1 - 1.0f + a * 0.1f, 4.03f, -0.2f + a * 0.12f));
+            b.Table(P(-0.5f, 4f, -1.5f), 2.4f, 0.9f, 0.76f, wood);
+            b.furnK.Box(HomeBuilder.Flat(new Color(0.2f, 0.35f, 0.25f), 0.1f), P(1.0f, 4f, -3.5f), P(2.9f, 4.12f, -2.7f));   // a sleeping bag
+            for (int c = 0; c < 6; c++) b.furnK.Cyl(HomeBuilder.Flat(Color.HSVToRGB(c * 0.17f, 0.6f, 0.7f), 0.7f), P(0.4f + c * 0.25f, 4f, -3.9f + (c % 2) * 0.2f), 0.033f, 0.12f, 8);
+            b.Box(wood, P(-3.5f, 4f, 2.6f), P(-2.4f, 4.7f, 3.3f), true);   // an old chest
+            b.Light(P(0f, 7f, 0f), new Color(0.9f, 0.85f, 0.75f), 10f); b.Light(P(2f, 5.5f, -2f), new Color(1f, 0.7f, 0.45f), 6f); b.Light(P(0f, 12f, 0f), new Color(0.85f, 0.88f, 1f), 8f);
+            b.Done();
+            var home = b.Root.gameObject.AddComponent<Home>();
+            var hh = Household.Make(77123, new System.Random(77)); hh.kind = Household.Kind.Hoarder; hh.wealth = 0.2f; hh.stuff = 0.8f; hh.family = "Wend Castle";
+            home.H = hh; home.label = "Wend Castle keep"; home.variant = "hall";
+            void Sp(string kind, string label, string tag, Vector3 at, bool hidden = false, float seat = 0f) => home.spots.Add(new Home.SpotRec { kind = kind, label = label, tag = tag, pos = at, yaw = 0f, room = 0, lv = 0, hidden = hidden, h = seat });
+            Sp("rummage", "Open the old chest", "cabinet", P(-2.95f, 4f, 1.9f));
+            Sp("rummage", "Go through the sleeping bag", "bag", P(1.9f, 4f, -2.2f), true);
+            Sp("say", "Warm your hands at the fireplace", "Cold ash, a burnt shopping trolley wheel and a lot of history.", P(i1 - 1.3f, 4f, 0f));
+            Sp("say", "Look through the arrow slit", "The whole town laid out below. You can see your house from here. Probably.", P(0f, y2, i0 + 0.6f));
+            Sp("sit", "Sit at the old table", "chair", P(-0.5f, 4f, -0.7f), false, 0.45f);
+            home.rooms.Add(new Home.RoomRec { type = "hall", use = "keep", lv = 0, centre = P(0f, 4f, 0f), u0 = i0, u1 = i1, d0 = i0, d1 = i1 });
+            home.zoneRects.Add(Rect.MinMaxRect(p.x + i0, p.z + i0, p.x + i1, p.z + i1)); home.centre = P(0f, 5.5f, 0f); home.radius = 16f; home.midZ = p.z; home.halfD = w / 2 - t;
         }
 
         /// <summary>The crypt: a low stone hood over steps that go down into the dark.</summary>

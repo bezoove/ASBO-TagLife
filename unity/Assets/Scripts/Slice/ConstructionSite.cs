@@ -173,8 +173,36 @@ namespace ASBO.Slice
             BlockWall(new Vector3(x0, 0, z0), new Vector3(x0, 0, z1), StoreyH, 2.2f, false);
             // facing brick started on the ground floor front
             k.Box(M.brick, new Vector3(x0, 0.3f, z1 + 0.12f), new Vector3(x0 + bx * 3f, 1.1f, z1 + 0.22f));
-            // stair core at the west end
-            k.Box(M.concrete, new Vector3(x0 - 3.2f, 0f, z0 + 4f), new Vector3(x0, Storeys * StoreyH + 0.5f, z0 + 9.5f), 0);
+            // stair core at the west end: concrete walls, a dog-leg stair you can climb to the top slab, openings onto each floor
+            {
+                float cx0 = x0 - 3.2f, cz0 = z0 + 4f, cz1 = z0 + 9.5f, top = Storeys * StoreyH + 0.5f;
+                float zL = z0 + 8.1f, a0 = cx0 + 0.2f, a1 = x0 - 1.65f, b0 = x0 - 1.55f, b1 = x0 - 0.2f;
+                k.Box(M.concrete, new Vector3(cx0, 0f, cz0), new Vector3(cx0 + 0.2f, top, cz1));                       // west
+                k.Box(M.concrete, new Vector3(cx0, 0f, cz0), new Vector3(x0, top, cz0 + 0.2f));                        // south
+                k.Box(M.concrete, new Vector3(cx0, 0f, cz1 - 0.2f), new Vector3(x0, top, cz1));                        // north
+                k.Box(M.concrete, new Vector3(cx0 + 0.2f, 0f, cz0 + 0.2f), new Vector3(x0 - 0.2f, 0.3f, cz1 - 0.2f));  // ground slab
+                // east wall with a doorway at each floor's landing
+                float yPrev = 0f;
+                for (int f = 0; f < Storeys; f++)
+                {
+                    float yf = f == 0 ? 0.3f : f * StoreyH;
+                    k.Box(M.concrete, new Vector3(x0 - 0.2f, yPrev, cz0 + 0.2f), new Vector3(x0, yf + 2.2f, zL));
+                    k.Box(M.concrete, new Vector3(x0 - 0.2f, yf + 2.2f, zL), new Vector3(x0, (f + 1) * StoreyH, cz1 - 0.2f));
+                    k.Box(M.concrete, new Vector3(x0 - 0.2f, yPrev, zL), new Vector3(x0, yf, cz1 - 0.2f));
+                    yPrev = yf + 2.2f;
+                    if (f > 0) k.Box(M.concrete, new Vector3(cx0 + 0.2f, yf - 0.2f, zL), new Vector3(x0 - 0.2f, yf, cz1 - 0.2f));   // the landing
+                    if (f == Storeys - 1) { k.Box(M.steel, new Vector3(a0, yf, zL - 0.05f), new Vector3(a1, yf + 1.05f, zL)); k.Box(M.steel, new Vector3(b0, yf, zL - 0.05f), new Vector3(b1, yf + 1.05f, zL)); continue; }
+                    // the dog-leg up to the next floor
+                    const int n = 9; float H = (f + 1) * StoreyH - yf, rise = H / (2 * n), zHe = zL - (n - 1) * 0.27f;
+                    for (int i = 1; i < n; i++) k.Box(M.concrete, new Vector3(a0, Mathf.Max(0f, yf + (i - 1) * rise - 0.2f), zL - i * 0.27f), new Vector3(a1, yf + i * rise, zL - (i - 1) * 0.27f));
+                    float hy = yf + n * rise;
+                    k.Box(M.concrete, new Vector3(a0, hy - 0.2f, cz0 + 0.2f), new Vector3(b1, hy, zHe));
+                    for (int j = 1; j < n; j++) k.Box(M.concrete, new Vector3(b0, hy + (j - 1) * rise - 0.2f, zHe + (j - 1) * 0.27f), new Vector3(b1, hy + j * rise, zHe + j * 0.27f));
+                    k.Box(M.blocks, new Vector3(a1, yf, zHe), new Vector3(b0, yf + H, zL));                                // the spine
+                }
+                k.Box(M.concrete, new Vector3(x0 - 0.2f, yPrev, cz0 + 0.2f), new Vector3(x0, top, cz1 - 0.2f));
+                k.Box(M.concrete, new Vector3(cx0, top - 0.2f, cz0), new Vector3(x0, top, cz1));                        // the roof of the core
+            }
             var g = Done(k, "SiteFlats", root, true);
             Done(rb, "SiteRebar", root, false, false);
         }

@@ -48,6 +48,8 @@ namespace ASBO.Slice
                 if (si == 0) holes.Add(Rect.MinMaxRect(doorX - 0.55f, y, doorX + 0.55f, y + 2.2f));
                 Lining(b, pa, d, inw, len, y, ceil, t, paint, holes, si == 0 ? doorX : -99f);
             }
+            // the threshold across the wall's thickness, so the floor meets the front step
+            b.inK.Box(stone, V(doorX - 0.55f, y - 0.3f, -t - 0.02f), V(doorX + 0.55f, y, 0.02f)); b.Solid(V(doorX - 0.55f, y - 0.3f, -t - 0.02f), V(doorX + 0.55f, y, 0.02f));
             var door = PropDoor.Make(b.Root, "door", V(doorX, y, -t * 0.5f), 0f, "front");
             if (door != null) home.doors.Add(new Home.DoorRec { door = door, tag = "front", lv = 0, tier = -1 });
             fill(b, home, L, D, y, rng);

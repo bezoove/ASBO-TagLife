@@ -30,7 +30,7 @@ namespace ASBO.Slice
         public Home Build(Transform grp)
         {
             CotMats.Init();
-            parent = grp; if (flat) FlatLayout(); else Layout(); Assign();
+            parent = grp; if (flat) { if (fs != null && fs.house) HouseLayout(); else FlatLayout(); } else Layout(); Assign();
             ceilM = Flat(new Color(0.92f, 0.91f, 0.88f), 0.1f); glassM = CotMats.glassClear; skirtM = Flat(Shade(H.trim, 0.97f), 0.4f);
             var go = new GameObject(name); root = go.transform; root.SetParent(grp, false);
             home = go.AddComponent<Home>(); home.H = H; home.name = name;
