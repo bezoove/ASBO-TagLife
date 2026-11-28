@@ -289,7 +289,7 @@ Built by unity/tools/og_extract.py and og_register.py from www/index.html (v95).
   - You asked: Properly working casino games where you gamble your money.
 - [ ] **Casino: poker**: Texas Hold'em at a table with other players who bluff and fold like people; the house takes a cut of each pot.
   - You asked: Properly working casino games where you gamble your money.
-- [~] **Pick up, carry, throw and smash things**: Glasses, chairs, bottles. v28: throw goes where the camera looks (heavy things slower); litter scattered on the pavements (bricks, stones, lager cans, bottles) you can pick up and throw; glass smashes on a hard hit; anything that lands makes a noise people hear (see Stealth). Still to come: aim arc preview, a proper throwing animation, kicking cans.
+- [~] **Pick up, carry, throw and smash things**: Glasses, chairs, bottles. v28: throw goes where the camera looks (heavy things slower); litter scattered on the pavements (bricks, stones, lager cans, bottles) you can pick up and throw; glass smashes on a hard hit; anything that lands makes a noise people hear (see Stealth). Throwing plays a proper overhand pitch (Mixamo Baseball Pitching, cut and sped up) and lets go at the right moment; a faint arc shows where it will land while you hold something. Kicking things already works on the litter. Still to come: hold-to-aim, a gentler underarm lob for light things.
   - You asked: Physics props: pick up, carry, move, throw, smash, damage.
   - You asked: No chair stuck in your hands (old-game bug).
   - Old game: [Objs](og/modules/Objs.md), [GlassFx](og/modules/GlassFx.md), [Brk](og/modules/Brk.md), [BRK_KIND](og/modules/BRK_KIND.md) (189 behaviours, 38 lines said or shown, 108 tuning numbers)

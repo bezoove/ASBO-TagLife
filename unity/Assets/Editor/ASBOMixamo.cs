@@ -296,6 +296,7 @@ namespace ASBO.EditorTools
             Cut("Jogging Stumble", "MX_Stumble", 0.7f, 1.7f, false);         // a trip mid-stride and the catch
             Cut("Sprint To Wall Climb", "MX_WallClimb", 0.3f, -1f, false, false, false); // the run-up jump, feet up the wall, hauled over the top (about 2.5 m)
             Cut("Taking Item", "MX_Take", 0.8f, 2.3f, false);               // reaching down to a table or a counter and lifting something
+            Cut("Baseball Pitching", "MX_Throw", 1.3f, 2.45f, false, true);   // the pitch: arm back, step, throw (we let go 0.78 s in)
             Cut("Hit To Body", "MX_Barged", -1f, -1f, false);               // knocked back a step when someone runs into you
             Drop("Uppercut", "MX_Uppercut"); // the whole take again under another name: Unity refuses the copy (now cut as a Hay version)
             // cuts left in a file from an older list of takes (a take moved to another file keeps its old copy here,

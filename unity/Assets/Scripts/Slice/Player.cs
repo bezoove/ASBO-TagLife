@@ -639,6 +639,13 @@ namespace ASBO.Slice
             if (HasParam(person.anim, "Take")) { person.anim.SetTrigger("Take"); landLock = 1.0f; return 0.55f; }
             return 0f;
         }
+        /// <summary>Face where you're throwing and play the pitch; returns how long until the hand lets go.</summary>
+        public float ThrowWindup(Vector3 aimFlat)
+        {
+            if (person == null || person.anim == null || InCar || climbing || chairSat || !HasParam(person.anim, "Throw")) return 0f;
+            aimFlat.y = 0f; if (aimFlat.sqrMagnitude > 0.01f) { bodyYaw = Mathf.Atan2(aimFlat.x, aimFlat.z) * Mathf.Rad2Deg; transform.rotation = Quaternion.Euler(0f, bodyYaw, 0f); }
+            vel = Vector3.zero; person.anim.SetTrigger("Throw"); landLock = 0.8f; return 0.55f;
+        }
         System.Collections.IEnumerator Squat() { bool was = crouched; if (!was) SetCrouch(true); yield return new WaitForSeconds(0.7f); if (!was) SetCrouch(false); }
 
         bool seated;

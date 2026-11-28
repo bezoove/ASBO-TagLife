@@ -224,17 +224,56 @@ namespace ASBO.Slice
             var g = held; Release(Vector3.zero);
             g.transform.SetPositionAndRotation(new Vector3(front.x, y + 0.005f, front.z), Quaternion.Euler(0f, pc.transform.eulerAngles.y, 0f));
         }
-        void Throw()
+        /// <summary>Where a throw would go from the hand right now: the camera's aim, a bit above, slower for heavy things.</summary>
+        Vector3 ThrowVel(float mass)
         {
-            if (held == null) return;
-            // thrown where the camera looks, a bit above it; heavy things go slower and shorter
             var cam = Camera.main; Vector3 aim = cam != null ? cam.transform.forward : pc.transform.forward;
             aim.y = Mathf.Clamp(aim.y, -0.2f, 0.6f) + 0.18f; aim.Normalize();
-            float mass = held.GetComponent<Rigidbody>().mass, speed = Mathf.Lerp(15f, 5f, Mathf.Clamp01(mass / 12f));
-            var g = held; Release(aim * speed);
-            g.GetComponent<Rigidbody>().angularVelocity = Random.insideUnitSphere * 9f;
-            var kn = g.GetComponent<Knockable>(); if (kn != null) { kn.thrower = pc.transform; kn.thrownAt = Time.time; }
-            if (heldE != null && heldE.id.StartsWith("pint")) Say("You lob the pint. Glass everywhere.");
+            return aim * Mathf.Lerp(15f, 5f, Mathf.Clamp01(mass / 12f));
+        }
+        bool throwing;
+        void Throw()
+        {
+            if (held == null || throwing) return;
+            StartCoroutine(ThrowRun());
+        }
+        System.Collections.IEnumerator ThrowRun()
+        {
+            throwing = true;
+            Vector3 flat = ThrowVel(1f); float wait = pc.ThrowWindup(flat);
+            if (wait > 0f) yield return new WaitForSeconds(wait);
+            if (held != null)
+            {
+                float mass = held.GetComponent<Rigidbody>().mass;
+                var g = held; Release(ThrowVel(mass));
+                g.GetComponent<Rigidbody>().angularVelocity = Random.insideUnitSphere * 9f;
+                var kn = g.GetComponent<Knockable>(); if (kn != null) { kn.thrower = pc.transform; kn.thrownAt = Time.time; }
+                if (heldE != null && heldE.id.StartsWith("pint")) Say("You lob the pint. Glass everywhere.");
+            }
+            throwing = false;
+        }
+
+        // the aim arc: a faint dotted curve from your hand to where it would land, shown while you're holding something
+        LineRenderer arc;
+        void LateUpdate()
+        {
+            bool show = held != null && !throwing && pc != null && !pc.InCar && !pc.OnSeat && !CasinoUI.Open && !heldDrunk;
+            if (!show) { if (arc != null && arc.enabled) arc.enabled = false; return; }
+            if (arc == null)
+            {
+                var g = new GameObject("ThrowArc"); arc = g.AddComponent<LineRenderer>(); arc.positionCount = 28; arc.widthMultiplier = 0.035f; arc.numCapVertices = 2;
+                arc.material = Gfx.Mat(new Color(1f, 0.85f, 0.4f), null, 0f); arc.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; arc.receiveShadows = false;
+                arc.textureMode = LineTextureMode.Tile;
+            }
+            arc.enabled = true;
+            Vector3 p = Hand().position + Vector3.up * 0.1f, v = ThrowVel(held.GetComponent<Rigidbody>().mass); int n = 0;
+            for (; n < 28; n++)
+            {
+                arc.SetPosition(n, p); Vector3 np = p + v * 0.06f; v += Physics.gravity * 0.06f;
+                if (Physics.Linecast(p, np, out var hit, ~((1 << 2) | (1 << 28) | (1 << 29)), QueryTriggerInteraction.Ignore)) { arc.SetPosition(n, hit.point); n++; break; }
+                p = np;
+            }
+            arc.positionCount = Mathf.Max(2, n);
         }
         void Consume()
         {
@@ -248,6 +287,8 @@ namespace ASBO.Slice
         }
 
         /// <summary>A punch while holding something: throw it instead. True if there was something to throw.</summary>
+        /// <summary>Debug: put a throwable straight into the player's hand.</summary>
+        public static bool DebugHold(string id) { if (I == null || I.pc == null) return false; var g = Throwables.Spawn(id, I.Hand().position, I.pc.transform.rotation); if (g == null) return false; I.Hold(g, g.GetComponent<Throwable>().entry); return true; }
         public static bool ThrowHeld() { if (I == null || I.held == null) return false; I.Throw(); return true; }
 
         /// <summary>A punch or kick that found nobody: the nearest loose prop in front goes flying. True if one did.</summary>

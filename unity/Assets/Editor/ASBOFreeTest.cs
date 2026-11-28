@@ -344,7 +344,7 @@ namespace ASBO.EditorTools
             var ac = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
             foreach (var n in new[] { "MoveX", "MoveZ", "Variant", "Gait", "IdleVar", "SitVar" }) ac.AddParameter(n, AnimatorControllerParameterType.Float);
             foreach (var n in new[] { "Talk", "Kneel", "Wave", "Grounded", "Seated", "Crouch", "Sit", "Stick", "Fall" }) ac.AddParameter(n, AnimatorControllerParameterType.Bool);
-            foreach (var n in new[] { "Jump", "TurnL", "TurnR", "Climb", "HardLand", "RunStop", "Stamp", "Carjack", "PulledOut", "Roll", "Stumble", "WallClimb", "Take", "Barged" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
+            foreach (var n in new[] { "Jump", "TurnL", "TurnR", "Climb", "HardLand", "RunStop", "Stamp", "Carjack", "PulledOut", "Roll", "Stumble", "WallClimb", "Take", "Barged", "Throw" }) ac.AddParameter(n, AnimatorControllerParameterType.Trigger);
             var sm = ac.layers[0].stateMachine;
 
             var move = ac.CreateBlendTreeInController("Move", out BlendTree tree, 0);
@@ -507,7 +507,7 @@ namespace ASBO.EditorTools
             foreach (var (trig, file, cut, y, exit) in new[] { ("Stamp", "Stomp", "MX_Stomp", 620f, 0.9f), ("Carjack", "Pull Pilot From Seat", "MX_Carjack", 680f, 0.92f), ("PulledOut", "Pulled From Seat", "MX_PulledOut", 740f, 0.95f) })
             {
                 var c = ASBOMixamo.ClipFrom(file, cut); if (c == null) { Debug.LogWarning("[ASBO] no " + cut); continue; }
-                var st = St(trig, c, new Vector3(900, y));
+                var st = St(trig, c, new Vector3(900, y)); if (trig == "Throw") st.speed = 1.7f;
                 var a = sm.AddAnyStateTransition(st); a.AddCondition(AnimatorConditionMode.If, 0, trig); a.hasExitTime = false; a.duration = 0.12f; a.canTransitionToSelf = false;
                 var b = st.AddTransition(move); b.hasExitTime = true; b.exitTime = exit; b.duration = 0.25f;
             }
@@ -523,7 +523,7 @@ namespace ASBO.EditorTools
             foreach (var (trig, file, cut, y, exit, inDur) in new[] {
                 ("Roll", "Falling To Roll", "MX_Roll", 800f, 0.9f, 0.06f), ("Stumble", "Jogging Stumble", "MX_Stumble", 860f, 0.86f, 0.1f),
                 ("WallClimb", "Sprint To Wall Climb", "MX_WallClimb", 920f, 0.95f, 0.1f), ("Take", "Taking Item", "MX_Take", 980f, 0.9f, 0.2f),
-                ("Barged", "Hit To Body", "MX_Barged", 1040f, 0.85f, 0.08f) })
+                ("Barged", "Hit To Body", "MX_Barged", 1040f, 0.85f, 0.08f), ("Throw", "Baseball Pitching", "MX_Throw", 1100f, 0.82f, 0.08f) })
             {
                 var c = ASBOMixamo.ClipFrom(file, cut); if (c == null) { Debug.LogWarning("[ASBO] no " + cut); continue; }
                 var st = St(trig, c, new Vector3(900, y));

@@ -170,6 +170,7 @@ namespace ASBO.Slice
         /// <summary>Climb, run-up wall climb, vault, drop-and-roll, barging into someone, reaching down: on a test slab up in the sky.</summary>
         public static void TraverseTest(int only) { TraverseTestRun.Only = only; new GameObject("TraverseTest").AddComponent<TraverseTestRun>(); }
         public static void ThrowTest() { new GameObject("ThrowTest").AddComponent<ThrowTestRun>(); }
+        public static void ThrowAnimTest() { new GameObject("ThrowAnimTest").AddComponent<ThrowAnimTestRun>(); }
         public static void MobTest() { new GameObject("MobTest").AddComponent<MobTestRun>(); }
         public static void BrawlHits(float secs) { var r = new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); r.onHit = true; r.secs = secs; r.kickFinish = true; }
         public static void TalkTest() { new GameObject("TalkTest").AddComponent<TalkTestRun>(); }
@@ -1946,6 +1947,28 @@ namespace ASBO.Slice
                 yield return new WaitForSeconds(12f);
             }
             Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Holds a brick and throws it, filming from the side and noting when it leaves the hand.</summary>
+    public class ThrowAnimTestRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            yield return new WaitForSeconds(9f);
+            var pc = FindFirstObjectByType<PlayerCtl>(); string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/throw"); System.IO.Directory.CreateDirectory(dir);
+            var cg = new GameObject("ThrowCam"); var cam = cg.AddComponent<Camera>(); cam.fieldOfView = 50f; cam.nearClipPlane = 0.1f;
+            var rt = new RenderTexture(480, 360, 24); cam.targetTexture = rt; cam.enabled = false; var tex = new Texture2D(480, 360, TextureFormat.RGB24, false);
+            void Shot(string tag) { Vector3 me = pc.transform.position; cam.transform.position = me + pc.transform.right * 3.2f + Vector3.up * 1.4f + pc.transform.forward * 0.8f; cam.transform.LookAt(me + Vector3.up * 1.0f + pc.transform.forward * 0.6f); cam.Render(); RenderTexture.active = rt; tex.ReadPixels(new Rect(0, 0, 480, 360), 0, 0); tex.Apply(); RenderTexture.active = null; System.IO.File.WriteAllBytes(dir + "/" + tag + ".png", tex.EncodeToPNG()); }
+            Debug.Log("[ASBO] throwanim: hold=" + PropWorld.DebugHold("brick")); yield return new WaitForSeconds(0.5f); Shot("t00");
+            float t0 = Time.time; PropWorld.ThrowHeld(); bool released = false; float relAt = -1f; Throwable br = null;
+            for (int i = 1; i <= 8; i++)
+            {
+                yield return new WaitForSeconds(0.15f); Shot("t" + i.ToString("00"));
+                if (!released) { foreach (var t in Throwable.All) if (t != null && t.Free && (t.transform.position - pc.transform.position).sqrMagnitude < 9f && t.rb.linearVelocity.magnitude > 4f) { released = true; relAt = Time.time - t0; br = t; } }
+            }
+            Debug.Log($"[ASBO] throwanim: released={released} at {relAt:F2}s speed={(br != null ? br.rb.linearVelocity.magnitude : 0f):F1}");
+            Destroy(cg); Destroy(rt); Destroy(gameObject);
         }
     }
 }
