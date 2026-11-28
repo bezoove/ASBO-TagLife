@@ -228,8 +228,9 @@ namespace ASBO.Slice
         Vector3 ThrowVel(float mass)
         {
             var cam = Camera.main; Vector3 aim = cam != null ? cam.transform.forward : pc.transform.forward;
-            aim.y = Mathf.Clamp(aim.y, -0.2f, 0.6f) + 0.18f; aim.Normalize();
-            return aim * Mathf.Lerp(15f, 5f, Mathf.Clamp01(mass / 12f));
+            bool lob = mass < 0.6f; // cans, stones, bottles: a gentle underarm lob, higher and slower
+            aim.y = Mathf.Clamp(aim.y, -0.2f, 0.6f) + (lob ? 0.34f : 0.18f); aim.Normalize();
+            return aim * (lob ? 10.5f : Mathf.Lerp(15f, 5f, Mathf.Clamp01(mass / 12f)));
         }
         bool throwing;
         void Throw()

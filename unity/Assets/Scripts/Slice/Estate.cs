@@ -116,6 +116,9 @@ namespace ASBO.Slice
             walls.Build("EstateWalls", root, true);
             ground.Build("EstateGround", root, true, UnityEngine.Rendering.ShadowCastingMode.Off);
             green.Build("EstateGreenery", root, false);
+            var tr = new GameObject("EstateTrunks"); tr.transform.SetParent(root, false);
+            foreach (var tp in trunks) { var cc = tr.AddComponent<CapsuleCollider>(); cc.center = root.InverseTransformPoint(tp) + Vector3.up * 1.5f; cc.radius = 0.22f; cc.height = 3f; }
+            trunks.Clear();
             lamps.Build("EstateIron", root, false);
         }
 
@@ -171,8 +174,10 @@ namespace ASBO.Slice
             }
         }
 
+        static readonly System.Collections.Generic.List<Vector3> trunks = new System.Collections.Generic.List<Vector3>();
         static void Tree(MeshKit k, Vector3 p, float h, System.Random rng)
         {
+            trunks.Add(p);
             k.Cyl(CotMats.oak, p, 0.18f, h, 8, false, 0.12f);
             var leaf = CotMats.leaf;
             k.Sphere(leaf, p + Vector3.up * (h + 0.8f), new Vector3(2.0f, 1.7f, 2.0f), 10, 7);
