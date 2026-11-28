@@ -20,10 +20,14 @@ namespace ASBO.Slice
 
         public string block; public float W, D, GF, FH, coreX, lobbyZ = 1.3f, recessX0, recessX1, recessH = 2.6f, insetL, insetR;
         public int storeys, seed;
+        /// <summary>Walk-ups and deck blocks: no lifts (a narrow core, just the stair and a passage), flats on the ground floor too.</summary>
+        public bool lifts = true, groundFlats;
         public List<WinRec> wins = new List<WinRec>();
         public List<Collider> baked = new List<Collider>();
         public Home core; public bool liftBroken;
         public static readonly List<TowerInterior> All = new List<TowerInterior>();
+        /// <summary>How many interiors are using each baked collider (a walk-up's one block collider is shared by its stairs).</summary>
+        static readonly Dictionary<Collider, int> users = new Dictionary<Collider, int>();
         void OnEnable() { All.Add(this); }
         void OnDisable() { All.Remove(this); }
 
@@ -36,16 +40,19 @@ namespace ASBO.Slice
         public float Top => Yf(storeys);
         public int LevelAt(float y) => y < GF ? 0 : Mathf.Clamp(1 + Mathf.FloorToInt((y - GF) / FH), 0, storeys - 1);
         float LiftX => cx0 + 1.55f;
+        float NookX => lifts ? cx0 + 3.1f : cx0;
+        float NookZ => lifts ? zm - 1.7f : zm - 1.0f;
         float StairEnd(int f) => zL - ((f == 0 ? n0 : n1) - 1) * Tread;   // where the flights from this floor meet the half landing
 
         void Calc()
         {
             calc = true;
-            cx0 = coreX - 3.2f; cx1 = coreX + 3.2f; sx1 = cx1; sx0 = cx1 - 2.3f;
+            if (lifts) { cx0 = coreX - 3.2f; cx1 = coreX + 3.2f; } else { cx0 = coreX - 0.6f; cx1 = coreX + 2.9f; }
+            sx1 = cx1; sx0 = cx1 - 2.3f;
             xL = insetL; xR = W - insetR;
             n0 = Mathf.CeilToInt(GF * 0.5f / 0.18f); n1 = Mathf.CeilToInt(FH * 0.5f / 0.18f);
             zH0 = lobbyZ + 0.02f; zH1 = zH0 + 1.15f; zL = zH1 + (Mathf.Max(n0, n1) - 1) * Tread;
-            zm = Mathf.Max(zL + 1.3f, D * 0.5f - 0.75f); zc1 = zm + 1.5f;
+            zm = Mathf.Max(zL + 1.3f, D * 0.5f - 0.75f); if (!lifts) zm = Mathf.Max(zL + 1.2f, D * 0.42f); zc1 = zm + (lifts ? 1.5f : 1.3f);
             // the party wall between the back flats: in a gap between the back windows near the middle if there is one
             splitX = (xL + xR) * 0.5f; float best = 99f;
             float y1 = Yf(1), y2 = Yf(2);
@@ -60,14 +67,14 @@ namespace ASBO.Slice
 
         // ================================================================== baking (editor, with the building)
         public static TowerInterior Bake(Transform building, Vector3 pos, float yaw, string block, float W, float D, float GF, float FH, int storeys,
-            float coreX, float lobbyZ, float rx0, float rx1, float rh, float insetL, float insetR, int seed, List<WinRec> wins, List<Collider> baked)
+            float coreX, float lobbyZ, float rx0, float rx1, float rh, float insetL, float insetR, int seed, List<WinRec> wins, List<Collider> baked, bool lifts = true, bool groundFlats = false)
         {
             var g = new GameObject("Inside"); g.transform.SetParent(building, false); g.transform.localPosition = pos; g.transform.localRotation = Quaternion.Euler(0, yaw, 0);
             var ti = g.AddComponent<TowerInterior>();
             ti.block = block; ti.W = W; ti.D = D; ti.GF = GF; ti.FH = FH; ti.storeys = storeys; ti.coreX = coreX; ti.lobbyZ = lobbyZ; ti.recessX0 = rx0; ti.recessX1 = rx1; ti.recessH = rh;
-            ti.insetL = insetL; ti.insetR = insetR; ti.seed = seed; ti.wins = wins; ti.baked = baked; ti.Calc();
+            ti.insetL = insetL; ti.insetR = insetR; ti.seed = seed; ti.wins = wins; ti.baked = baked; ti.lifts = lifts; ti.groundFlats = groundFlats; ti.Calc();
             var rng = new System.Random(seed * 7 + 3);
-            ti.liftBroken = rng.NextDouble() < 0.22;
+            ti.liftBroken = !lifts || rng.NextDouble() < 0.22;
             // the common parts: one home for the entrance door, the lifts, the post boxes and the chutes
             var h = g.AddComponent<Home>(); ti.core = h;
             var hh = Household.Make(50000 + seed, rng); hh.kind = Household.Kind.Couple; hh.wealth = 0.3f; hh.stuff = 0.6f; hh.family = block;
@@ -82,6 +89,7 @@ namespace ASBO.Slice
             for (int f = 0; f < storeys; f++)
             {
                 float y = ti.Yf(f) + FloorTop;
+                if (!lifts) continue;
                 Vector3 at = f == 0 ? new Vector3(ti.LiftX, y, ti.zm - 1.7f - 0.35f) : new Vector3(ti.LiftX, y, ti.zm + 0.35f);
                 h.spots.Add(new Home.SpotRec { kind = "lift", label = ti.liftBroken ? "Press the lift button" : "Call the lift", tag = f.ToString(), pos = at, yaw = f == 0 ? 0f : 180f, room = 0, lv = 0 });
                 if (f > 0) h.spots.Add(new Home.SpotRec { kind = "chute", label = "Open the rubbish chute", tag = "chute", pos = new Vector3(ti.cx0 + 3.6f, y, ti.zm - 1.7f + 0.35f), yaw = 180f, room = 0, lv = 0 });
@@ -149,7 +157,7 @@ namespace ASBO.Slice
         void Activate()
         {
             active = true; if (!TownMats.Load()) return; CotMats.Init();
-            foreach (var c in baked) if (c != null) c.enabled = false;
+            foreach (var c in baked) if (c != null) { users.TryGetValue(c, out int u); users[c] = u + 1; c.enabled = false; }
             shellGo = new GameObject("Shell"); shellGo.transform.SetParent(transform, false);
             float top = Top;
             void C(float x0, float x1, float y0, float y1, float z0, float z1) { var b = shellGo.AddComponent<BoxCollider>(); b.center = new Vector3((x0 + x1) * 0.5f, (y0 + y1) * 0.5f, (z0 + z1) * 0.5f); b.size = new Vector3(x1 - x0, y1 - y0, z1 - z0); }
@@ -166,7 +174,7 @@ namespace ASBO.Slice
             foreach (var kv in floors) if (kv.Value.go != null) Destroy(kv.Value.go);
             floors.Clear();
             if (shellGo != null) Destroy(shellGo);
-            foreach (var c in baked) if (c != null) c.enabled = true;
+            foreach (var c in baked) if (c != null) { users.TryGetValue(c, out int u); u = Mathf.Max(0, u - 1); users[c] = u; if (u == 0) c.enabled = true; }
             if (hallLight != null) hallLight.enabled = false;
         }
 
@@ -179,13 +187,13 @@ namespace ASBO.Slice
             string[] gk = { "bins", "caretaker", "bikes", "drying" };
             var spans = new (float xa, float xb, float za, float zb, bool front, char ext, bool bl, bool br)[]
             {
-                (xL, cx0, 0f, zm, true, 'L', false, true), (cx1, xR, 0f, zm, true, 'R', false, false),
+                (xL, cx0, 0f, zm, true, 'L', false, lifts), (cx1, xR, 0f, zm, true, 'R', false, false),
                 (xL, splitX, zc1, D, false, 'R', true, false), (splitX, xR, zc1, D, false, 'L', false, true),
             };
             for (int i = 0; i < 4; i++)
             {
                 var s = spans[i]; float wd = s.xb - s.xa;
-                string kind = wd < 2.0f ? "duct" : wd < 3.6f ? "chute" : f == 0 ? gk[i] : "flat";
+                string kind = wd < 2.0f ? "duct" : wd < 3.6f ? "chute" : f == 0 && !groundFlats ? gk[i] : "flat";
                 fl.jobs.Add(new Job { xa = s.xa, xb = s.xb, za = s.za, zb = s.zb, front = s.front, ext = s.ext, bareL = s.bl, bareR = s.br, idx = i, kind = kind });
             }
             try { CoreFloor(fl); } catch (System.Exception e) { Debug.LogException(e); }
@@ -216,8 +224,8 @@ namespace ASBO.Slice
             // floors
             Plate(xL, xR, zm, zc1);
             Plate(sx0, sx1, zL, zm);
-            Plate(cx0 + 3.1f, sx0, zm - 1.7f, zm);
-            if (f == 0) { Plate(cx0, sx0, lobbyZ, zm - 1.7f); Plate(sx0, sx1, zH0, zL, false); }
+            Plate(NookX, sx0, NookZ, zm);
+            if (f == 0) { Plate(cx0, sx0, lobbyZ, NookZ); Plate(sx0, sx1, zH0, zL, false); }
             // the stair: its west wall, the dead block in front, the spine between the flights
             Bx(k, wallM, sx0 - 0.12f, sx0, 0f, H, zH0, zL, true);
             Bx(k, wallM, sx0, sx1, 0f, H, f == 0 ? lobbyZ : 0.12f, zH0, true);
@@ -231,7 +239,12 @@ namespace ASBO.Slice
             float zHe = StairEnd(f);
             if (f < storeys - 1) Bx(k, wallM, sx0 + 1.1f, sx0 + 1.2f, 0f, H, zHe, zL, true);
             // lifts and the riser beside them
-            if (f == 0)
+            if (!lifts)
+            {
+                // just the stair and a passage beside it: a store boxed in at the front on the upper floors
+                if (f > 0) Bx(k, wallM, cx0, sx0 - 0.12f, 0f, H, 0.12f, NookZ, true);
+            }
+            else if (f == 0)
             {
                 Bx(k, wallM, cx0, cx0 + 3.1f, 0f, H, zm - 1.7f, zm, true);
                 LiftDoors(dk, zm - 1.7f, -1f, H);
@@ -252,7 +265,7 @@ namespace ASBO.Slice
             int nl = Mathf.Max(2, Mathf.RoundToInt((xR - xL) / 4.5f));
             for (int i = 0; i < nl; i++) { float x = Mathf.Lerp(xL + 1.5f, xR - 1.5f, nl == 1 ? 0.5f : i / (float)(nl - 1)); Bx(dk, glow, x - 0.55f, x + 0.55f, ch - 0.05f, ch, (zm + zc1) * 0.5f - 0.07f, (zm + zc1) * 0.5f + 0.07f); }
             Bx(dk, glow, sx0 + 0.3f, sx0 + 0.6f, ft + H * 0.5f + 1.9f, ft + H * 0.5f + 2.1f, zH0 + 0.0f, zH0 + 0.06f);
-            Bx(dk, glow, (cx0 + 3.1f + sx1) * 0.5f - 0.3f, (cx0 + 3.1f + sx1) * 0.5f + 0.3f, ch - 0.05f, ch, (zL + zm) * 0.5f - 0.1f, (zL + zm) * 0.5f + 0.1f);
+            Bx(dk, glow, (NookX + sx1) * 0.5f - 0.3f, (NookX + sx1) * 0.5f + 0.3f, ch - 0.05f, ch, (zL + zm) * 0.5f - 0.1f, (zL + zm) * 0.5f + 0.1f);
             // the stairs to the floor above
             if (f < storeys - 1) Flights(k, dk, cols, f, conc, steel);
             else Bx(k, steel, sx1 - 1.1f, sx1, ft, ft + 1.05f, zL - 0.05f, zL, true);
@@ -263,7 +276,7 @@ namespace ASBO.Slice
                 Lobby(dk, rng);
             }
             // a fire extinguisher by the lifts, a radiator in the corridor, graffiti
-            dk.Cyl(TownMats.redPaint, new Vector3(cx0 + 3.0f + 0.2f, ft + 0.15f, f == 0 ? zm - 1.7f - 0.15f : zm + 0.12f), 0.08f, 0.55f, 10);
+            if (lifts) dk.Cyl(TownMats.redPaint, new Vector3(cx0 + 3.0f + 0.2f, ft + 0.15f, f == 0 ? zm - 1.7f - 0.15f : zm + 0.12f), 0.08f, 0.55f, 10);
             Bx(dk, HomeBuilder.Flat(new Color(0.92f, 0.92f, 0.9f), 0.5f), xL + 1.0f, xL + 2.0f, ft + 0.15f, ft + 0.7f, zc1 - 0.09f, zc1 - 0.02f);
             if (TownMats.graffiti != null)
             {
@@ -274,7 +287,7 @@ namespace ASBO.Slice
                     int where = rng.Next(3);
                     if (where == 0) { float x = Mathf.Lerp(xL + 0.5f, xR - 0.5f - w, (float)rng.NextDouble()); float z = zc1 - 0.125f; Decal(dk, new Vector3(x, y, z), new Vector3(x + w, y, z), h, Vector3.back, cu, cv); }
                     else if (where == 1) { float z = Mathf.Lerp(zH0 + 0.3f, Mathf.Max(zH0 + 0.4f, zL - w - 0.2f), (float)rng.NextDouble()); float x = sx0 + 0.005f; Decal(dk, new Vector3(x, y + H * 0.4f, z + w), new Vector3(x, y + H * 0.4f, z), h, Vector3.right, cu, cv); }
-                    else { float x = cx0 + 3.12f; float z = zm - 1.65f; Decal(dk, new Vector3(x, y, z), new Vector3(x, y, z + Mathf.Min(w, 1.5f)), h, Vector3.right, cu, cv); }
+                    else { float x = NookX + 0.02f; float z = NookZ + 0.05f; Decal(dk, new Vector3(x, y, z), new Vector3(x, y, z + Mathf.Min(w, 1.5f)), h, Vector3.right, cu, cv); }
                 }
             }
             // build
@@ -282,7 +295,7 @@ namespace ASBO.Slice
             var dg = dk.Build("CoreDeco", fl.go.transform, false, ShadowCastingMode.Off); if (dg != null) dg.layer = Bld.DetailLayer;
             var cg = new GameObject("CoreSolids"); cg.transform.SetParent(fl.go.transform, false);
             foreach (var c in cols) { var b = cg.AddComponent<BoxCollider>(); b.center = c.c; b.size = new Vector3(Mathf.Max(0.02f, c.s.x), Mathf.Max(0.02f, c.s.y), Mathf.Max(0.02f, c.s.z)); }
-            var zr = new List<CRect> { new CRect(xL, xR, zm, zc1), new CRect(sx0 - 0.1f, sx1, zH0, zm), new CRect(cx0, sx0, zm - 1.7f, zm) };
+            var zr = new List<CRect> { new CRect(xL, xR, zm, zc1), new CRect(sx0 - 0.1f, sx1, zH0, zm), new CRect(cx0, sx0, NookZ, zm) };
             if (f == 0) zr.Add(new CRect(cx0, sx0, lobbyZ, zm));
             GameAudio.RegisterZone(fl.go.transform, zr, H);
         }
@@ -402,7 +415,7 @@ namespace ASBO.Slice
                 }
             }
             int id = seed * 1000 + f * 8 + j.idx; var rng = new System.Random(id * 31 + 17);
-            int no = (f - 1) * 4 + j.idx + 1;
+            int no = (groundFlats ? f : f - 1) * 4 + j.idx + 1;
             var hb = new HomeBuilder { flat = true, rng = rng, seed = id, name = block + " flat " + no, x0 = 0f, mirror = false };
             hb.W = wf; hb.D = df; hb.U0 = 0.12f; hb.U1 = wf - 0.12f; hb.D0 = 0.12f; hb.D1 = df - 0.12f;
             float c = H - 0.25f; hb.Y = new[] { FloorTop, FloorTop + H, FloorTop + 2 * H }; hb.C = new[] { c, c + H, c + 2 * H };
@@ -553,8 +566,8 @@ namespace ASBO.Slice
                     var doors = new List<Collider>(); foreach (var d in ti.GetComponentsInChildren<PropDoor>()) foreach (var c in d.GetComponentsInChildren<Collider>()) if (c.enabled) { c.enabled = false; doors.Add(c); }
                     Physics.SyncTransforms();
                     var tr = ti.transform; const float cs = 0.1f;
-                    var seen = new HashSet<long>(); var q = new Queue<Vector3>(); var reached = new List<Vector3>();
-                    q.Enqueue(new Vector3(ti.coreX, 0.02f, ti.lobbyZ - 0.6f)); q.Enqueue(new Vector3(ti.coreX, 0.02f, ti.lobbyZ + 0.8f)); int guard = 0;
+                    var seen = new HashSet<long>(); var q = new Queue<Vector3>(); var reached = new List<Vector3>(); var rej = new int[6];
+                    float Snap(float v) => Mathf.Round(v / cs) * cs; q.Enqueue(new Vector3(Snap(ti.coreX), 0.02f, Snap(ti.lobbyZ - 0.6f))); q.Enqueue(new Vector3(Snap(ti.coreX), 0.02f, Snap(ti.lobbyZ + 0.8f))); int guard = 0;
                     { Vector3 sp = tr.TransformPoint(new Vector3(ti.coreX, 0.5f, ti.lobbyZ + 0.8f)); bool hh = Physics.Raycast(sp, Vector3.down, out var h0, 2f, ~0, QueryTriggerInteraction.Ignore); Debug.Log($"[ASBO] towertest seed ray: {hh} {(hh ? h0.collider.name + " y=" + tr.InverseTransformPoint(h0.point).y.ToString("0.00") : "")} capsule={Physics.CheckCapsule(tr.TransformPoint(new Vector3(ti.coreX, 0.67f, ti.lobbyZ + 0.8f)), tr.TransformPoint(new Vector3(ti.coreX, 1.52f, ti.lobbyZ + 0.8f)), 0.28f, ~0, QueryTriggerInteraction.Ignore)}"); }
                     while (q.Count > 0 && guard++ < 600000)
                     {
@@ -562,17 +575,62 @@ namespace ASBO.Slice
                         if (!seen.Add(kk)) continue; reached.Add(p);
                         foreach (var dv in new[] { new Vector2(cs, 0), new Vector2(-cs, 0), new Vector2(0, cs), new Vector2(0, -cs) })
                         {
-                            float nx = p.x + dv.x, nz = p.z + dv.y; if (nx < -0.5f || nx > ti.W + 0.5f || nz < -1.2f || nz > ti.D + 0.5f) continue;
-                            if (nz < 0f && (nx < ti.recessX0 || nx > ti.recessX1)) continue;
+                            float nx = p.x + dv.x, nz = p.z + dv.y; if (nx < -0.5f || nx > ti.W + 0.5f || nz < -1.2f || nz > ti.D + 0.5f) { rej[0]++; continue; }
+                            if (nz < 0f && (nx < ti.recessX0 || nx > ti.recessX1)) { rej[1]++; continue; }
                             Vector3 wp = tr.TransformPoint(new Vector3(nx, p.y + 0.45f, nz));
-                            if (!Physics.Raycast(wp, Vector3.down, out var hit, 0.95f, ~0, QueryTriggerInteraction.Ignore)) continue;
-                            float gy = tr.InverseTransformPoint(hit.point).y; if (gy - p.y > 0.4f || p.y - gy > 0.7f) continue;
-                            if (gy > ti.Yf(3) + 0.5f) continue;
+                            if (!Physics.Raycast(wp, Vector3.down, out var hit, 0.95f, ~0, QueryTriggerInteraction.Ignore)) { rej[2]++; continue; }
+                            float gy = tr.InverseTransformPoint(hit.point).y; if (gy - p.y > 0.4f || p.y - gy > 0.7f) { rej[3]++; continue; }
+                            if (gy > ti.Yf(3) + 0.5f) { rej[4]++; continue; }
                             Vector3 a = tr.TransformPoint(new Vector3(nx, gy + 0.65f, nz)), b = tr.TransformPoint(new Vector3(nx, gy + 1.5f, nz));
-                            if (Physics.CheckCapsule(a, b, 0.28f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                            if (Physics.CheckCapsule(a, b, 0.28f, ~0, QueryTriggerInteraction.Ignore))
+                            {
+                                rej[5]++;
+                                if (rej[5] <= 6 && !ti.lifts) { var hs = Physics.OverlapCapsule(a, b, 0.28f, ~0, QueryTriggerInteraction.Ignore); var nm = new List<string>(); foreach (var hc in hs) nm.Add(hc.transform.parent != null ? hc.transform.parent.name + "/" + hc.name + ":" + hc.GetType().Name : hc.name); Debug.Log($"[ASBO] towertest capsule at ({nx:0.00},{gy:0.00},{nz:0.00}) from ({p.x:0.00},{p.z:0.00}): {string.Join("; ", nm)}"); }
+                                continue;
+                            }
                             q.Enqueue(new Vector3(nx, gy, nz));
                         }
                     }
+                    Debug.Log($"[ASBO] towertest rejects: bounds {rej[0]} recess {rej[1]} nofloor {rej[2]} step {rej[3]} high {rej[4]} capsule {rej[5]}");
+                    if (!ti.lifts && reached.Count < 500)
+                    {
+                        var rs = new HashSet<long>(); foreach (var p in reached) if (p.y < 0.5f) rs.Add((long)Mathf.RoundToInt(p.x / cs) * 100000 + Mathf.RoundToInt(p.z / cs));
+                        var sb = new System.Text.StringBuilder("[ASBO] towertest map\n");
+                        for (float z = -0.6f; z <= ti.zc1 + 0.6f; z += cs)
+                        {
+                            for (float x = 0f; x <= ti.W; x += cs)
+                            {
+                                bool rr = rs.Contains((long)Mathf.RoundToInt(x / cs) * 100000 + Mathf.RoundToInt(z / cs));
+                                bool fl = Physics.Raycast(tr.TransformPoint(new Vector3(x, 0.5f, z)), Vector3.down, 0.95f, ~0, QueryTriggerInteraction.Ignore);
+                                bool bl = Physics.CheckCapsule(tr.TransformPoint(new Vector3(x, 0.67f, z)), tr.TransformPoint(new Vector3(x, 1.52f, z)), 0.28f, ~0, QueryTriggerInteraction.Ignore);
+                                sb.Append(rr ? 'o' : !fl ? ' ' : bl ? '#' : '.');
+                            }
+                            sb.Append('\n');
+                        }
+                        Debug.Log(sb.ToString());
+                    }
+                    if (!ti.lifts && reached.Count < 500)
+                    {
+                        float py = 0.02f; var sbp = new System.Text.StringBuilder("[ASBO] towertest walk:");
+                        for (float nz = ti.lobbyZ + 0.8f; nz < ti.zc1; nz += cs)
+                        {
+                            Vector3 wp = tr.TransformPoint(new Vector3(ti.coreX, py + 0.45f, nz));
+                            bool hh = Physics.Raycast(wp, Vector3.down, out var hit, 0.95f, ~0, QueryTriggerInteraction.Ignore);
+                            float gy = hh ? tr.InverseTransformPoint(hit.point).y : -9f;
+                            bool cap = hh && Physics.CheckCapsule(tr.TransformPoint(new Vector3(ti.coreX, gy + 0.65f, nz)), tr.TransformPoint(new Vector3(ti.coreX, gy + 1.5f, nz)), 0.28f, ~0, QueryTriggerInteraction.Ignore);
+                            sbp.Append($" {nz:0.00}:{(hh ? hit.collider.name : "-")}/{gy:0.00}/{(cap ? "X" : "ok")}");
+                            if (hh) py = gy;
+                        }
+                        Debug.Log(sbp.ToString());
+                    }
+                    if (!ti.lifts && reached.Count < 500)
+                        for (float zz = ti.lobbyZ + 0.3f; zz < ti.zc1; zz += 0.5f)
+                        {
+                            var hits = Physics.OverlapCapsule(tr.TransformPoint(new Vector3(ti.coreX, 0.67f, zz)), tr.TransformPoint(new Vector3(ti.coreX, 1.52f, zz)), 0.28f, ~0, QueryTriggerInteraction.Ignore);
+                            var names = new List<string>(); foreach (var hc in hits) { var bc = hc as BoxCollider; names.Add(hc.transform.parent != null ? hc.transform.parent.name + "/" + hc.name + (bc != null ? "@" + tr.InverseTransformPoint(hc.transform.TransformPoint(bc.center)).ToString("0.00") + "s" + bc.size.ToString("0.00") : "") : hc.name); }
+                            bool down = Physics.Raycast(tr.TransformPoint(new Vector3(ti.coreX, 0.5f, zz)), Vector3.down, out var dh, 1f, ~0, QueryTriggerInteraction.Ignore);
+                            Debug.Log($"[ASBO] towertest probe z={zz:0.0} floor={(down ? dh.collider.name + "@" + tr.InverseTransformPoint(dh.point).y.ToString("0.00") : "none")}: " + string.Join("; ", names));
+                        }
                     foreach (var c in doors) c.enabled = true;
                     ti.pinned = false;
                     // every room of every home in the floors built, and the landings

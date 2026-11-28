@@ -262,6 +262,7 @@ namespace ASBO.Slice
             var g = Root(parent, name, origin, yaw); var rng = new System.Random(seed);
             var k = new MeshKit(); const float D = 11f, F = 2.85f, bay = 6f;
             float top = storeys * F; int bays = Mathf.Max(3, Mathf.RoundToInt(L / bay)); L = bays * bay;
+            var wrec = new List<TowerInterior.WinRec>(); rec = wrec;
             Material[] infill = { TownMats.deckBrick0, TownMats.deckBrick1, TownMats.deckBrick2, TownMats.deckBrick3 };
             foreach (var (o, r, n) in new[] { (Vector3.zero, Vector3.right, Vector3.back), (new Vector3(L, 0, D), Vector3.left, Vector3.forward) })
             {
@@ -273,6 +274,17 @@ namespace ASBO.Slice
                     for (int b = 0; b < bays; b++)
                     {
                         float x0 = b * bay, x1 = x0 + bay;
+                        if (front && fl == 0 && b % 2 == 0 && b + 1 < bays)
+                        {
+                            // a stair door in the first bay of each pair (the interior hangs the door), a window beside it
+                            // window x0+0.35..4.1, door x0+4.3..5.4
+                            Wall(k, brick, o + r * x0, r, n, 4.3f, y, y + 0.95f); Wall(k, brick, o + r * x0, r, n, 4.3f, y + 2.35f, y + F);
+                            Wall(k, brick, o + r * x0, r, n, 0.35f, y + 0.95f, y + 2.35f); Wall(k, brick, o + r * (x0 + 4.1f), r, n, 0.2f, y + 0.95f, y + 2.35f);
+                            Win(k, o, r, n, x0 + 0.35f, x0 + 4.1f, y + 0.95f, y + 2.35f, Crittall);
+                            Wall(k, brick, o + r * (x0 + 4.3f), r, n, 1.1f, y + 2.2f, y + F); Wall(k, brick, o + r * (x0 + 5.4f), r, n, bay - 5.4f, y, y + F);
+                            B(k, TownMats.panel, o + r * (x0 + 4.2f) + Vector3.up * 2.2f, o + r * (x0 + 5.5f) + n * 0.6f + Vector3.up * 2.35f);
+                            continue;
+                        }
                         // brick infill below the windows, the windows (or a front door and a window on the deck levels)
                         Wall(k, brick, o + r * x0, r, n, bay, y, y + 0.95f);
                         Wall(k, brick, o + r * x0, r, n, bay, y + 2.35f, y + F);
@@ -319,8 +331,10 @@ namespace ASBO.Slice
             Band(k, TownMats.panel, new Vector3(L, 0, D), Vector3.left, Vector3.forward, L, top, 0.6f, 0.1f);
             var faces = new (Vector3, Vector3, Vector3, float)[] { (Vector3.zero, Vector3.right, Vector3.back, L), (new Vector3(L, 0, D), Vector3.left, Vector3.forward, L), (new Vector3(0, 0, D), Vector3.back, Vector3.left, D), (new Vector3(L, 0, 0), Vector3.forward, Vector3.right, D) };
             Graffiti(k, faces, rng, 2);
+            rec = null;
             k.Build("Slab", g, false, ShadowCastingMode.On);
-            Coll(g, new Vector3(0, 0, 0), new Vector3(L, top, D));
+            var col = Coll(g, new Vector3(0, 0, 0), new Vector3(L, top, D));
+            for (int u = 0; u * 12f + 11.9f <= L; u++) Close(g, name + " " + (u + 1), u * 12f, 12f, D, F, storeys, 4.85f, seed * 17 + u, wrec, col);
             foreach (float ex in new[] { -5f, L }) Coll(g, new Vector3(ex, 0, 2f), new Vector3(ex + 5f, top + 2.2f, 8f));
             return g;
         }
@@ -332,9 +346,17 @@ namespace ASBO.Slice
             var g = Root(parent, name, origin, yaw); var rng = new System.Random(seed);
             var k = new MeshKit(); const float D = 10f, F = 2.8f, per = 12f; float L = entrances * per, top = 3 * F;
             Material wall = TownMats.render;
+            var wrec = new List<TowerInterior.WinRec>(); rec = wrec;
             foreach (var (o, r, n, len, front) in new[] { (Vector3.zero, Vector3.right, Vector3.back, L, true), (new Vector3(L, 0, D), Vector3.left, Vector3.forward, L, false) })
             {
-                Wall(k, wall, o, r, n, len, 0f, top);
+                if (!front) Wall(k, wall, o, r, n, len, 0f, top);
+                else
+                {
+                    // the front with a real doorway at each close (the interior hangs the door)
+                    float x = 0f;
+                    for (int e = 0; e < entrances; e++) { float c = e * per + per * 0.5f - 1.15f; Wall(k, wall, o + r * x, r, n, c - 0.55f - x, 0f, top); Wall(k, wall, o + r * (c - 0.55f), r, n, 1.1f, 2.2f, top); x = c + 0.55f; }
+                    Wall(k, wall, o + r * x, r, n, len - x, 0f, top);
+                }
                 for (int e = 0; e < entrances; e++)
                 {
                     float c = e * per + per * 0.5f;
@@ -346,8 +368,8 @@ namespace ASBO.Slice
                     }
                     if (front)
                     {
-                        B(k, E.doors, o + r * (c - 0.55f) + n * 0.03f, o + r * (c + 0.55f) + n * 0.06f + Vector3.up * 2.2f);
-                        B(k, TownMats.panel, o + r * (c - 0.9f) + n * 0.0f + Vector3.up * 2.35f, o + r * (c + 0.9f) + n * 0.9f + Vector3.up * 2.5f);
+                        B(k, TownMats.panel, o + r * (c - 1.77f) + Vector3.up * 2.2f, o + r * (c - 0.53f) + n * 0.12f + Vector3.up * 2.3f);   // the door head
+                        B(k, TownMats.panel, o + r * (c - 2.05f) + n * 0.0f + Vector3.up * 2.35f, o + r * (c - 0.25f) + n * 0.9f + Vector3.up * 2.5f);
                     }
                 }
             }
@@ -364,9 +386,24 @@ namespace ASBO.Slice
             for (int e = 0; e <= entrances; e++) { float cx = e * per + (e == 0 ? 2f : e == entrances ? -2f : 0f); k.Box(TownMats.panel, new Vector3(cx - 0.5f, top + 1f, D * 0.5f - 0.4f), new Vector3(cx + 0.5f, top + rise + 0.8f, D * 0.5f + 0.4f)); } // chimney stacks
             var faces = new (Vector3, Vector3, Vector3, float)[] { (Vector3.zero, Vector3.right, Vector3.back, L), (new Vector3(L, 0, D), Vector3.left, Vector3.forward, L) };
             Graffiti(k, faces, rng, seed % 3);
+            rec = null;
             k.Build("Flats", g, false, ShadowCastingMode.On);
-            Coll(g, Vector3.zero, new Vector3(L, top, D));
+            var col = Coll(g, Vector3.zero, new Vector3(L, top, D));
+            for (int e = 0; e < entrances; e++) Close(g, name + (entrances > 1 ? " " + (char)('A' + e) : ""), e * per, per, D, F, 3, per * 0.5f - 1.15f, seed * 13 + e, wrec, col);
             return g;
+        }
+
+        /// <summary>The inside of one stair (close) of a walk-up or a deck block: its own frame along the block, its windows shifted into it.</summary>
+        static void Close(Transform g, string name, float x0, float per, float D, float F, int storeys, float cx, int seed, List<TowerInterior.WinRec> all, Collider col)
+        {
+            var mine = new List<TowerInterior.WinRec>();
+            foreach (var w in all)
+            {
+                if (w.side != 'F' && w.side != 'B') continue;
+                if (w.a1 <= x0 || w.a0 >= x0 + per) continue;
+                var m = w; m.a0 = Mathf.Max(w.a0, x0) - x0; m.a1 = Mathf.Min(w.a1, x0 + per) - x0; mine.Add(m);
+            }
+            TowerInterior.Bake(g, new Vector3(x0, 0f, 0f), 0f, name, per, D, F, F, storeys, cx, 0.15f, cx - 0.55f, cx + 0.55f, 2.2f, 0f, 0f, seed, mine, new List<Collider> { col }, false, true);
         }
 
         // ================================================================== lock-ups, ball court, playground
