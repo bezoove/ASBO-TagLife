@@ -64,55 +64,99 @@ namespace ASBO.Slice
             Vector3 along = Vector3.right; Vector3 o = V(0, 0, p.zf);
             float top = ShopH + FasciaH + UpperH, w = (p.x1 - p.x0) / p.shops.Length;
             var shop = TownMats.shopfronts2 != null ? TownMats.shopfronts2 : E.windows; var brick = TownMats.brownBrick; var panel = TownMats.panel;
+            var backHoles = new List<Rect>();
             for (int i = 0; i < p.shops.Length; i++)
             {
                 float x0 = p.x0 + i * w, x1 = x0 + w; int cell = Mathf.Abs(p.shops[i]); bool walkIn = p.shops[i] < 0;
                 // the fascia board
                 Face(k, shop, o, along, n, x0 + 0.15f, x1 - 0.15f, ShopH, ShopH + FasciaH, Fascia(cell), 0.12f);
                 k.Box(E.black, V(x0 + 0.1f, ShopH - 0.05f, Mathf.Min(p.zf, p.zf + n.z * 0.1f)), V(x1 - 0.1f, ShopH + FasciaH + 0.05f, Mathf.Max(p.zf, p.zf + n.z * 0.1f)));
-                if (!walkIn) Face(k, shop, o, along, n, x0 + 0.15f, x1 - 0.15f, 0f, ShopH, Front(cell), 0.02f);
+                if (!walkIn)
+                {
+                    // the shopfront with a real door in it (the inside is built behind)
+                    float uw = x1 - x0, dl = Mathf.Max(1.0f, 0.16f * uw), dx = p.facesNorth ? x0 + dl : x1 - dl, S0 = x0 + 0.15f, S1 = x1 - 0.15f;
+                    FaceSub(k, shop, o, along, n, S0, S1, S0, dx - 0.5f, 0f, ShopH, 0f, ShopH, Front(cell));
+                    FaceSub(k, shop, o, along, n, S0, S1, dx + 0.5f, S1, 0f, ShopH, 0f, ShopH, Front(cell));
+                    FaceSub(k, shop, o, along, n, S0, S1, dx - 0.5f, dx + 0.5f, 0f, ShopH, 2.15f, ShopH, Front(cell));
+                }
                 // brick piers between the units
                 k.Box(brick, V(x0 - 0.15f, 0f, Mathf.Min(p.zf, p.zf + n.z * 0.15f)), V(x0 + 0.15f, ShopH + FasciaH, Mathf.Max(p.zf, p.zf + n.z * 0.15f)));
                 // upstairs: the maisonettes' windows in panel, a concrete band
+                var upHoles = new List<Rect>();
                 for (int wi = 0; wi < 2; wi++)
                 {
                     float wx0 = x0 + w * (0.12f + wi * 0.5f), wx1 = wx0 + w * 0.34f;
+                    float la = p.facesNorth ? wx0 - x0 : x1 - wx1; upHoles.Add(new Rect(la, ShopH + FasciaH + 0.8f, wx1 - wx0, 1.4f));
                     int c = rng.NextDouble() < 0.7 ? new[] { 0, 1, 2, 3, 5, 7, 14 }[rng.Next(7)] : new[] { 4, 6, 15, 12 }[rng.Next(4)];
                     Face(k, TownMats.towerWin, o, along, n, wx0, wx1, ShopH + FasciaH + 0.8f, ShopH + FasciaH + 2.2f, TowerCell(c), 0.03f);
                 }
                 if (walkIn) Shop(g, p, x0, x1, cell);
+                else
+                {
+                    // the shop and the maisonette over it: its own frame, front at z = 0 and the inside to -z
+                    var fr = new GameObject("Unit" + (i + 1)).transform; fr.SetParent(g, false);
+                    if (p.facesNorth) { fr.localPosition = V(x0, 0, p.zf); fr.localRotation = Quaternion.identity; }
+                    else { fr.localPosition = V(x1, 0, p.zf); fr.localRotation = Quaternion.Euler(0, 180f, 0); }
+                    float uw = x1 - x0;
+                    var back = new List<Rect> { new Rect(0.8f, 0f, 0.9f, 2.1f), new Rect(uw * 0.5f - 0.5f, ShopH + FasciaH + 0.8f, 1.0f, 1.6f) };
+                    HighStreet.UnitInterior(fr, p.name + "_shop" + (i + 1), uw, ShopH + FasciaH, UpperH, 2, top, cell, Mathf.Max(1.0f, 0.16f * uw), upHoles, back);
+                    foreach (var bh in back) backHoles.Add(p.facesNorth ? new Rect(x0 + bh.xMin, bh.yMin, bh.width, bh.height) : new Rect(x1 - bh.xMax, bh.yMin, bh.width, bh.height));
+                }
             }
             k.Box(brick, V(p.x1 - 0.15f, 0f, Mathf.Min(p.zf, p.zf + n.z * 0.15f)), V(p.x1 + 0.15f, ShopH + FasciaH, Mathf.Max(p.zf, p.zf + n.z * 0.15f)));
             // the walls: front upstairs, back, ends; flat roof with a parapet
             float zMin = Mathf.Min(p.zf, zb), zMax = Mathf.Max(p.zf, zb);
             k.Quad(panel, V(p.x0, ShopH + FasciaH, p.zf), V(p.x1, ShopH + FasciaH, p.zf), V(p.x1, top, p.zf), V(p.x0, top, p.zf), n);
-            k.Quad(brick, V(p.x0, 0, zb), V(p.x1, 0, zb), V(p.x1, top, zb), V(p.x0, top, zb), -n);
+            BackWall(k, brick, p.x0, p.x1, top, zb, -n, backHoles);
             k.Quad(brick, V(p.x0, 0, zMin), V(p.x0, 0, zMax), V(p.x0, top, zMax), V(p.x0, top, zMin), Vector3.left);
             k.Quad(brick, V(p.x1, 0, zMin), V(p.x1, 0, zMax), V(p.x1, top, zMax), V(p.x1, top, zMin), Vector3.right);
             k.Quad(E.felt, V(p.x0, top, zMin), V(p.x1, top, zMin), V(p.x1, top, zMax), V(p.x0, top, zMax), Vector3.up);
             foreach (float z in new[] { zMin, zMax - 0.3f }) k.Box(panel, V(p.x0, top, z), V(p.x1, top + 0.5f, z + 0.3f));
             k.Box(panel, V(p.x0, ShopH + FasciaH - 0.1f, Mathf.Min(p.zf, p.zf + n.z * 0.2f)), V(p.x1, ShopH + FasciaH + 0.1f, Mathf.Max(p.zf, p.zf + n.z * 0.2f)));
-            // back windows upstairs and back doors with their bins
-            for (float x = p.x0 + 1.5f; x < p.x1 - 2f; x += w)
-            {
-                Face(k, TownMats.towerWin, V(0, 0, zb), along, -n, x, x + 1.6f, ShopH + FasciaH + 0.8f, ShopH + FasciaH + 2.2f, TowerCell(rng.Next(16)), 0.03f);
-                k.Box(TownMats.steel, V(x + 2f, 0f, Mathf.Min(zb, zb - n.z * 0.08f)), V(x + 3f, 2.1f, Mathf.Max(zb, zb - n.z * 0.08f)));
-                if (rng.NextDouble() < 0.5) { Vector3 bc = V(x + 4f, 0, zb - n.z * 0.8f); k.Box(E.black, bc - V(0.35f, 0, 0.35f), bc + V(0.35f, 1.05f, 0.35f)); }
-            }
+            // bins out the back by the back doors
+            foreach (var bh in backHoles) if (bh.yMin < 0.5f && rng.NextDouble() < 0.5) { Vector3 bc = V(bh.xMax + 0.9f, 0, zb - n.z * 0.8f); k.Box(E.black, bc - V(0.35f, 0, 0.35f), bc + V(0.35f, 1.05f, 0.35f)); }
             // the canopy along the fronts, on slim columns
             float cz0 = p.zf, cz1 = p.zf + n.z * 3.2f;
             k.Box(panel, V(p.x0 - 0.3f, ShopH - 0.05f, Mathf.Min(cz0, cz1)), V(p.x1 + 0.3f, ShopH + 0.25f, Mathf.Max(cz0, cz1)));
             k.Box(E.glow, V(p.x0, ShopH - 0.07f, Mathf.Min(cz0, cz1) + 1.4f), V(p.x1, ShopH - 0.05f, Mathf.Max(cz0, cz1) - 1.4f)); // strip lights under it
             for (float x = p.x0; x <= p.x1 + 0.01f; x += w * 2f) { Vector3 c = V(x, 0, p.zf + n.z * 3f); k.Box(TownMats.steel, c - V(0.08f, 0, 0.08f), c + V(0.08f, ShopH, 0.08f)); }
             k.Build("Parade", g, true, ShadowCastingMode.On);
-            // solid behind the shop fronts (the walk-ins carve their own way in)
-            var col = new GameObject("Solid"); col.transform.SetParent(g, false);
-            float s0 = p.x0;
-            for (int i = 0; i <= p.shops.Length; i++)
+            // (every unit carries its own walls and floors now: the shops and maisonettes behind the fronts, the walk-ins)
+        }
+
+        /// <summary>A wall in the z = zb plane from x0 to x1, facing nn, with holes (x, y rects) left open.</summary>
+        static void BackWall(MeshKit k, Material m, float x0, float x1, float top, float zb, Vector3 nn, List<Rect> holes)
+        {
+            var xs = new SortedSet<float> { x0, x1 }; var ys = new SortedSet<float> { 0f, top };
+            foreach (var h in holes) { xs.Add(h.xMin); xs.Add(h.xMax); ys.Add(h.yMin); ys.Add(h.yMax); }
+            var X = new List<float>(xs); var Y = new List<float>(ys);
+            for (int j = 0; j + 1 < Y.Count; j++)
+                for (int i = 0; i + 1 < X.Count; i++)
+                {
+                    float cx = (X[i] + X[i + 1]) * 0.5f, cy = (Y[j] + Y[j + 1]) * 0.5f; bool hole = false;
+                    foreach (var h in holes) if (h.Contains(new Vector2(cx, cy))) { hole = true; break; }
+                    if (hole || X[i + 1] - X[i] < 1e-4f || Y[j + 1] - Y[j] < 1e-4f) continue;
+                    k.Quad(m, V(X[i], Y[j], zb), V(X[i + 1], Y[j], zb), V(X[i + 1], Y[j + 1], zb), V(X[i], Y[j + 1], zb), nn);
+                }
+            // a frame round each window hole, a step at each door
+            foreach (var h in holes)
             {
-                bool end = i == p.shops.Length; bool walkIn = !end && p.shops[i] < 0;
-                if (end || walkIn) { float s1 = p.x0 + i * w; if (s1 - s0 > 0.1f) { var bc = col.AddComponent<BoxCollider>(); bc.center = V((s0 + s1) * 0.5f, top * 0.5f, (zMin + zMax) * 0.5f); bc.size = V(s1 - s0, top, depth); } s0 = s1 + w; }
+                float o = nn.z * 0.04f; float za = Mathf.Min(zb, zb + o), zz = Mathf.Max(zb, zb + o);
+                if (h.yMin > 0.5f) { k.Box(E.white, V(h.xMin - 0.05f, h.yMin - 0.05f, za), V(h.xMax + 0.05f, h.yMin, zz)); k.Box(E.white, V(h.xMin - 0.05f, h.yMax, za), V(h.xMax + 0.05f, h.yMax + 0.05f, zz)); }
+                else k.Box(TownMats.panel, V(h.xMin - 0.1f, 0f, Mathf.Min(zb, zb + nn.z * 0.35f)), V(h.xMax + 0.1f, 0.06f, Mathf.Max(zb, zb + nn.z * 0.35f)));
             }
+        }
+
+        /// <summary>Part of a Face: the piece from (sa, ya) to (sb, yb) of the quad S0..S1, Y0..Y1, with the matching part of its picture.</summary>
+        static void FaceSub(MeshKit k, Material m, Vector3 o, Vector3 along, Vector3 n, float S0, float S1, float sa, float sb, float Y0, float Y1, float ya, float yb, Rect uv, float off = 0.02f)
+        {
+            if (sb - sa < 0.01f || yb - ya < 0.01f) return;
+            bool flip = Vector3.Dot(Vector3.Cross(Vector3.up, n), along) > 0f;
+            float uL = flip ? uv.xMax : uv.xMin, uR = flip ? uv.xMin : uv.xMax;
+            float ua = Mathf.Lerp(uL, uR, (sa - S0) / (S1 - S0)), ub = Mathf.Lerp(uL, uR, (sb - S0) / (S1 - S0));
+            float va = Mathf.Lerp(uv.yMin, uv.yMax, (ya - Y0) / (Y1 - Y0)), vb = Mathf.Lerp(uv.yMin, uv.yMax, (yb - Y0) / (Y1 - Y0));
+            Vector3 a = o + along * sa + n * off, b = o + along * sb + n * off;
+            k.QuadUV(m, a + Vector3.up * ya, b + Vector3.up * ya, b + Vector3.up * yb, a + Vector3.up * yb, n, new Vector2(ua, va), new Vector2(ub, va), new Vector2(ub, vb), new Vector2(ua, vb));
         }
 
         /// <summary>A shop you can walk into: a glazed front with a door, the room behind with what that shop has in it.</summary>

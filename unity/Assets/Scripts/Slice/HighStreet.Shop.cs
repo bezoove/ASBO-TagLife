@@ -48,6 +48,16 @@ namespace ASBO.Slice
             b.Build();
         }
 
+        /// <summary>A shop with its flat over in someone else's building (the precinct): frame has the front at z = 0 and the inside to -z, the unit 0..w across.
+        /// holes: the upper front windows (x across the unit, y); back: the back wall's openings (the door at 0.8..1.7 and the windows).</summary>
+        public static void UnitInterior(Transform frame, string name, float w, float G, float FH, int storeys, float topH, int cell, float doorX, List<Rect> holes, List<Rect> back)
+        {
+            var b = new ShopB { parent = frame, x0 = 0f, w = w, G = G, FH = FH, storeys = Mathf.Max(2, storeys), topH = topH, name = name, unit = default, holes = holes, back = back, doorX = doorX };
+            b.kind = KindOf(cell); if (b.kind == "empty" && cell % 3 != 0) b.kind = new[] { "grocer", "food", "pound", "charity", "salon", "bookie", "laundry", "pharmacy", "vape", "bakery", "post" }[cell % 11];
+            b.rng = new System.Random(name.GetHashCode() * 31 + cell);
+            b.Build();
+        }
+
         // ================================================================================================================
         sealed partial class ShopB
         {

@@ -22,6 +22,8 @@ namespace ASBO.Slice
         public int storeys, seed;
         /// <summary>Walk-ups and deck blocks: no lifts (a narrow core, just the stair and a passage), flats on the ground floor too.</summary>
         public bool lifts = true, groundFlats;
+        /// <summary>How far the ground floor stands above the street (a plinth): steps up to the door.</summary>
+        public float plinth;
         public List<WinRec> wins = new List<WinRec>();
         public List<Collider> baked = new List<Collider>();
         public Home core; public bool liftBroken;
@@ -85,6 +87,8 @@ namespace ASBO.Slice
             var gl = new GameObject("Glass"); gl.transform.SetParent(g.transform, false);
             void Gc(float a, float b, float y0, float y1) { if (b - a < 0.02f) return; var c = gl.AddComponent<BoxCollider>(); c.center = new Vector3((a + b) * 0.5f, (y0 + y1) * 0.5f, lobbyZ - 0.01f); c.size = new Vector3(b - a, y1 - y0, 0.1f); }
             Gc(rx0, coreX - 0.5f, 0f, rh); Gc(coreX + 0.5f, rx1, 0f, rh); Gc(coreX - 0.5f, coreX + 0.5f, 2.15f, rh);
+            // steps up from the street when the floor stands on a plinth
+            if (ti.plinth > 0.05f) StepsUp(g.transform, ti);
             // spots: the lifts on every floor, the post boxes and the notices in the lobby, the chute on every floor
             for (int f = 0; f < storeys; f++)
             {
@@ -100,6 +104,25 @@ namespace ASBO.Slice
             h.zoneRects.Add(Rect.MinMaxRect(ti.cx0, lobbyZ, ti.sx1, ti.zc1));
             h.centre = new Vector3(coreX, 1.5f, (lobbyZ + ti.zm) * 0.5f); h.radius = ti.Top + D; h.midZ = (lobbyZ + ti.zc1) * 0.5f; h.halfD = (ti.zc1 - lobbyZ) * 0.5f + 0.3f;
             return ti;
+        }
+
+        public void SetPlinth(float h) { plinth = h; if (h > 0.05f) StepsUp(transform, this); }
+        static void StepsUp(Transform g, TowerInterior ti)
+        {
+            if (g.Find("Steps") != null) return;
+            var go = new GameObject("Steps"); go.transform.SetParent(g, false); var mk = new MeshKit();
+            int n = Mathf.CeilToInt(ti.plinth / 0.2f); float rise = ti.plinth / n, a = ti.recessX0 - 0.2f, b = ti.recessX1 + 0.2f;
+            var stone = Resources.Load<Material>("Town/TownStone") ?? (CouncilEstate.M != null ? CouncilEstate.M.concrete : null);
+            for (int i = 1; i < n + 1; i++)
+            {
+                // step i down from the door: its top i rises below the floor, 0.3 m further out each time
+                float top = FloorTop - i * rise + rise, z1 = -0.35f - (i - 1) * 0.3f, z0 = z1 - 0.3f;
+                if (i == 1) z1 = 0f;
+                float y0 = -ti.plinth - 0.05f;
+                if (stone != null) mk.Box(stone, new Vector3(a, y0, z0), new Vector3(b, top - rise, z1));
+                var c = go.AddComponent<BoxCollider>(); c.center = new Vector3((a + b) * 0.5f, (y0 + top - rise) * 0.5f, (z0 + z1) * 0.5f); c.size = new Vector3(b - a, top - rise - y0, z1 - z0);
+            }
+            mk.Build("StepMesh", go.transform, false, ShadowCastingMode.Off);
         }
 
         // ================================================================== streaming
@@ -166,7 +189,7 @@ namespace ASBO.Slice
             C(0f, recessX0, -0.3f, top, -0.25f, 0.02f); C(recessX1, W, -0.3f, top, -0.25f, 0.02f); C(recessX0, recessX1, recessH, top, -0.25f, 0.02f);
             C(recessX0 - 0.15f, recessX0, -0.3f, recessH, 0f, lobbyZ); C(recessX1, recessX1 + 0.15f, -0.3f, recessH, 0f, lobbyZ);
             C(0f, W, top, top + 0.4f, 0f, D);
-            C(recessX0, recessX1, -0.3f, FloorTop, -1.5f, lobbyZ);      // the step in the entrance recess
+            C(recessX0, recessX1, -0.3f, FloorTop, plinth > 0.05f ? -0.35f : -1.5f, lobbyZ);      // the step in the entrance recess
         }
         void Deactivate()
         {
