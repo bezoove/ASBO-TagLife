@@ -54,6 +54,20 @@ CFG = {
     'security_camera_02': dict(kind='wall', tex=512, mode='prop', caps=[('', 1500)], variants={'security_camera_02': r'^security_camera_02'}),
     'utility_box_02': dict(kind='fixture', tex=1024, mode='prop', caps=[('', 1500)]),
     'water_manhole_cover': dict(kind='flat', tex=1024, mode='prop', caps=[('frame', 300), ('', 800)]),
+    # the modular kits, picked apart into the pieces the town uses
+    'large_castle_door': dict(kind='fixture', tex=1024, mode='prop', caps=[('frame', 900), ('', 2500)], pivot='keep',
+                              variants={'castle_door_frame': r'_frame$', 'castle_door_left': r'_left$', 'castle_door_right': r'_right$'}),
+    'modular_chainlink_fence': dict(kind='fixture', tex=1024, mode='prop', caps=[('corner|door_frame', 2500), ('', 1200)],
+                                    variants={'chainlink_single': r'^modular_chainlink_fence$', 'chainlink_double': r'_double$', 'chainlink_post': r'^modular_chainlink_fence_post$',
+                                              'chainlink_corner': r'_corner_outer$', 'chainlink_door_frame': r'_door_frame$', 'chainlink_gate': r'_door_gate$'}),
+    'modular_fire_escape': dict(kind='fixture', tex=1024, mode='prop', caps=[('stairs', 2500), ('', 900)],
+                                variants={'fe_platform': r'_platform_middle$', 'fe_railing': r'_railing_middle$', 'fe_stairs': r'_stairs$', 'fe_ladder': r'_ladder_bottom$'}),
+    'modular_pipes': dict(kind='wall', tex=1024, mode='prop', caps=[('', 600)],
+                          variants={'drain_pipe': r'^pipe_200cm_pvc$', 'drain_pipe_short': r'^pipe_100cm_pvc$', 'drain_bend': r'^pipe_s_curve_4_pvc$', 'drain_clip': r'^pipe_support_pvc$',
+                                    'pipe_metal': r'^pipe_200cm_metal$', 'pipe_metal_thin': r'^pipe_thin_200cm_metal$', 'pipe_metal_t': r'^pipe_junction_t_metal$', 'pipe_chamber': r'^pipe_chamber_large_metal$'}),
+    'modular_fort_01': dict(kind='fixture', tex=2048, mode='prop', caps=[('tower', 3000), ('', 1500)],
+                            variants={'fort_tower': r'_tower_round$', 'fort_wall': r'_wall_thick_straight_01$', 'fort_wall_walk': r'_wall_walkway_straight_01$',
+                                      'fort_gate': r'_wall_thin_gate_01$', 'fort_corner': r'_wall_thick_corner_01$', 'fort_end': r'_wall_thick_end_01$'}),
 }
 
 def tris(me): return sum(len(p.vertices) - 2 for p in me.polygons)

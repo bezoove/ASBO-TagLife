@@ -235,7 +235,7 @@ namespace ASBO.Slice
             for (int s = 0; s < 14; s++)
                 k.Box(M.stone2, p + new Vector3(-w / 2 + 1f + s * 0.32f, 0f, w / 2 + 0.6f), p + new Vector3(-w / 2 + 1.32f + s * 0.32f, 0.3f + s * 0.27f, w / 2 + 2.2f));
             k.Box(M.stone2, p + new Vector3(-w / 2 + 5.4f, 0f, w / 2 + 0.6f), p + new Vector3(-w / 2 + 7.2f, 4.0f, w / 2 + 2.2f));
-            k.Box(M.timber, p + new Vector3(-w / 2 + 5.65f, 4.0f, w / 2 + 0.05f), p + new Vector3(-w / 2 + 6.1f, 6.3f, w / 2 + 0.75f));
+            // (the door itself is the modelled iron-bound pair, hung by Dressing.Kits)
             var g = k.Build("CastleKeep", root, false);
             // the steps: one collider per step so you can walk up them
             for (int s = 0; s < 14; s++) { var sc = g.AddComponent<BoxCollider>(); sc.center = p + new Vector3(-w / 2 + 1.16f + s * 0.32f, (0.3f + s * 0.27f) * 0.5f, w / 2 + 1.4f); sc.size = new Vector3(0.32f, 0.3f + s * 0.27f, 1.6f); }

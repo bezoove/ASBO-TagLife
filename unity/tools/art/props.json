@@ -1185,6 +1185,358 @@
      "alpha": false
     }
    ]
+  },
+  {
+   "name": "large_castle_door",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "castle_door_frame",
+     "fbx": "castle_door_frame.fbx",
+     "tris0": 880,
+     "tris1": 308
+    },
+    {
+     "name": "castle_door_left",
+     "fbx": "castle_door_left.fbx",
+     "tris0": 2499,
+     "tris1": 875
+    },
+    {
+     "name": "castle_door_right",
+     "fbx": "castle_door_right.fbx",
+     "tris0": 2500,
+     "tris1": 875
+    }
+   ],
+   "materials": [
+    {
+     "key": "large_castle_door",
+     "name": "large_castle_door",
+     "albedo": "large_castle_door_albedo.jpg",
+     "normal": "large_castle_door_normal.png",
+     "mask": "large_castle_door_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "modular_chainlink_fence",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "chainlink_single",
+     "fbx": "chainlink_single.fbx",
+     "tris0": 1199,
+     "tris1": 420
+    },
+    {
+     "name": "chainlink_double",
+     "fbx": "chainlink_double.fbx",
+     "tris0": 1199,
+     "tris1": 420
+    },
+    {
+     "name": "chainlink_post",
+     "fbx": "chainlink_post.fbx",
+     "tris0": 1134,
+     "tris1": 396
+    },
+    {
+     "name": "chainlink_corner",
+     "fbx": "chainlink_corner.fbx",
+     "tris0": 2499,
+     "tris1": 875
+    },
+    {
+     "name": "chainlink_door_frame",
+     "fbx": "chainlink_door_frame.fbx",
+     "tris0": 2499,
+     "tris1": 875
+    },
+    {
+     "name": "chainlink_gate",
+     "fbx": "chainlink_gate.fbx",
+     "tris0": 1200,
+     "tris1": 420
+    }
+   ],
+   "materials": [
+    {
+     "key": "modular_chainlink_fence_wire",
+     "name": "modular_chainlink_fence_wire",
+     "albedo": "modular_chainlink_fence_wire_albedo.png",
+     "normal": "modular_chainlink_fence_wire_normal.png",
+     "mask": "modular_chainlink_fence_wire_mask.png",
+     "alpha": true
+    },
+    {
+     "key": "modular_chainlink_fence_posts",
+     "name": "modular_chainlink_fence_posts",
+     "albedo": "modular_chainlink_fence_posts_albedo.jpg",
+     "normal": "modular_chainlink_fence_posts_normal.png",
+     "mask": "modular_chainlink_fence_posts_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "modular_fire_escape",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "fe_platform",
+     "fbx": "fe_platform.fbx",
+     "tris0": 900,
+     "tris1": 314
+    },
+    {
+     "name": "fe_railing",
+     "fbx": "fe_railing.fbx",
+     "tris0": 900,
+     "tris1": 314
+    },
+    {
+     "name": "fe_stairs",
+     "fbx": "fe_stairs.fbx",
+     "tris0": 2500,
+     "tris1": 875
+    },
+    {
+     "name": "fe_ladder",
+     "fbx": "fe_ladder.fbx",
+     "tris0": 632,
+     "tris1": 220
+    }
+   ],
+   "materials": [
+    {
+     "key": "modular_fire_escape_01",
+     "name": "modular_fire_escape_01",
+     "albedo": "modular_fire_escape_01_albedo.jpg",
+     "normal": "modular_fire_escape_01_normal.png",
+     "mask": "modular_fire_escape_01_mask.png",
+     "alpha": false
+    },
+    {
+     "key": "modular_fire_escape_02",
+     "name": "modular_fire_escape_02",
+     "albedo": "modular_fire_escape_02_albedo.jpg",
+     "normal": "modular_fire_escape_02_normal.png",
+     "mask": "modular_fire_escape_02_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "modular_pipes",
+   "kind": "wall",
+   "variants": [
+    {
+     "name": "drain_pipe",
+     "fbx": "drain_pipe.fbx",
+     "tris0": 288,
+     "tris1": 100
+    },
+    {
+     "name": "drain_pipe_short",
+     "fbx": "drain_pipe_short.fbx",
+     "tris0": 144,
+     "tris1": 50
+    },
+    {
+     "name": "drain_bend",
+     "fbx": "drain_bend.fbx",
+     "tris0": 599,
+     "tris1": 210
+    },
+    {
+     "name": "drain_clip",
+     "fbx": "drain_clip.fbx",
+     "tris0": 278,
+     "tris1": 97
+    },
+    {
+     "name": "pipe_metal",
+     "fbx": "pipe_metal.fbx",
+     "tris0": 288,
+     "tris1": 100
+    },
+    {
+     "name": "pipe_metal_thin",
+     "fbx": "pipe_metal_thin.fbx",
+     "tris0": 288,
+     "tris1": 100
+    },
+    {
+     "name": "pipe_metal_t",
+     "fbx": "pipe_metal_t.fbx",
+     "tris0": 300,
+     "tris1": 105
+    },
+    {
+     "name": "pipe_chamber",
+     "fbx": "pipe_chamber.fbx",
+     "tris0": 599,
+     "tris1": 210
+    }
+   ],
+   "materials": [
+    {
+     "key": "modular_pipes_pvc",
+     "name": "modular_pipes_pvc",
+     "albedo": "modular_pipes_pvc_albedo.jpg",
+     "normal": "modular_pipes_pvc_normal.png",
+     "mask": "modular_pipes_pvc_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "modular_fort_01",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "fort_tower",
+     "fbx": "fort_tower.fbx",
+     "tris0": 3000,
+     "tris1": 1050
+    },
+    {
+     "name": "fort_wall",
+     "fbx": "fort_wall.fbx",
+     "tris0": 1500,
+     "tris1": 525
+    },
+    {
+     "name": "fort_wall_walk",
+     "fbx": "fort_wall_walk.fbx",
+     "tris0": 1500,
+     "tris1": 524
+    },
+    {
+     "name": "fort_gate",
+     "fbx": "fort_gate.fbx",
+     "tris0": 1368,
+     "tris1": 477
+    },
+    {
+     "name": "fort_corner",
+     "fbx": "fort_corner.fbx",
+     "tris0": 816,
+     "tris1": 284
+    },
+    {
+     "name": "fort_end",
+     "fbx": "fort_end.fbx",
+     "tris0": 442,
+     "tris1": 154
+    }
+   ],
+   "materials": [
+    {
+     "key": "modular_fort_01_wall_1",
+     "name": "modular_fort_01_wall_1",
+     "albedo": "modular_fort_01_wall_1_albedo.jpg",
+     "normal": "modular_fort_01_wall_1_normal.png",
+     "mask": "modular_fort_01_wall_1_mask.png",
+     "alpha": false
+    },
+    {
+     "key": "modular_fort_01_trim_1",
+     "name": "modular_fort_01_trim_1",
+     "albedo": "modular_fort_01_trim_1_albedo.jpg",
+     "normal": "modular_fort_01_trim_1_normal.png",
+     "mask": "modular_fort_01_trim_1_mask.png",
+     "alpha": false
+    },
+    {
+     "key": "modular_fort_01_plaster_1",
+     "name": "modular_fort_01_plaster_1",
+     "albedo": "modular_fort_01_plaster_1_albedo.jpg",
+     "normal": "modular_fort_01_plaster_1_normal.png",
+     "mask": "modular_fort_01_plaster_1_mask.png",
+     "alpha": false
+    }
+   ]
+  },
+  {
+   "name": "radio_tower",
+   "kind": "fixture",
+   "variants": [
+    {
+     "name": "radio_tower",
+     "fbx": "radio_tower.fbx",
+     "tris0": 8800,
+     "tris1": 2640
+    }
+   ],
+   "materials": [
+    {
+     "key": "radio-tower_steel_white_x",
+     "name": "radio-tower_steel_white_x",
+     "alpha": false,
+     "albedo": "radio-tower_steel_white_x_albedo.jpg",
+     "mask": "radio-tower_steel_white_x_mask.png"
+    },
+    {
+     "key": "radio-tower_charcoal_x",
+     "name": "radio-tower_charcoal_x",
+     "alpha": false,
+     "albedo": "radio-tower_charcoal_x_albedo.jpg",
+     "mask": "radio-tower_charcoal_x_mask.png"
+    },
+    {
+     "key": "radio-tower_body_pbr",
+     "name": "radio-tower_body_pbr",
+     "alpha": false,
+     "albedo": "radio-tower_body_pbr_albedo.jpg",
+     "normal": "radio-tower_body_pbr_normal.png",
+     "mask": "radio-tower_body_pbr_mask.png"
+    },
+    {
+     "key": "radio-tower_steel_white_x.002",
+     "name": "radio-tower_steel_white_x_002",
+     "alpha": false,
+     "albedo": "radio-tower_steel_white_x_002_albedo.jpg",
+     "mask": "radio-tower_steel_white_x_002_mask.png"
+    },
+    {
+     "key": "radio-tower_concrete_x.002",
+     "name": "radio-tower_concrete_x_002",
+     "alpha": false,
+     "albedo": "radio-tower_concrete_x_002_albedo.jpg",
+     "mask": "radio-tower_concrete_x_002_mask.png"
+    },
+    {
+     "key": "radio-tower_gravel_x.002",
+     "name": "radio-tower_gravel_x_002",
+     "alpha": false,
+     "albedo": "radio-tower_gravel_x_002_albedo.jpg",
+     "mask": "radio-tower_gravel_x_002_mask.png"
+    },
+    {
+     "key": "radio-tower_charcoal_x.002",
+     "name": "radio-tower_charcoal_x_002",
+     "alpha": false,
+     "albedo": "radio-tower_charcoal_x_002_albedo.jpg",
+     "mask": "radio-tower_charcoal_x_002_mask.png"
+    },
+    {
+     "key": "radio-tower_window_glass_x.002",
+     "name": "radio-tower_window_glass_x_002",
+     "alpha": false,
+     "albedo": "radio-tower_window_glass_x_002_albedo.jpg",
+     "mask": "radio-tower_window_glass_x_002_mask.png"
+    },
+    {
+     "key": "radio-tower_warning_glow_x.001",
+     "name": "radio-tower_warning_glow_x_001",
+     "alpha": false,
+     "albedo": "radio-tower_warning_glow_x_001_albedo.jpg",
+     "mask": "radio-tower_warning_glow_x_001_mask.png"
+    }
+   ]
   }
  ]
 }

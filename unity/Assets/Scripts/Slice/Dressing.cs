@@ -28,7 +28,7 @@ namespace ASBO.Slice
             foreach (var h in Estate.Houses) House(h);
             Verges();
             Wrecks();
-            Street();
+            Street(); Kits();
             Outcrop(new Vector3(92f, 0f, -70f), 1f);   // out past the estate's back gardens, on the rising fields
             Outcrop(new Vector3(-92f, 0f, -60f), 0.8f);
             Debug.Log($"[ASBO] dressing: {root.childCount} pieces placed");
@@ -270,6 +270,120 @@ namespace ASBO.Slice
                 lg.AddComponent<FireFlicker>();
             }
             Debug.Log($"[ASBO] dressing: {root.childCount - n0} pieces of street furniture and junk");
+        }
+
+        /// <summary>
+        /// The modular kits from the Drive: chain-link round the lock-up yards (a gate in each), a fire escape and drainpipes
+        /// up the back of Kestrel Parade, pipework along the back of the mill, the iron-bound double door in the keep, and a
+        /// ruined outer wall with a tower stump on the castle hill.
+        /// </summary>
+        static void Kits()
+        {
+            if (Resources.Load<GameObject>("Props/chainlink_double") == null) { Debug.Log("[ASBO] kits: not in this build"); return; }
+            int n0 = root.childCount;
+            // ---- chain-link: panels of 1.91 m along a line, a gate frame where asked (walk-through: its collider comes off)
+            void Fence(Vector3 a, Vector3 b, float gateAt)
+            {
+                Vector3 d = b - a; d.y = 0f; float len = d.magnitude; d /= len; float yaw = Mathf.Atan2(-d.z, d.x) * Mathf.Rad2Deg;
+                int n = Mathf.Max(1, Mathf.RoundToInt(len / 1.91f)); float step = len / n;
+                int gate = gateAt >= 0f ? Mathf.Clamp(Mathf.FloorToInt(gateAt * n), 0, n - 1) : -1;
+                for (int i = 0; i < n; i++)
+                {
+                    var g = Put(i == gate ? "chainlink_door_frame" : "chainlink_double", a + d * (step * (i + 0.5f)), yaw);
+                    if (g == null) continue;
+                    if (!Mathf.Approximately(step, 1.91f)) g.transform.localScale = new Vector3(step / 1.91f, 1f, 1f);
+                    if (i == gate) foreach (var c in g.GetComponentsInChildren<Collider>()) Object.Destroy(c);
+                }
+            }
+            Fence(new Vector3(161.8f, 0f, -99.3f), new Vector3(192.6f, 0f, -99.3f), 0.5f);     // Mill Lane lock-ups' yard
+            Fence(new Vector3(-285.6f, 0f, 64f), new Vector3(-261.6f, 0f, 64f), 0.5f);        // Kestrel lock-ups' yard
+            Fence(new Vector3(-285.6f, 0f, 56.3f), new Vector3(-285.6f, 0f, 64f), -1f);
+            Fence(new Vector3(-261.6f, 0f, 56.3f), new Vector3(-261.6f, 0f, 64f), -1f);
+
+            // ---- how high a wall goes: feel up it from outside until there's nothing there
+            float WallTop(Vector3 at, Vector3 n)
+            {
+                float top = 0f;
+                for (float y = 0.5f; y < 24f; y += 0.4f) { if (Physics.Raycast(at + n * 1.2f + Vector3.up * y, -n, 1.6f, Mask, QueryTriggerInteraction.Ignore)) top = y; else if (top > 0f && y - top > 1.2f) break; }
+                return top;
+            }
+            // ---- a fire escape on a wall facing n: a landing per floor, stairs between, the drop ladder under the first
+            void FireEscape(Vector3 at, Vector3 n, float first, float storey)
+            {
+                float top = WallTop(at, n); if (top < first + 1f) return;
+                Vector3 along = Vector3.Cross(Vector3.up, n); float yaw = Mathf.Atan2(-along.z, along.x) * Mathf.Rad2Deg;
+                Vector3 c = at + n * 0.7f; int k = 0;
+                for (float y = first; y < top - 1.4f; y += storey, k++)
+                {
+                    Put("fe_platform", c + Vector3.up * y, yaw, 1f, false); Put("fe_railing", c + Vector3.up * y, yaw, 1f, false);
+                    if (y + storey < top - 1.4f) { var st = Put("fe_stairs", c + Vector3.up * y + along * 0.8f, yaw, 1f, false); if (st != null) st.transform.localScale = new Vector3(1f, storey / 4.01f, 1f); }
+                }
+                if (k > 0) { var l = Put("fe_ladder", c + along * 2.0f + Vector3.up * 0.9f, yaw, 1f, false); if (l != null) l.transform.localScale = new Vector3(1f, (first - 0.9f) / 6.47f, 1f); }
+            }
+            // ---- a drainpipe from the gutter to the ground, clipped every couple of metres, a shoe at the bottom
+            void Drain(Vector3 at, Vector3 n)
+            {
+                float top = WallTop(at, n); if (top < 2f) return; Vector3 c = at + n * 0.09f;
+                for (float y = 0f; y < top - 0.05f; y += 2f)
+                {
+                    var g = Put(top - y >= 2f ? "drain_pipe" : "drain_pipe_short", c + Vector3.up * y, 0f, 1f, false);
+                    if (g != null && top - y < 2f) g.transform.localScale = new Vector3(1f, Mathf.Clamp01((top - y) / 1f), 1f);
+                    var cl = OnWall("drain_clip", at + Vector3.up * (y + 1f), n, 0.18f);
+                }
+                var sh = Put("drain_bend", c, Mathf.Atan2(n.x, n.z) * Mathf.Rad2Deg, 1f, false);
+            }
+            // Kestrel Parade's back wall (faces +x at x -141.4): a fire escape and three drainpipes
+            FireEscape(new Vector3(-141.4f, 0f, 99.5f), Vector3.right, 3.3f, 2.9f);
+            foreach (float z in new[] { 66.5f, 79f, 91.5f }) Drain(new Vector3(-141.4f, 0f, z), Vector3.right);
+            // the mill's back (faces +z at z 82): a pipe run along the wall over the parking, a riser at each end
+            {
+                float y = 3.6f;
+                for (float x = -131f; x < -105f; x += 2f) { var g = Put("pipe_metal", new Vector3(x, y, 82.16f), 0f, 1f, false); if (g != null) g.transform.rotation = Quaternion.Euler(0f, 0f, -90f); }
+                foreach (float x in new[] { -131.2f, -104.8f }) for (float yy = 0f; yy < y; yy += 2f) Put(y - yy >= 2f ? "pipe_metal" : "drain_pipe_short", new Vector3(x, yy, 82.16f), 0f, 1f, false);
+                for (float x = -130f; x < -105f; x += 3f) OnWall("drain_clip", new Vector3(x, y - 0.05f, 82f), Vector3.forward, 0.2f);
+            }
+            // ---- the castle: the iron-bound door in the keep's doorway, both leaves swung in; a ruined outer wall and tower stump
+            var ter = Terrain.activeTerrain; float ty = ter != null ? ter.transform.position.y : 0f;
+            Vector3 cc = Castle.Centre + new Vector3(0f, Castle.HillTop + ty, 0f);
+            {
+                Vector3 kp = cc + new Vector3(-2f, 0f, -5f), at = kp + new Vector3(0.3f, 4.0f, 6.02f); const float sc = 0.82f;
+                var fr = Put("castle_door_frame", at, 180f, sc, false);
+                foreach (var (nm, sgn) in new[] { ("castle_door_left", 1f), ("castle_door_right", -1f) })
+                {
+                    var leaf = Put(nm, at, 180f, sc, false); if (leaf == null) continue;
+                    var r = leaf.GetComponentInChildren<Renderer>(); if (r == null) continue;
+                    float side = Vector3.Dot(r.bounds.center - at, Vector3.right) < 0f ? -1f : 1f;   // which side of the doorway it hangs
+                    Vector3 hinge = at + Vector3.right * side * (side < 0f ? at.x - r.bounds.min.x : r.bounds.max.x - at.x);
+                    var h = new GameObject(nm + " hinge").transform; h.SetParent(root, false); h.position = new Vector3(hinge.x, at.y, at.z);
+                    leaf.transform.SetParent(h, true); h.rotation = Quaternion.Euler(0f, side < 0f ? 72f : -72f, 0f);
+                }
+            }
+            {
+                float a = 300f * Mathf.Deg2Rad; Vector3 rad = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)), tan = new Vector3(Mathf.Cos(a), 0f, -Mathf.Sin(a));
+                Vector3 tc = cc + rad * 25f; float yaw = Mathf.Atan2(tan.x, tan.z) * Mathf.Rad2Deg;
+                Sink(Put("fort_tower", tc, R(0, 360), 0.42f), 0.4f);
+                Sink(Put("fort_wall", tc + tan * 7.2f, yaw, 0.55f), 0.3f);
+                Sink(Put("fort_end", tc + tan * 12.4f, yaw, 0.55f), 0.3f);
+                Sink(Put("fort_wall_walk", tc - tan * 7.2f, yaw, 0.55f), 0.3f);
+                Sink(Put("fort_corner", tc - tan * 12.6f, yaw + 15f, 0.55f), 0.3f);
+            }
+            // ---- the radio mast on its fenced plot: out on open ground past the castle hill, clear of the roads
+            {
+                bool placed = false;
+                for (int ring = 0; ring < 3 && !placed; ring++)
+                    for (int i = 0; i < 12 && !placed; i++)
+                    {
+                        float a = (i * 30f + ring * 15f) * Mathf.Deg2Rad; Vector3 p = Castle.Centre + new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)) * (80f + ring * 18f);
+                        bool road = false; foreach (var r in TownPlan.Roads) { Vector3 d = r.b - r.a; float t = Mathf.Clamp01(Vector3.Dot(p - r.a, d) / d.sqrMagnitude); if ((r.a + d * t - p).WithY(0f).magnitude < 16f) { road = true; break; } }
+                        if (road || TownPlan.TurfAt(p) >= 0) continue;
+                        if (!Physics.Raycast(p + Vector3.up * 200f, Vector3.down, out var hit, 400f, Mask, QueryTriggerInteraction.Ignore) || !(hit.collider is TerrainCollider)) continue;
+                        p.y = hit.point.y;
+                        var g = PutClear("radio_tower", p, R(0, 360), new Vector3(6.8f, 2f, 5.8f));
+                        if (g != null) { placed = true; Debug.Log($"[ASBO] kits: radio mast at {p}"); }
+                    }
+                if (!placed) Debug.Log("[ASBO] kits: nowhere clear for the radio mast");
+            }
+            Debug.Log($"[ASBO] kits: {root.childCount - n0} pieces (fences, fire escape, pipes, castle door and outworks)");
         }
 
         /// <summary>A rocky clump out in the fields: mossy boulders, a couple of young firs, stones and ferns round it.</summary>

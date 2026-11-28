@@ -26,8 +26,11 @@ Street furniture from the Drive (Poly Haven, CC0): `barrel_stove`, `concrete_roa
 poles), `old_tyre`, `rollershutter_window_02` (graffiti), `rusted_wheel_rim_01`, `security_camera_01/02`,
 `utility_box_02`, `water_manhole_cover`. Kinds in `props.json`: `prop` (knock it about), `fixture` (solid, stays put),
 `wall` (on a wall, no collider), `flat` (in the ground). `Dressing.Street()` places them round town.
-Not converted: `modular_fort_01` (647 MB, not the setting), `modular_pipes`, `modular_fire_escape`,
-`modular_chainlink_fence`, `large_castle_door` (modular kits that need assembling).
+The modular kits, picked apart into pieces (textures shrunk to 2K on the laptop first): `large_castle_door` (frame and two
+leaves, hung open in the keep), `modular_chainlink_fence` (panels, posts, corner, gate frame), `modular_fire_escape`
+(landing, railing, stairs, drop ladder), `modular_pipes` (PVC drainpipes, bend, clip; metal pipe runs), `modular_fort_01`
+(round tower, walls, gate, corner, end: the ruined outworks on the castle hill). `Dressing.Kits()` assembles them.
+`radio-tower.glb` (grab3d, CC0): joined, decimated to 8,800 / 2,640 triangles, flat colours as tiny maps.
 
 Not converted yet: `island_tree_01` (half a million triangles even at its lowest level: needs a billboard
 version for phones) and `moss_01` (tiny geometry strands; better as a texture on rocks).
