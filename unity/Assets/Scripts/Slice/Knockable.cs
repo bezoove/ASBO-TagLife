@@ -53,6 +53,16 @@ namespace ASBO.Slice
             bool mine = thrower != null && Time.time - thrownAt < 8f;
             float loud = Mathf.Clamp(loudBase * (0.4f + v * 0.08f) * Mathf.Pow(Mathf.Max(0.2f, rb != null ? rb.mass : 1f), 0.2f), 3f, 45f);
             if (glass && v > 4.5f) { Smash(); loud *= 1.6f; }
+            if (mine)
+            {
+                // a thrown thing that hits somebody: down they go, and that's an assault
+                var hit = c.collider != null ? c.collider.GetComponentInParent<Person>() : null;
+                if (hit != null && !hit.isPlayer && !hit.dead && v > 4f && rb != null && rb.mass > 0.15f)
+                {
+                    hit.Knockout((c.relativeVelocity * -0.4f).WithY(0f), 2.5f, v > 9f);
+                    Offences.Report("Assault", 28f, transform.position);
+                }
+            }
             NoiseBus.Emit(transform.position, loud, mine ? thrower : null);
         }
 

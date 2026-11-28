@@ -375,6 +375,7 @@ namespace ASBO.Slice
         /// </summary>
         System.Collections.IEnumerator Carjack(TrafficCar tc)
         {
+            Offences.Report("Car theft", 35f, transform.position);
             doorBusy = true; tc.Hijack();
             Vector3 door = tc.DriverDoor; door.y = transform.position.y; Vector3 outw = tc.transform.right;
             // the driver: one kept ready out of sight (a new body takes a few seconds to put together), else made now

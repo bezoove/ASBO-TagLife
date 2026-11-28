@@ -23,7 +23,7 @@ namespace ASBO.Slice
         public static bool HasPrompt => I != null && (I.near != null || I.held != null || (I.pc != null && I.pc.OnSeat));
 
         public static void Ensure() { if (I == null) new GameObject("PropWorld").AddComponent<PropWorld>(); }
-        void Awake() { I = this; loose = new GameObject("LooseProps").transform; }
+        void Awake() { I = this; loose = new GameObject("LooseProps").transform; OffencesRun.Ensure(); }
 
         void Update()
         {
@@ -157,7 +157,7 @@ namespace ASBO.Slice
         }
         void Face(Target t) { if (t.set != null) { Vector3 d = t.at - pc.transform.position; d.y = 0f; if (d.sqrMagnitude > 0.01f) pc.transform.rotation = Quaternion.LookRotation(d); } Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
         static string Pick(params string[] s) => s[Random.Range(0, s.Length)];
-        void Heat(float v) { if (v >= 50f) World.Toast(v >= 1000f ? "That'll be on the cameras." : "Keep your head down.", 1); }
+        void Heat(float v) { if (v >= 50f) { World.Toast(v >= 1000f ? "That'll be on the cameras." : "Keep your head down.", 1); Offences.Report("Theft", Mathf.Clamp(v * 0.1f, 10f, 60f), pc.transform.position); } }
 
         // ------------------------------------------------------------------------------------------ holding things
         Transform Hand()

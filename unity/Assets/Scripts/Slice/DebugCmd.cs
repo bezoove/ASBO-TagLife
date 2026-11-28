@@ -190,6 +190,7 @@ namespace ASBO.Slice
             Debug.Log($"[ASBO] solidcheck: sets with solids={holders} tried={tried} solid={ok} other={miss} {bad}");
         }
         public static void CrouchTest() { new GameObject("CrouchTest").AddComponent<CrouchTestRun>(); }
+        public static void PoliceTest() { new GameObject("PoliceTest").AddComponent<PoliceTestRun>(); }
         public static void MobTest() { new GameObject("MobTest").AddComponent<MobTestRun>(); }
         public static void BrawlHits(float secs) { var r = new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); r.onHit = true; r.secs = secs; r.kickFinish = true; }
         public static void TalkTest() { new GameObject("TalkTest").AddComponent<TalkTestRun>(); }
@@ -2017,6 +2018,23 @@ namespace ASBO.Slice
             PlayerCtl.TestInput = null; PlayerCtl.crouchTap = true; yield return new WaitForSeconds(0.5f);
             Debug.Log("[ASBO] crouch test done");
             Destroy(cg); Destroy(rt); Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Wanted at 70 in front of a bobby: does he come over and nick you?</summary>
+    public class PoliceTestRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            yield return new WaitForSeconds(15f);
+            var pc = FindFirstObjectByType<PlayerCtl>(); var b = FindFirstObjectByType<Bobby>();
+            if (pc == null || b == null) { Debug.Log("[ASBO] policetest: no bobby (" + (b == null) + ")"); Destroy(gameObject); yield break; }
+            Vector3 bp = b.transform.position, f = b.transform.forward; f.y = 0f; f.Normalize();
+            pc.Teleport(bp + f * 9f + Vector3.up * 0.1f, Mathf.Atan2(-f.x, -f.z) * Mathf.Rad2Deg, 8f);
+            Econ.Cash = 100f; Offences.Wanted = 70f; float t0 = Time.time; float cash0 = Econ.Cash; bool nicked = false;
+            while (Time.time - t0 < 25f) { yield return null; if (Econ.Cash < cash0) { nicked = true; break; } }
+            Debug.Log($"[ASBO] policetest: bobby at {bp:F0}, nicked={nicked} after {Time.time - t0:F1}s cash={Econ.Cash:F0} wanted={Offences.Wanted:F0} playerAt={pc.transform.position:F0}");
+            Destroy(gameObject);
         }
     }
 }
