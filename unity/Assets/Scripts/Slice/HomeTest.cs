@@ -77,6 +77,40 @@ namespace ASBO.Slice
 
         /// <summary>The same physical flood for the shops and the flats over them (unit footprint: lx across, d 0.14..10.86).</summary>
         /// <summary>The one-room public buildings (variant "hall"): flood from outside the front door and count the spots you can get to.</summary>
+        /// <summary>Walk-in test for one building with a Home on it: flood from a point outside (in its frame), every spot reached?</summary>
+        public static void ReachHome(string goName, float sx, float sy, float sz, float x0, float x1, float z0, float z1)
+        { var r = new GameObject("HomeReach").AddComponent<RunReachHome>(); r.n = goName.Replace("-", " ").Replace("~", "-"); r.seed = new Vector3(sx, sy, sz); r.box = Rect.MinMaxRect(x0, z0, x1, z1); }
+        class RunReachHome : MonoBehaviour
+        {
+            public string n; public Vector3 seed; public Rect box;
+            IEnumerator Start()
+            {
+                yield return null; var g = GameObject.Find(n); var h = g != null ? g.GetComponent<Home>() : null;
+                if (h == null) { Debug.Log("[ASBO] homereach: no " + n); Destroy(gameObject); yield break; }
+                var tr = h.transform; float cs = box.width * box.height > 600f ? 0.2f : 0.1f; var seen = new System.Collections.Generic.HashSet<long>();
+                { var sp0 = tr.TransformPoint(seed + Vector3.up * 0.6f); if (Physics.Raycast(sp0, Vector3.down, out var h0, 3f, ~0, QueryTriggerInteraction.Ignore)) Debug.Log($"[ASBO] homereach seed ground {tr.InverseTransformPoint(h0.point).y:0.00} on {h0.collider.name}<{(h0.collider.transform.parent ? h0.collider.transform.parent.name : "")}"); } var q = new System.Collections.Generic.Queue<Vector3>(); var reached = new System.Collections.Generic.List<Vector3>();
+                q.Enqueue(seed); int guard = 0; float top = -99f;
+                while (q.Count > 0 && guard++ < 4000000)
+                {
+                    var p = q.Dequeue(); long key = ((long)Mathf.RoundToInt((p.x + 100f) / cs) * 8192 + Mathf.RoundToInt((p.z + 100f) / cs)) * 128 + Mathf.RoundToInt((p.y + 10f) / 0.5f);
+                    if (!seen.Add(key)) continue; reached.Add(p); top = Mathf.Max(top, p.y);
+                    foreach (var dv in new[] { new Vector2(cs, 0), new Vector2(-cs, 0), new Vector2(0, cs), new Vector2(0, -cs) })
+                    {
+                        float nx = p.x + dv.x, nz = p.z + dv.y; if (nx < box.xMin || nx > box.xMax || nz < box.yMin || nz > box.yMax) continue;
+                        if (!Physics.Raycast(tr.TransformPoint(new Vector3(nx, p.y + 0.45f, nz)), Vector3.down, out var hit, 1.2f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                        float gy = tr.InverseTransformPoint(hit.point).y; if (gy - p.y > 0.35f || p.y - gy > 0.7f) continue;
+                        if (Physics.CheckCapsule(tr.TransformPoint(new Vector3(nx, gy + 0.65f, nz)), tr.TransformPoint(new Vector3(nx, gy + 1.5f, nz)), 0.28f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                        q.Enqueue(new Vector3(nx, gy, nz));
+                    }
+                    if (guard % 20000 == 0) yield return null;
+                }
+                var miss = new System.Collections.Generic.List<string>(); int ok = 0;
+                foreach (var sp in h.spots) { bool got = false; float best = 99f; foreach (var p in reached) { if (Mathf.Abs(p.y - sp.pos.y) > 0.6f) continue; float dd = (p.x - sp.pos.x) * (p.x - sp.pos.x) + (p.z - sp.pos.z) * (p.z - sp.pos.z); best = Mathf.Min(best, dd); if (dd < 1.4f * 1.4f) { got = true; break; } } if (got) ok++; else miss.Add($"{sp.tag}@{sp.pos.y:0.0}({Mathf.Sqrt(best):0.0})"); }
+                Debug.Log($"[ASBO] homereach {n}: {reached.Count} cells, top {top:0.0}, spots {ok}/{h.spots.Count} [{string.Join(", ", miss)}]");
+                Destroy(gameObject);
+            }
+        }
+
         public static void ReachLockups() { new GameObject("LockupReach").AddComponent<RunLockups>(); }
         class RunLockups : MonoBehaviour
         {

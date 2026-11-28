@@ -10,7 +10,7 @@ namespace ASBO.Slice
         readonly List<Rect>[] clear = { new List<Rect>(), new List<Rect>(), new List<Rect>() };
         readonly List<Rect>[] hard = { new List<Rect>(), new List<Rect>(), new List<Rect>() };
         MeshKit deco = new MeshKit(); readonly HashSet<Room> skip = new HashSet<Room>();
-        void HardRect(int lv, Rect fp) { hard[lv].Add(fp); }
+        void HardRect(int lv, Rect fp) { hard[lv].Add(fp); cutBase[lv] = -1; }
         Material wood, wood2, metal, black, ceramic, worktop, fabric, lino;
         public float R(float a, float b) => a + (float)rng.NextDouble() * (b - a);
         bool Chance(double p) => rng.NextDouble() < p;
@@ -27,7 +27,8 @@ namespace ASBO.Slice
             foreach (var w in walls)
                 foreach (var g in w.gaps)
                 {
-                    Rect q = w.axis == 'u' ? new Rect(g.c - g.w / 2 - 0.05f, w.at - 0.95f, g.w + 0.1f, 1.9f) : new Rect(w.at - 0.95f, g.c - g.w / 2 - 0.05f, 1.9f, g.w + 0.1f);
+                    // room to step through and turn: deep enough that pieces either side can't pinch the way in shut
+                    Rect q = w.axis == 'u' ? new Rect(g.c - g.w / 2 - 0.05f, w.at - 1.35f, g.w + 0.1f, 2.7f) : new Rect(w.at - 1.35f, g.c - g.w / 2 - 0.05f, 2.7f, g.w + 0.1f);
                     clear[w.lv].Add(q);
                 }
             if (!flat) clear[0].Add(new Rect(2.15f, D1 - 0.95f, 1.0f, 0.95f));        // back door swing
@@ -89,7 +90,14 @@ namespace ASBO.Slice
 
         bool Commit(Room r, Cand c, float w, float dep, float h, System.Action draw, string kind, string label, string tag, bool hidden, bool collide, float seat)
         {
-            if (collide && h > 0.35f) { hard[r.lv].Add(c.fp); if (!Connected(out _, r.lv)) { hard[r.lv].RemoveAt(hard[r.lv].Count - 1); return false; } }
+            if (collide && h > 0.35f)
+            {
+                if (cutBase[r.lv] < 0) { Connected(out _, r.lv); cutBase[r.lv] = cutCells[r.lv]; }
+                hard[r.lv].Add(c.fp);
+                // the piece must leave every room enterable and not wall off more than a hand's width of floor
+                if (!Connected(out _, r.lv) || cutCells[r.lv] - cutBase[r.lv] > 8) { hard[r.lv].RemoveAt(hard[r.lv].Count - 1); return false; }
+                cutBase[r.lv] = cutCells[r.lv];
+            }
             lastCand = c; lastWall = c.wall; r.taken.Add(c.fp);
             furn.Push(P(c.cu, Y[r.lv], c.cd), WorldYaw(c.fu, c.fd)); draw(); furn.Pop();
             if (collide && h > 0.05f) solids.Add((P(c.cu, Y[r.lv] + h / 2, c.cd), new Vector3(c.fp.width, h, c.fp.height), 0f));

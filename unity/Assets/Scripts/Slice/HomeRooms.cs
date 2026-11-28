@@ -56,7 +56,7 @@ namespace ASBO.Slice
             for (int attempt = 0; attempt < 9; attempt++)
             {
                 furn = new MeshKit(); deco = new MeshKit(); if (solids.Count > mark) solids.RemoveRange(mark, solids.Count - mark);
-                home.spots.Clear(); home.rooms.Clear(); for (int l = 0; l < 3; l++) { clear[l].Clear(); hard[l].Clear(); }
+                home.spots.Clear(); home.rooms.Clear(); for (int l = 0; l < 3; l++) { clear[l].Clear(); hard[l].Clear(); cutBase[l] = -1; }
                 thin = attempt >= 6 ? 2 : attempt >= 3 ? 1 : 0;
                 FurnishOnce();
                 if (Connected(out why)) return;
@@ -67,6 +67,7 @@ namespace ASBO.Slice
         readonly List<Room> unreached = new List<Room>(); int thin; string dbgMap = ""; readonly HashSet<Room> bare = new HashSet<Room>();
         static bool NearR(Rect r, float u, float d, float m) => u > r.xMin - m && u < r.xMax + m && d > r.yMin - m && d < r.yMax + m;
         /// <summary>Flood a 10 cm grid on each floor (walls, gaps, stairwells, furniture all inflated by a player's radius) and check every real room can be reached.</summary>
+        readonly int[] cutCells = new int[3], cutBase = { -1, -1, -1 };
         bool Connected(out string why, int onlyLv = -1)
         {
             why = ""; unreached.Clear(); const float cs = 0.1f, rad = 0.31f;
@@ -108,6 +109,15 @@ namespace ASBO.Slice
                         if (a < 0 || c < 0 || a >= nx || c >= nd || blocked[a, c] || seen[a, c]) continue; seen[a, c] = true; qu.Enqueue(new Vector2Int(a, c));
                     }
                 }
+                // free floor that's been cut off: counted so a piece that pinches part of a room shut can be turned away
+                int cut = 0;
+                foreach (var r in rooms)
+                {
+                    if (r.lv != lv || bare.Contains(r) || r.use == "stairfoot" || r.type == "cupboard" || Mathf.Min(r.u1 - r.u0, r.d1 - r.d0) < 0.8f) continue;
+                    int i0 = Mathf.Max(0, Mathf.FloorToInt((r.u0 - U0) / cs)), i1 = Mathf.Min(nx - 1, Mathf.CeilToInt((r.u1 - U0) / cs)), j0 = Mathf.Max(0, Mathf.FloorToInt((r.d0 - D0) / cs)), j1 = Mathf.Min(nd - 1, Mathf.CeilToInt((r.d1 - D0) / cs));
+                    for (int ix = i0; ix <= i1; ix++) for (int id = j0; id <= j1; id++) if (!blocked[ix, id] && !seen[ix, id] && r.Has(U0 + (ix + 0.5f) * cs, D0 + (id + 0.5f) * cs)) cut++;
+                }
+                cutCells[lv] = cut;
                 foreach (var r in rooms)
                 {
                     if (r.lv != lv || bare.Contains(r) || r.use == "stairfoot" || r.type == "cupboard" || Mathf.Min(r.u1 - r.u0, r.d1 - r.d0) < 0.8f) continue;
@@ -399,7 +409,7 @@ namespace ASBO.Slice
             {
                 var c = lastCand;
                 AddSpot(r, "rummage", "Look under the bed", "underbed", c.cu, c.cd, Y[r.lv], c.fu, c.fd, true);
-                if (bw > 1.2f) { float off = bw / 2 + 0.28f; foreach (float sg in new[] { -1f, 1f }) { float su = c.cu + (c.wall == 'F' || c.wall == 'B' ? sg * off : 0f), sd = c.cd + (c.wall == 'L' || c.wall == 'R' ? sg * off : 0f); su += c.fu * (-0.82f); sd += c.fd * (-0.82f); var fp = new Rect(su - 0.21f, sd - 0.19f, 0.42f, 0.38f); if (c.wall == 'L' || c.wall == 'R') fp = new Rect(su - 0.19f, sd - 0.21f, 0.38f, 0.42f); if (!OkLoose(r, fp)) continue; r.taken.Add(fp); furn.Push(P(su, Y[r.lv], sd), WorldYaw(c.fu, c.fd)); Bedside(); furn.Pop(); solids.Add((P(su, Y[r.lv] + 0.26f, sd), new Vector3(fp.width, 0.52f, fp.height), 0f)); HardRect(r.lv, fp); if (sg > 0) AddSpot(r, "rummage", "Open the bedside drawer", "bedside", su, sd, Y[r.lv], c.fu, c.fd, false); } }
+                if (bw > 1.2f) { float off = bw / 2 + 0.28f; foreach (float sg in new[] { -1f, 1f }) { float su = c.cu + (c.wall == 'F' || c.wall == 'B' ? sg * off : 0f), sd = c.cd + (c.wall == 'L' || c.wall == 'R' ? sg * off : 0f); su += c.fu * (-0.82f); sd += c.fd * (-0.82f); var fp = new Rect(su - 0.21f, sd - 0.19f, 0.42f, 0.38f); if (c.wall == 'L' || c.wall == 'R') fp = new Rect(su - 0.19f, sd - 0.21f, 0.38f, 0.42f); if (!OkLoose(r, fp)) continue; r.taken.Add(fp); furn.Push(P(su, Y[r.lv], sd), WorldYaw(c.fu, c.fd)); Bedside(); furn.Pop(); solids.Add((P(su, Y[r.lv] + 0.26f, sd), new Vector3(fp.width, 0.52f, fp.height), 0f)); HardRect(r.lv, fp); float stu = su + c.fu * 0.55f, std = sd + c.fd * 0.55f; var sr = new Rect(stu - 0.29f, std - 0.29f, 0.58f, 0.58f); var inn2 = Inner(r); bool room2 = sr.xMin >= inn2.xMin && sr.xMax <= inn2.xMax && sr.yMin >= inn2.yMin && sr.yMax <= inn2.yMax; if (room2) foreach (var hq in hard[r.lv]) if (hq.Overlaps(sr)) { room2 = false; break; } if (sg > 0 && room2) AddSpot(r, "rummage", "Open the bedside drawer", "bedside", su, sd, Y[r.lv], c.fu, c.fd, false); } }
             }
             float ww = rolling == "master" ? 1.3f : 0.95f;
             Put(r, ww, 0.6f, 1.95f, "LRFB", () => Wardrobe(ww, H.era >= 2), "rummage", "Go through the wardrobe", "wardrobe");

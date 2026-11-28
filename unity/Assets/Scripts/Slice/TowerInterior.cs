@@ -479,8 +479,27 @@ namespace ASBO.Slice
             // floor, ceiling, the four walls (the corridor one with the door)
             k.Quad(inner, new Vector3(xa, ft, za), new Vector3(xb, ft, za), new Vector3(xb, ft, zb), new Vector3(xa, ft, zb), Vector3.up); Bx(null, null, j.xa, j.xb, ft - 0.26f, ft, j.za, j.zb, true);
             k.Quad(ceilM, new Vector3(xa, ch, za), new Vector3(xb, ch, za), new Vector3(xb, ch, zb), new Vector3(xa, ch, zb), Vector3.down);
-            Bx(k, wallM, j.xa, xa, 0f, H, j.za, j.zb, true); Bx(k, wallM, xb, j.xb, 0f, H, j.za, j.zb, true);
-            Bx(k, wallM, j.xa, j.xb, 0f, H, j.front ? 0f : zb, j.front ? za : j.zb, true);
+            // offices look out: a ribbon of glazing through each outside wall (front or back, and the block's ends), mullions every 1.2 m
+            bool look = j.kind == "office";
+            float wy0 = ft + 0.9f, wy1 = Mathf.Min(ft + 2.25f, ch - 0.15f);
+            var frM = HomeBuilder.Flat(new Color(0.22f, 0.23f, 0.25f), 0.5f);
+            void Ribbon(bool alongX, float a0, float a1, float t0, float t1)
+            {
+                // a wall from a0 to a1 (along x, or along z), t0..t1 thick, with the band cut out
+                float h0 = a0 + 0.45f, h1 = a1 - 0.45f;
+                if (h1 - h0 < 1.0f) { if (alongX) Bx(k, wallM, a0, a1, 0f, H, t0, t1, true); else Bx(k, wallM, t0, t1, 0f, H, a0, a1, true); return; }
+                void W(float b0, float b1, float y0, float y1) { if (alongX) Bx(k, wallM, b0, b1, y0, y1, t0, t1, true); else Bx(k, wallM, t0, t1, y0, y1, b0, b1, true); }
+                W(a0, h0, 0f, H); W(h1, a1, 0f, H); W(h0, h1, 0f, wy0); W(h0, h1, wy1, H);
+                float tm = (t0 + t1) * 0.5f;
+                void F(float b0, float b1, float y0, float y1, float th) { if (alongX) Bx(fk, frM, b0, b1, y0, y1, tm - th, tm + th); else Bx(fk, frM, tm - th, tm + th, y0, y1, b0, b1); }
+                F(h0, h1, wy0, wy0 + 0.06f, 0.05f); F(h0, h1, wy1 - 0.06f, wy1, 0.05f); F(h0 - 0.02f, h1 + 0.02f, wy0 - 0.03f, wy0, 0.12f); // frame and an inside sill
+                int nm = Mathf.Max(1, Mathf.RoundToInt((h1 - h0) / 1.2f)); for (int m = 0; m <= nm; m++) { float mc = h0 + (h1 - h0) * m / nm; F(mc - 0.03f, mc + 0.03f, wy0, wy1, 0.05f); }
+                if (alongX) { fk.Box(CotMats.glassClear, new Vector3(h0, wy0, tm - 0.005f), new Vector3(h1, wy1, tm + 0.005f)); cols.Add((new Vector3((h0 + h1) * 0.5f, (wy0 + wy1) * 0.5f, tm), new Vector3(h1 - h0, wy1 - wy0, 0.08f))); }
+                else { fk.Box(CotMats.glassClear, new Vector3(tm - 0.005f, wy0, h0), new Vector3(tm + 0.005f, wy1, h1)); cols.Add((new Vector3(tm, (wy0 + wy1) * 0.5f, (h0 + h1) * 0.5f), new Vector3(0.08f, wy1 - wy0, h1 - h0))); }
+            }
+            if (look && j.xa < 0.05f) Ribbon(false, j.za, j.zb, j.xa, xa); else Bx(k, wallM, j.xa, xa, 0f, H, j.za, j.zb, true);
+            if (look && j.xb > W - 0.05f) Ribbon(false, j.za, j.zb, xb, j.xb); else Bx(k, wallM, xb, j.xb, 0f, H, j.za, j.zb, true);
+            if (look) Ribbon(true, j.xa, j.xb, j.front ? 0f : zb, j.front ? za : j.zb); else Bx(k, wallM, j.xa, j.xb, 0f, H, j.front ? 0f : zb, j.front ? za : j.zb, true);
             float dz0 = j.front ? zb : j.za, dz1 = j.front ? j.zb : za;
             float door = j.front ? (j.idx == 0 ? xb - 0.7f : xa + 0.7f) : (xa + xb) * 0.5f;
             door = Mathf.Clamp(door, xa + 0.55f, xb - 0.55f);
@@ -690,7 +709,7 @@ namespace ASBO.Slice
                     ti.pinned = false;
                     // every room of every home in the floors built, and the landings
                     int total = 0, bad = 0, spots = 0, rum = 0; var miss = new List<string>(); float top = 0f; foreach (var p in reached) top = Mathf.Max(top, p.y);
-                    int spotBad = 0; var spotMiss = new List<string>();
+                    int spotBad = 0; var spotMiss = new List<string>(); bool mapped = false;
                     foreach (var h in ti.GetComponentsInChildren<Home>())
                     {
                         if (h == ti.core) continue; spots += h.spots.Count;
@@ -712,8 +731,24 @@ namespace ASBO.Slice
                         foreach (var sp in h.spots)
                         {
                             if (sp.kind != "rummage") continue; rum++; bool ok = false;
-                            foreach (var lp in near) if (Mathf.Abs(lp.y - sp.pos.y) < 0.6f && (lp.x - sp.pos.x) * (lp.x - sp.pos.x) + (lp.z - sp.pos.z) * (lp.z - sp.pos.z) < 1.0f) { ok = true; break; }
-                            if (!ok) { spotBad++; if (spotMiss.Count < 12) spotMiss.Add(h.name + ":" + sp.tag); }
+                            float md = 99f, mdy = 99f; foreach (var lp in near) { float dd = (lp.x - sp.pos.x) * (lp.x - sp.pos.x) + (lp.z - sp.pos.z) * (lp.z - sp.pos.z); if (Mathf.Abs(lp.y - sp.pos.y) < 0.6f) { if (dd < md) md = dd; } else if (dd < mdy) mdy = dd; }
+                            ok = md < 1.55f * 1.55f;
+                            if (!ok) { spotBad++; string why = "";
+                                if (md > 1.8f * 1.8f) { var wp0 = h.transform.TransformPoint(sp.pos); var room = h.rooms.Find(rr => Mathf.Abs(sp.pos.x - rr.centre.x) < (rr.u1 - rr.u0) * 0.5f && Mathf.Abs(sp.pos.z - rr.centre.z) < (rr.d1 - rr.d0) * 0.5f); why = " " + (room != null ? room.type + $"[{room.u1 - room.u0:0.0}x{room.d1 - room.d0:0.0}]" : "?");
+                                    foreach (var c in Physics.OverlapCapsule(wp0 + Vector3.up * 0.65f, wp0 + Vector3.up * 1.5f, 0.28f, ~0, QueryTriggerInteraction.Ignore)) why += "|" + c.name + (c.transform.parent ? "<" + c.transform.parent.name : ""); }
+                                if (md > 1.8f * 1.8f && !mapped) { mapped = true; float bx0 = 99, bx1 = -99, bz0 = 99, bz1 = -99; foreach (var rr in h.rooms) { bx0 = Mathf.Min(bx0, rr.centre.x - (rr.u1 - rr.u0) * 0.5f); bx1 = Mathf.Max(bx1, rr.centre.x + (rr.u1 - rr.u0) * 0.5f); bz0 = Mathf.Min(bz0, rr.centre.z - (rr.d1 - rr.d0) * 0.5f); bz1 = Mathf.Max(bz1, rr.centre.z + (rr.d1 - rr.d0) * 0.5f); }
+                                    var nk = new HashSet<long>(); foreach (var lp in near) if (Mathf.Abs(lp.y - sp.pos.y) < 0.6f) nk.Add((long)Mathf.RoundToInt(lp.x * 5f + 500f) * 4096 + Mathf.RoundToInt(lp.z * 5f + 500f));
+                                    var sb = new System.Text.StringBuilder(); sb.Append($"[ASBO] flatmap {h.name} x {bx0:0.0}..{bx1:0.0} z {bz1:0.0}..{bz0:0.0} spot {sp.tag} at {sp.pos}\n");
+                                    for (float z = bz1; z >= bz0; z -= 0.2f) { for (float x = bx0; x <= bx1; x += 0.2f) {
+                                        char ch; bool sS = false; foreach (var s2 in h.spots) if (Mathf.Abs(s2.pos.x - x) < 0.1f && Mathf.Abs(s2.pos.z - z) < 0.1f) sS = true;
+                                        long kk = (long)Mathf.RoundToInt(x * 5f + 500f) * 4096 + Mathf.RoundToInt(z * 5f + 500f);
+                                        var w2 = h.transform.TransformPoint(new Vector3(x, sp.pos.y, z));
+                                        if (sS) ch = 'S'; else if (nk.Contains(kk)) ch = '.'; else if (Physics.CheckCapsule(w2 + Vector3.up * 0.65f, w2 + Vector3.up * 1.5f, 0.28f, ~0, QueryTriggerInteraction.Ignore)) ch = Physics.CheckBox(w2 + Vector3.up * 1.0f, new Vector3(0.05f, 0.3f, 0.05f), Quaternion.identity, ~0, QueryTriggerInteraction.Ignore) ? '#' : '+'; else ch = 'o';
+                                        sb.Append(ch); } sb.Append('\n'); }
+                                    sb.Append(h.variant + " rooms: "); foreach (var rr in h.rooms) sb.Append($"{rr.type} c{rr.centre.x:0.0},{rr.centre.z:0.0} {rr.u1 - rr.u0:0.0}x{rr.d1 - rr.d0:0.0}; "); sb.Append(" spots: "); foreach (var s2 in h.spots) sb.Append($"{s2.tag}@{s2.pos.x:0.0},{s2.pos.z:0.0}; ");
+                                    foreach (var c in Physics.OverlapBox(h.transform.TransformPoint(new Vector3(0.5f, sp.pos.y + 1.0f, -7.3f)), new Vector3(0.1f, 0.1f, 0.1f))) sb.Append(" HIT " + c.name + "<" + (c.transform.parent ? c.transform.parent.name : "") + " size " + c.bounds.size);
+                                    Debug.Log(sb.ToString()); }
+                                if (spotMiss.Count < 40) spotMiss.Add(h.name.Replace(ti.block, "") + ":" + sp.tag + $"({Mathf.Sqrt(md):0.0}/{Mathf.Sqrt(mdy):0.0}){why}"); }
                         }
                     }
                     miss.Add($"rummage spots out of reach: {spotBad}/{rum} [{string.Join(", ", spotMiss)}]");
@@ -752,6 +787,14 @@ namespace ASBO.Slice
                 if (fl != null)
                     foreach (var h in fl.go.GetComponentsInChildren<Home>())
                     {
+                        if (h.label == "office" && h.spots.Count > 0)
+                        {
+                            // from the middle of the office, looking at its outside wall
+                            Vector3 m = Vector3.zero; foreach (var sp in h.spots) m += sp.pos; m /= h.spots.Count; m = tr.InverseTransformPoint(h.transform.TransformPoint(m));
+                            float wz = m.z < ti.D * 0.5f ? 0f : ti.D; Vector3 at = new Vector3(m.x, y + 1.55f, m.z + (wz < 0.5f ? 0.8f : -0.8f));
+                            pc.Teleport(tr.TransformPoint(new Vector3(m.x, y + 0.2f, m.z)), 0f, 10f); yield return new WaitForSeconds(0.5f);
+                            Shot(at, new Vector3(m.x, y + 1.3f, wz), "office"); continue;
+                        }
                         foreach (var r in h.rooms)
                         {
                             if (r.type == "cupboard") continue;

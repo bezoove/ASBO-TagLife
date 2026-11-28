@@ -51,6 +51,7 @@ namespace ASBO.EditorTools
             if (root == null) return;
             var site = ConstructionSite.Build(world.transform);
             var castle = Castle.Build(world.transform, terrain);
+            if (terrain != null) EditorUtility.SetDirty(terrain.terrainData); // the crypt digs the ground out under itself
             var high = HighStreet.Build(world.transform);
             var casino = CasinoHall.Build(world.transform);
             var manor = TudorManor.Build(world.transform);

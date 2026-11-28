@@ -41,7 +41,7 @@ namespace ASBO.Slice
             float y = HillTop + (terrain != null ? terrain.transform.position.y : 0f);
             var c = new Vector3(Centre.x, y, Centre.z);
             var rng = new System.Random(1066);
-            Walls(root, c, rng); Keep(root, c + new Vector3(-2f, 0, -5f)); Crypt(root, c + new Vector3(8f, 0, -9f));
+            Walls(root, c, rng); Keep(root, c + new Vector3(-2f, 0, -5f)); Crypt(root, c + new Vector3(9f, 0, -3f), terrain);
             if (terrain != null) LaneMesh(root, terrain);
             Debug.Log("[ASBO] castle: built");
             return root;
@@ -316,20 +316,88 @@ namespace ASBO.Slice
             home.zoneRects.Add(Rect.MinMaxRect(p.x + i0, p.z + i0, p.x + i1, p.z + i1)); home.centre = P(0f, 5.5f, 0f); home.radius = 16f; home.midZ = p.z; home.halfD = w / 2 - t;
         }
 
-        /// <summary>The crypt: a low stone hood over steps that go down into the dark.</summary>
-        static void Crypt(Transform root, Vector3 p)
+        /// <summary>
+        /// The crypt: a low stone hood over a steep flight down into a vaulted chamber under the courtyard (the ground is dug out
+        /// beneath and flagged over). Two tombs, a squatter's corner, inscriptions; the tomb lids heave aside.
+        /// Local frame at p: the hood opens north (+z), the steps go down southward, the chamber lies east of the foot of them.
+        /// </summary>
+        static void Crypt(Transform root, Vector3 p, Terrain terrain)
         {
-            var k = new MeshKit();
-            k.Box(M.stone2, p + new Vector3(-1.9f, 0f, -2.5f), p + new Vector3(-1.3f, 2.4f, 1.2f));
-            k.Box(M.stone2, p + new Vector3(1.3f, 0f, -2.5f), p + new Vector3(1.9f, 2.4f, 1.2f));
-            k.Box(M.stone2, p + new Vector3(-1.9f, 2.4f, -2.5f), p + new Vector3(1.9f, 3.0f, 1.2f));
-            k.Box(M.stone2, p + new Vector3(-1.3f, 0f, -2.5f), p + new Vector3(1.3f, 2.4f, -2.0f));
-            // steps descending to a black doorway
-            for (int s = 0; s < 6; s++) k.Box(M.stone2, p + new Vector3(-1.3f, -0.2f - s * 0.25f, 1.2f - s * 0.5f), p + new Vector3(1.3f, 0.05f - s * 0.25f, 0.7f - s * 0.5f));
-            k.Box(M.dark, p + new Vector3(-1.3f, -1.8f, -2.0f), p + new Vector3(1.3f, 2.4f, -1.98f));
-            k.Box(M.iron, p + new Vector3(-0.9f, 0f, 1.2f), p + new Vector3(0.9f, 0.04f, 1.24f));
-            var g = k.Build("CastleCrypt", root, false);
-            var bc = g.AddComponent<BoxCollider>(); bc.center = p + new Vector3(0, 1.5f, -0.65f); bc.size = new Vector3(3.8f, 3f, 3.7f);
+            var k = new MeshKit(); var dk = new MeshKit(); var g = new GameObject("Castle Crypt").transform; g.SetParent(root, false); g.position = p;
+            var cols = new List<(Vector3 mn, Vector3 mx)>();
+            void B(Material m, Vector3 a, Vector3 b, bool col = true) { k.Box(m, a, b); if (col) cols.Add((Vector3.Min(a, b), Vector3.Max(a, b))); }
+            const float fl = -3.0f, ceil = -0.3f, sw = 1.3f, st = 0.6f, zTop = 1.2f, zLand = -3.0f, zBack = -3.6f;
+            float cx0 = sw + st, cx1 = 4.9f, cz0 = zBack, cz1 = 3.6f;      // the chamber's inside
+            // dig the ground out under it all (a cell's margin so no slope pokes through), then flag the courtyard over the top
+            if (terrain != null)
+            {
+                var td = terrain.terrainData; Vector3 tp = terrain.transform.position; int res = td.heightmapResolution; float cell = td.size.x / (res - 1);
+                float rx0 = -sw - st - cell - 0.1f, rx1 = cx1 + st + cell + 0.1f, rz0 = zBack - 0.4f - cell - 0.1f, rz1 = cz1 + st + cell + 0.1f;
+                int x0 = Mathf.CeilToInt((p.x + rx0 - tp.x) / cell), x1 = Mathf.FloorToInt((p.x + rx1 - tp.x) / cell), z0 = Mathf.CeilToInt((p.z + rz0 - tp.z) / cell), z1 = Mathf.FloorToInt((p.z + rz1 - tp.z) / cell);
+                x0 = Mathf.Clamp(x0, 0, res - 1); x1 = Mathf.Clamp(x1, 0, res - 1); z0 = Mathf.Clamp(z0, 0, res - 1); z1 = Mathf.Clamp(z1, 0, res - 1);
+                if (x1 >= x0 && z1 >= z0)
+                {
+                    var h = td.GetHeights(x0, z0, x1 - x0 + 1, z1 - z0 + 1); float v = Mathf.Clamp01((p.y + fl - 0.8f - tp.y) / td.size.y);
+                    for (int j = 0; j < h.GetLength(0); j++) for (int i = 0; i < h.GetLength(1); i++) h[j, i] = Mathf.Min(h[j, i], v);
+                    td.SetHeights(x0, z0, h);
+                }
+                // the flags: a cell beyond the dug-out ground all round, the stairwell left open
+                float px0 = rx0 - cell - 0.2f, px1 = rx1 + cell + 0.2f, pz0 = rz0 - cell - 0.2f, pz1 = rz1 + cell + 0.2f;
+                void Pave(float a0, float a1, float b0, float b1) { if (a1 - a0 < 0.05f || b1 - b0 < 0.05f) return; B(M.stone2, new Vector3(a0, ceil, b0), new Vector3(a1, 0.02f, b1)); }
+                Pave(px0, px1, pz0, zBack - 0.4f); Pave(px0, px1, zTop, pz1); Pave(px0, -sw, zBack - 0.4f, zTop); Pave(sw, px1, zBack - 0.4f, zTop);
+            }
+            // the hood over the stairwell
+            B(M.stone2, new Vector3(-sw - st, 0f, zBack - 0.4f), new Vector3(-sw, 2.4f, zTop));
+            B(M.stone2, new Vector3(sw, 0f, zBack - 0.4f), new Vector3(sw + st, 2.4f, zTop));
+            B(M.stone2, new Vector3(-sw - st, 2.4f, zBack - 0.4f), new Vector3(sw + st, 3.0f, zTop));
+            B(M.stone2, new Vector3(-sw, 0f, zBack - 0.4f), new Vector3(sw, 2.4f, zBack));
+            k.Box(M.iron, new Vector3(-0.9f, 0f, zTop), new Vector3(0.9f, 0.04f, zTop + 0.04f));
+            // twelve steep steps down, solid masonry under each
+            for (int i = 0; i < 12; i++) { float zt = zTop - i * 0.35f, y = -(i + 1) * 0.25f; B(M.stone2, new Vector3(-sw, fl, zt - 0.35f), new Vector3(sw, y, zt)); }
+            // the stairwell's walls below ground, the landing, the doorway east into the chamber
+            B(M.stone, new Vector3(-sw - st, fl, zBack - 0.4f), new Vector3(-sw, 0f, zTop));
+            B(M.stone, new Vector3(-sw, fl, zBack - 0.4f), new Vector3(sw, 0f, zBack));
+            const float dz0 = zBack, dz1 = zBack + 1.25f, dh = fl + 2.1f;
+            B(M.stone, new Vector3(sw, fl, dz1), new Vector3(sw + st, 0f, zTop)); B(M.stone, new Vector3(sw, dh, dz0), new Vector3(sw + st, 0f, dz1));
+            B(M.stone, new Vector3(sw, fl, zBack - 0.4f), new Vector3(cx0, 0f, zBack));                         // the corner by the doorway
+            B(M.stone2, new Vector3(-sw - st, fl - 0.3f, zBack - 0.4f), new Vector3(cx1 + st, fl, cz1 + st)); // one floor under the lot
+            // the chamber: walls, the flags over it as its ceiling, ribs across like a vault
+            B(M.stone, new Vector3(sw, fl, zTop), new Vector3(cx0, ceil, cz1 + st));
+            B(M.stone, new Vector3(cx1, fl, zBack - 0.4f), new Vector3(cx1 + st, ceil, cz1 + st));
+            B(M.stone, new Vector3(sw, fl, cz1), new Vector3(cx1 + st, ceil, cz1 + st));
+            B(M.stone, new Vector3(cx0, fl, zBack - 0.4f), new Vector3(cx1, ceil, zBack));
+            k.Box(M.stone2, new Vector3(cx0, ceil - 0.02f, cz0), new Vector3(cx1, ceil, cz1));
+            for (float z = cz0 + 1.2f; z < cz1 - 0.5f; z += 1.8f) { k.Box(M.stone2, new Vector3(cx0, ceil - 0.35f, z), new Vector3(cx1, ceil - 0.02f, z + 0.3f)); k.Box(M.stone2, new Vector3(cx0, fl, z), new Vector3(cx0 + 0.2f, ceil - 0.35f, z + 0.3f)); k.Box(M.stone2, new Vector3(cx1 - 0.2f, fl, z), new Vector3(cx1, ceil - 0.35f, z + 0.3f)); }
+            // two tombs along the east wall, a broken one with its lid askew
+            foreach (var (tz, askew) in new[] { (-1.4f, false), (1.4f, true) })
+            {
+                B(M.stone2, new Vector3(cx1 - 1.15f, fl, tz - 1.0f), new Vector3(cx1 - 0.25f, fl + 0.8f, tz + 1.0f));
+                if (askew) { k.Push(Matrix4x4.TRS(new Vector3(cx1 - 0.7f, fl + 0.88f, tz + 0.15f), Quaternion.Euler(0f, 14f, 6f), Vector3.one)); k.Box(M.stone, new Vector3(-0.5f, -0.08f, -1.05f), new Vector3(0.5f, 0.08f, 1.05f)); k.Pop(); }
+                else k.Box(M.stone, new Vector3(cx1 - 1.2f, fl + 0.8f, tz - 1.05f), new Vector3(cx1 - 0.2f, fl + 0.96f, tz + 1.05f));
+            }
+            // somebody's been dossing down here: a sleeping bag, candles, cans, a holdall
+            var bagM = M.dark != null ? M.dark : M.iron; var waxM = M.gravel != null ? M.gravel : M.stone;
+            dk.Box(bagM, new Vector3(cx0 + 0.1f, fl, cz1 - 2.2f), new Vector3(cx0 + 0.9f, fl + 0.12f, cz1 - 0.2f));
+            dk.Box(bagM, new Vector3(cx0 + 0.15f, fl, zBack + 0.2f), new Vector3(cx0 + 0.7f, fl + 0.3f, zBack + 0.55f));
+            for (int i = 0; i < 7; i++) { var cp = new Vector3(cx0 + 1.2f + (i % 3) * 0.25f, fl, cz1 - 0.4f - (i / 3) * 0.3f); dk.Cyl(waxM, cp, 0.03f, 0.12f + (i % 2) * 0.08f, 6); }
+            var glowM = CouncilEstate.M != null ? CouncilEstate.M.glow : null;
+            if (glowM != null) for (int i = 0; i < 3; i++) { var cp = new Vector3(cx0 + 1.2f + i * 0.25f, fl + 0.2f + (i % 2) * 0.08f, cz1 - 0.4f); dk.Box(glowM, cp + new Vector3(-0.012f, 0f, -0.012f), cp + new Vector3(0.012f, 0.04f, 0.012f)); }
+            for (int i = 0; i < 5; i++) dk.Cyl(M.iron, new Vector3(cx0 + 0.3f + i * 0.31f, fl, zBack + 1.1f + (i % 2) * 0.2f), 0.033f, 0.12f, 6);
+            // a home for its spots
+            var home = g.gameObject.AddComponent<Home>(); var rng = new System.Random(1067);
+            var hh = Household.Make(10670, rng); hh.kind = Household.Kind.Couple; hh.wealth = 0.6f; hh.stuff = 0.6f; hh.family = "the crypt";
+            home.H = hh; home.label = "The crypt"; home.variant = "crypt"; home.centre = new Vector3(2f, fl + 1.2f, 0f); home.radius = 8f; home.midZ = 0f; home.halfD = 5f;
+            home.zoneRects.Add(Rect.MinMaxRect(-sw, zBack, cx1, cz1));
+            void Sp(string kind, string label, string tag, Vector3 at, bool hidden = false) => home.spots.Add(new Home.SpotRec { kind = kind, label = label, tag = tag, pos = at, room = 0, lv = 0, hidden = hidden });
+            Sp("rummage", "Heave the tomb lid aside", "tomb", new Vector3(cx1 - 1.75f, fl, -1.4f), true);
+            Sp("rummage", "Feel inside the broken tomb", "tomb", new Vector3(cx1 - 1.75f, fl, 1.4f));
+            Sp("rummage", "Go through the holdall", "bag", new Vector3(cx0 + 0.45f, fl, zBack + 1.05f));
+            Sp("rummage", "Feel inside the sleeping bag", "underbed", new Vector3(cx0 + 1.2f, fl, cz1 - 1.3f));
+            Sp("say", "Read the inscription", "HERE LYETH WALTER OF THE WEND, WHO DID KEEP THIS CASTLE. Somebody has added 'BADLY' in biro.", new Vector3(cx1 - 1.75f, fl, -0.2f));
+            Sp("say", "Look at the candles", "Still warm. Whoever lit these isn't far away.", new Vector3(cx0 + 1.5f, fl, cz1 - 1.1f));
+            var go = k.Build("Crypt", g, false, UnityEngine.Rendering.ShadowCastingMode.On); var gd = dk.Build("Crypt clutter", g, false, UnityEngine.Rendering.ShadowCastingMode.Off);
+            var cg = new GameObject("Solid").transform; cg.SetParent(g, false);
+            foreach (var (mn, mx) in cols) { var bc = new GameObject("c").AddComponent<BoxCollider>(); bc.transform.SetParent(cg, false); bc.center = (mn + mx) * 0.5f; bc.size = mx - mn; }
         }
 
         // ------------------------------------------------------------------------------------------ lane

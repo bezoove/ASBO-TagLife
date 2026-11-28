@@ -81,6 +81,8 @@ namespace ASBO.Slice
             public void Frame(Vector3 origin, float yaw) { f = Matrix4x4.TRS(origin, Quaternion.Euler(0, yaw, 0), Vector3.one); k.Push(f); detail.Push(f); flat.Push(f); }
             public void End() { k.Pop(); detail.Pop(); flat.Pop(); f = Matrix4x4.identity; }
             public void Solid(Vector3 mn, Vector3 mx) => solids.Add((f, (mn + mx) * 0.5f, mx - mn));
+            /// <summary>Colliders at a slant (ramps): centre, size and rotation in the frame.</summary>
+            public readonly List<(Matrix4x4 f, Vector3 c, Vector3 s, Quaternion r)> tilted = new List<(Matrix4x4, Vector3, Vector3, Quaternion)>();
             /// <summary>Interiors waiting for the colliders they swap out (index into solids).</summary>
             public readonly List<(TowerInterior ti, int idx)> links = new List<(TowerInterior, int)>();
         }
@@ -108,6 +110,11 @@ namespace ASBO.Slice
             {
                 var g = new GameObject("c"); g.transform.SetParent(col, false); g.transform.position = f.MultiplyPoint3x4(c); g.transform.rotation = f.rotation;
                 var bc = g.AddComponent<BoxCollider>(); bc.size = new Vector3(Mathf.Max(0.05f, s.x), Mathf.Max(0.05f, s.y), Mathf.Max(0.05f, s.z)); made.Add(bc);
+            }
+            foreach (var (f, c, sz, r) in a.tilted)
+            {
+                var g = new GameObject("ramp"); g.transform.SetParent(col, false); g.transform.position = f.MultiplyPoint3x4(c); g.transform.rotation = f.rotation * r;
+                g.AddComponent<BoxCollider>().size = sz;
             }
             foreach (var (ti, idx) in a.links) if (ti != null && idx < made.Count) ti.baked.Add(made[idx]);
         }
@@ -554,46 +561,125 @@ namespace ASBO.Slice
         /// boards, the stair tower, lamp columns and bays on the top deck.</summary>
         static void CarPark(Area a, float L, float D)
         {
-            var k = a.k; const float top = 13.1f, ox0 = 6f, ox1 = 12.5f, oy = 2.6f, deep = 7f;
-            k.Box(concrete, V(-0.05f, -0.6f, -D - 0.05f), V(L + 0.05f, 0.1f, 0.05f));
-            // front with the way in cut out of it (the photograph runs on across the cut)
+            var k = a.k; const float top = 13.1f, ox0 = 6f, ox1 = 12.5f, oy = 2.6f;
+            k.Box(concrete, V(-0.05f, -0.6f, -D - 0.05f), V(L + 0.05f, 0.08f, 0.05f));
+            // the photographed decks on every side, the way in cut out of the front (the photograph runs on across the cut)
             var org = V(L, 0, 0);
             FacWall(k, F04, V(0, 0, 0), V(ox0, 0, 0), 0.1f, top, 0f, Vector3.forward, 99f, org);
             FacWall(k, F04, V(ox1, 0, 0), V(L, 0, 0), 0.1f, top, 0f, Vector3.forward, 99f, org);
             FacWall(k, F04, V(ox0, 0, 0), V(ox1, 0, 0), oy, top, 0f, Vector3.forward, 99f, org);
             FacWall(k, F04, V(0, 0, -D), V(L, 0, -D), 0.1f, top, 0f, Vector3.back);
             FacWall(k, F04, V(0, 0, 0), V(0, 0, -D), 0.1f, top, 0f, Vector3.left); FacWall(k, F04, V(L, 0, 0), V(L, 0, -D), 0.1f, top, 0f, Vector3.right);
-            // the way in: a dark concrete tunnel, the barrier and the pay machine
-            k.Quad(asphalt, V(ox0, 0.06f, 0f), V(ox1, 0.06f, 0f), V(ox1, 0.06f, -deep), V(ox0, 0.06f, -deep), Vector3.up);
-            k.Quad(concrete, V(ox0, oy, 0f), V(ox1, oy, 0f), V(ox1, oy, -deep), V(ox0, oy, -deep), Vector3.down);
-            k.Quad(conc, V(ox0, 0f, 0f), V(ox0, oy, 0f), V(ox0, oy, -deep), V(ox0, 0f, -deep), Vector3.right);
-            k.Quad(conc, V(ox1, 0f, 0f), V(ox1, oy, 0f), V(ox1, oy, -deep), V(ox1, 0f, -deep), Vector3.left);
-            k.Quad(black, V(ox0, 0f, -deep), V(ox1, 0f, -deep), V(ox1, oy, -deep), V(ox0, oy, -deep), Vector3.forward);
+            // the barrier and the pay machine at the way in
             a.detail.Box(yellow, V(ox1 - 0.5f, 0f, -1.4f), V(ox1 - 0.2f, 1.05f, -1.1f));
             for (int i = 0; i < 6; i++) a.detail.Box(i % 2 == 0 ? white : red, V(ox0 + 0.4f + i * 0.95f, 0.92f, -1.29f), V(ox0 + 1.35f + i * 0.95f, 1.02f, -1.21f));
             a.detail.Box(steel, V(ox1 + 0.4f, 0f, 0.2f), V(ox1 + 1.0f, 1.6f, 0.6f)); a.detail.Box(glass, V(ox1 + 0.45f, 1.0f, 0.61f), V(ox1 + 0.95f, 1.4f, 0.62f));
+            a.Solid(V(ox1 + 0.4f, 0f, 0.2f), V(ox1 + 1.0f, 1.6f, 0.6f));
             SignQuad(k, Bld.SignCell(5), V((ox0 + ox1) * 0.5f, oy + 0.45f, 0.03f), Vector3.forward, 4.2f, 0.7f);
             SignQuad(k, Bld.SignCell(4), V(L * 0.55f, 10.3f, 0.04f), Vector3.forward, 11f, 1.83f);
-            for (float x = ox0 + 0.15f; x < ox1; x += (ox1 - ox0) - 0.3f) a.Solid(V(x - 0.15f, 0f, -deep), V(x + 0.15f, oy, 0f));
-            // the stair tower on the far corner, a storey proud of the roof
+            // the stair tower on the far corner, a storey proud of the roof (solid: the ramps are the way up)
             float sx0 = L - 5.5f;
-            k.Box(conc, V(sx0, 0.1f, -5.2f), V(L + 0.4f, top + 2.6f, 0.4f));
+            k.Box(conc, V(sx0, 0.1f, -5.2f), V(L + 0.4f, top + 2.6f, 0.4f)); a.Solid(V(sx0, 0f, -5.2f), V(L + 0.4f, top + 2.6f, 0.4f));
             k.Quad(glass, V(sx0 + 2.2f, 1f, 0.41f), V(sx0 + 3.0f, 1f, 0.41f), V(sx0 + 3.0f, top + 2f, 0.41f), V(sx0 + 2.2f, top + 2f, 0.41f), Vector3.forward);
             k.Box(concrete, V(sx0 - 0.15f, top + 2.6f, -5.35f), V(L + 0.55f, top + 2.85f, 0.55f));
             SignQuad(k, Bld.SignCell(15), V(sx0 + 4.4f, 3f, 0.42f), Vector3.forward, 1.8f, 0.3f);
             SignQuad(k, Bld.SignCell(12), V(sx0 + 1.1f, 2.7f, 0.42f), Vector3.forward, 1.2f, 0.2f);
             k.QuadUV(doors, V(sx0 + 1.6f, 0.1f, 0.42f), V(sx0 + 0.6f, 0.1f, 0.42f), V(sx0 + 0.6f, 2.2f, 0.42f), V(sx0 + 1.6f, 2.2f, 0.42f), Vector3.forward,
                 new Vector2(0.758f, 0), new Vector2(0.992f, 0), new Vector2(0.992f, 1), new Vector2(0.758f, 1));
-            // the top deck: tarmac, bays, a parapet, lamps
-            const float deck = 12f;
-            k.Quad(asphalt, V(0.3f, deck, -0.3f), V(L - 0.3f, deck, -0.3f), V(L - 0.3f, deck, -D + 0.3f), V(0.3f, deck, -D + 0.3f), Vector3.up);
-            foreach (var (x0, z0, x1, z1, nn) in new[] { (0.3f, -0.3f, L - 0.3f, -0.3f, Vector3.back), (0.3f, -D + 0.3f, L - 0.3f, -D + 0.3f, Vector3.forward), (0.3f, -0.3f, 0.3f, -D + 0.3f, Vector3.right), (L - 0.3f, -0.3f, L - 0.3f, -D + 0.3f, Vector3.left) })
-                k.Quad(concrete, V(x0, deck, z0), V(x1, deck, z1), V(x1, top, z1), V(x0, top, z0), nn);
+
+            // ---- the decks: ground, three split by ramps, the open top. Ramps run up the left: strip A (x 0.3..5) up towards the back
+            // from the even decks, strip B (x 5..9) back up towards the front from the odd ones; each deck has the hole the ramp below comes up through.
+            float[] yl = { 0.1f, 3.1f, 6.1f, 9.1f, 12.0f }; const float zF = -8f, zB = -28f, slab = 0.3f, e = 0.3f;
+            float sA0 = e, sA1 = 5f, sB0 = 5f, sB1 = 9f;
+            void Rail(Vector3 mn, Vector3 mx) { k.Box(steel, mn, mx); a.Solid(mn, mx + V(0f, 0.2f, 0f)); }
+            void Slab(float x0, float x1, float z0, float z1, float y, bool soffit)
+            {
+                if (x1 - x0 < 0.05f || z1 - z0 < 0.05f) return;
+                k.Quad(asphalt, V(x0, y, z1), V(x1, y, z1), V(x1, y, z0), V(x0, y, z0), Vector3.up);
+                if (soffit) k.Box(concrete, V(x0, y - slab, z0), V(x1, y - 0.005f, z1));
+                a.Solid(V(x0, y - slab, z0), V(x1, y, z1));
+            }
+            for (int j = 0; j < yl.Length; j++)
+            {
+                float y = yl[j]; bool up = j > 0;
+                float hx0 = (j - 1) % 2 == 0 ? sA0 : sB0, hx1 = (j - 1) % 2 == 0 ? sA1 : sB1;
+                if (!up) Slab(e, L - e, -D + e, -e, y, false);
+                else
+                {
+                    Slab(e, L - e, -D + e, zB, y, true); Slab(e, L - e, zF, -e, y, true);
+                    Slab(e, hx0, zB, zF, y, true); Slab(hx1, L - e, zB, zF, y, true);
+                    // rails round the hole: both long sides (one is the outside wall on strip A) and across the end the ramp is lowest at
+                    if (hx0 > e + 0.01f) Rail(V(hx0 - 0.06f, y, zB), V(hx0, y + 1.1f, zF));
+                    Rail(V(hx1, y, zB), V(hx1 + 0.06f, y + 1.1f, zF));
+                    bool lowFront = (j - 1) % 2 == 0;
+                    if (lowFront) Rail(V(hx0, y, zF), V(hx1, y + 1.1f, zF + 0.06f)); else Rail(V(hx0, y, zB - 0.06f), V(hx1, y + 1.1f, zB));
+                }
+                // the inside of the outer walls: full height round the ground deck (but the way in), a parapet above
+                float wh = up ? (j == yl.Length - 1 ? top - y : 1.1f) : yl[1] - slab - y;
+                foreach (var (w0, w1) in new[] { (V(e, y, -e), V(L - e, y, -e)), (V(L - e, y, -D + e), V(e, y, -D + e)), (V(e, y, -D + e), V(e, y, -e)), (V(L - e, y, -e), V(L - e, y, -D + e)) })
+                {
+                    Vector3 dir = (w1 - w0).normalized, nrm = Vector3.Cross(Vector3.up, dir);
+                    void Face(Vector3 p0, Vector3 p1) { k.Quad(conc, p0, p1, p1 + Vector3.up * wh, p0 + Vector3.up * wh, nrm); a.Solid(Vector3.Min(Vector3.Min(p0, p1), Vector3.Min(p0, p1) - nrm * 0.3f), Vector3.Max(Vector3.Max(p0, p1), Vector3.Max(p0, p1) - nrm * 0.3f) + Vector3.up * (up ? wh + 0.2f : wh)); }
+                    if (!up && Mathf.Abs(w0.z + e) < 0.01f && Mathf.Abs(w1.z + e) < 0.01f) { Face(w0, V(ox0, y, -e)); Face(V(ox1, y, -e), w1); }
+                    else Face(w0, w1);
+                }
+                // columns up to the next deck
+                if (j < yl.Length - 1)
+                    foreach (float cx in new[] { 12f, 19f, 26f }) foreach (float cz in new[] { -9.5f, -18f, -26.5f })
+                    { k.Box(concrete, V(cx - 0.22f, y, cz - 0.22f), V(cx + 0.22f, yl[j + 1] - slab, cz + 0.22f)); a.Solid(V(cx - 0.22f, y, cz - 0.22f), V(cx + 0.22f, yl[j + 1] - slab, cz + 0.22f)); }
+                // bay lines
+                for (int i = 0; i < 11; i++) { float x = 11f + i * 2.5f; if (x > sx0 - 0.5f && j > 0 && j < 4) continue; a.detail.Box(white, V(x, y + 0.002f, -6.3f), V(x + 0.1f, y + 0.012f, -1.6f), 4); a.detail.Box(white, V(x, y + 0.002f, -D + 1.6f), V(x + 0.1f, y + 0.012f, -D + 6.3f), 4); }
+                // strip lights under the deck above
+                if (j < yl.Length - 1) foreach (float lx in new[] { 15.5f, 22.5f, 29.5f }) a.detail.Box(glow, V(lx - 0.6f, yl[j + 1] - slab - 0.06f, -18.1f), V(lx + 0.6f, yl[j + 1] - slab - 0.01f, -17.9f));
+            }
+            // the ramps, with a rail along each open side
+            for (int i = 0; i < 4; i++)
+            {
+                bool A = i % 2 == 0; float x0 = A ? sA0 : sB0, x1 = A ? sA1 : sB1, zl = A ? zF : zB, zh = A ? zB : zF, y0 = yl[i], y1 = yl[i + 1];
+                k.Quad(asphalt, V(x0, y0, zl), V(x1, y0, zl), V(x1, y1, zh), V(x0, y1, zh), Vector3.up);
+                k.Quad(concrete, V(x1, y0 - 0.25f, zl), V(x0, y0 - 0.25f, zl), V(x0, y1 - 0.25f, zh), V(x1, y1 - 0.25f, zh), Vector3.down);
+                Vector3 dirv = V(0f, y1 - y0, zh - zl); float len = dirv.magnitude; var rot = Quaternion.LookRotation(dirv, Vector3.up); Vector3 upv = rot * Vector3.up;
+                Vector3 mid = V((x0 + x1) * 0.5f, (y0 + y1) * 0.5f, (zl + zh) * 0.5f);
+                a.tilted.Add((a.f, mid - upv * 0.125f, V(x1 - x0, 0.25f, len + 0.3f), rot));
+                foreach (float rx in A ? new[] { x1 } : new[] { x0, x1 })
+                {
+                    float ro = rx == x1 ? -0.06f : 0.06f;
+                    Vector3 r0 = V(rx + (ro < 0 ? ro : 0f), y0, zl), r1 = V(rx + (ro > 0 ? ro : 0f), y1, zh);
+                    k.Quad(steel, V(rx, y0 + 1.0f, zl), V(rx, y1 + 1.0f, zh), V(rx, y1 + 1.1f, zh), V(rx, y0 + 1.1f, zl), Vector3.right);
+                    k.Quad(steel, V(rx, y1 + 1.0f, zh), V(rx, y0 + 1.0f, zl), V(rx, y0 + 1.1f, zl), V(rx, y1 + 1.1f, zh), Vector3.left);
+                    for (float t = 0f; t <= 1.001f; t += 0.25f) { float zz = Mathf.Lerp(zl, zh, t), yy = Mathf.Lerp(y0, y1, t); k.Box(steel, V(rx - 0.03f, yy, zz - 0.03f), V(rx + 0.03f, yy + 1.1f, zz + 0.03f)); }
+                    a.tilted.Add((a.f, V(rx, (y0 + y1) * 0.5f + 0.65f, (zl + zh) * 0.5f), V(0.08f, 1.3f, len), rot));
+                }
+            }
+            // the top deck's lamps
+            foreach (float x in new[] { L * 0.4f, L * 0.75f }) foreach (float z in new[] { -D * 0.33f, -D * 0.67f })
+                { k.Cyl(lampCol, V(x, yl[4], z), 0.08f, 6f, 6); a.detail.Box(glow, V(x - 0.35f, yl[4] + 5.85f, z - 0.15f), V(x + 0.35f, yl[4] + 5.85f + 0.15f, z + 0.15f)); }
             k.Box(concrete, V(-0.1f, top, -D - 0.1f), V(L + 0.1f, top + 0.15f, 0.1f));
-            for (int i = 0; i < 14; i++) { float x = 1.5f + i * 2.5f; a.detail.Box(white, V(x, deck, -5.3f), V(x + 0.1f, deck + 0.012f, -0.6f), 4); a.detail.Box(white, V(x, deck, -D + 0.6f), V(x + 0.1f, deck + 0.012f, -D + 5.3f), 4); }
-            foreach (float x in new[] { L * 0.25f, L * 0.75f }) foreach (float z in new[] { -D * 0.33f, -D * 0.67f })
-                { k.Cyl(lampCol, V(x, deck, z), 0.08f, 6f, 6); a.detail.Box(glow, V(x - 0.35f, deck + 5.85f, z - 0.15f), V(x + 0.35f, deck + 6f, z + 0.15f)); }
-            a.Solid(V(0, 0, -D), V(ox0, top, 0)); a.Solid(V(ox1, 0, -D), V(L, top, 0)); a.Solid(V(ox0, oy, -D), V(ox1, top, 0)); a.Solid(V(ox0, 0, -D), V(ox1, oy, -deep));
+
+            // ---- things to do in it: the pay machine to jemmy, a bin on every deck, notices, somebody's bag stashed up top, a trolley, a mattress
+            var hg = new GameObject("Car Park").transform; hg.SetParent(a.root, false); hg.localPosition = a.f.GetColumn(3); hg.localRotation = a.f.rotation;
+            var home = hg.gameObject.AddComponent<Home>(); var rng = new System.Random(3838);
+            var hh = Household.Make(38380, rng); hh.kind = Household.Kind.Couple; hh.wealth = 0.35f; hh.stuff = 0.6f; hh.family = "Kestrel car park";
+            home.H = hh; home.label = "Multi-storey car park"; home.variant = "carpark"; home.centre = V(L * 0.5f, 6f, -D * 0.5f); home.radius = 30f; home.midZ = -D * 0.5f; home.halfD = D * 0.5f;
+            home.zoneRects.Add(Rect.MinMaxRect(e, -D + e, L - e, -e));
+            void Sp(string kind, string label, string tag, Vector3 p, bool hidden = false) => home.spots.Add(new Home.SpotRec { kind = kind, label = label, tag = tag, pos = p, room = 0, lv = 0, hidden = hidden });
+            Sp("rummage", "Jemmy the pay machine", "till", V(ox1 + 0.7f, 0.1f, 1.15f));
+            Sp("read", "Read the notices", "notice", V(ox0 - 1.2f, 0.1f, -1.0f));
+            for (int j = 0; j < yl.Length; j++)
+            {
+                Vector3 bp = V(20f + (j % 2) * 6f, yl[j], -D + 1.1f);
+                k.Cyl(black, bp, 0.32f, 1.05f, 10); a.Solid(bp + V(-0.32f, 0f, -0.32f), bp + V(0.32f, 1.05f, 0.32f));
+                Sp("rummage", "Go through the bin", "bin", bp + V(0f, 0f, 0.75f));
+            }
+            Sp("say", "Read the graffiti", "Somebody's written KEZZA 4 DEAN in a heart, and somebody else has crossed DEAN out.", V(L * 0.5f, yl[1], -e - 0.7f));
+            Sp("say", "Look over the edge", "The whole estate from up here. Kestrel Point's lifts are out again; you can tell by the queue.", V(L - e - 0.6f, yl[4], -18f));
+            // the stash: a sports bag tucked behind the last column on the top deck
+            a.detail.Box(black, V(L - e - 0.9f, yl[4], -D + e + 0.2f), V(L - e - 0.3f, yl[4] + 0.32f, -D + e + 0.55f));
+            Sp("rummage", "Unzip the sports bag", "bag", V(L - e - 0.6f, yl[4], -D + e + 1.2f), true);
+            // a trolley on deck one, a dumped mattress on deck two
+            Vector3 tp = V(16f, yl[1], -31f); a.detail.Box(steel, tp, tp + V(0.55f, 0.9f, 0.9f)); a.Solid(tp, tp + V(0.55f, 0.9f, 0.9f));
+            Vector3 mp = V(30f, yl[2], -13f); a.detail.Box(TownMats.bed != null ? TownMats.bed : white, mp, mp + V(1.4f, 0.22f, 1.9f));
+            Sp("rummage", "Look under the mattress", "underbed", mp + V(0.7f, 0f, 2.5f));
         }
 
         /// <summary>A parade with the photographed brick over its shopfronts (Thornbury Parade): shops between stone

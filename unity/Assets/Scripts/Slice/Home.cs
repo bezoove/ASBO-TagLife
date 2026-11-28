@@ -124,8 +124,10 @@ namespace ASBO.Slice
             {
                 var s = spots[i]; Vector3 w = transform.TransformPoint(s.pos);
                 Vector3 d = w - me; float dy = d.y; d.y = 0f; float dist = d.magnitude;
-                float reach = s.kind == "sit" || s.kind == "lie" ? 1.0f : 1.15f;
+                float reach = s.kind == "sit" || s.kind == "lie" ? 1.0f : s.kind == "rummage" ? 1.6f : 1.15f;
                 if (dist > reach || dy < -0.6f || dy > 2.0f) continue;
+                // a long reach (across a bed, over a worktop) mustn't go through a wall
+                if (dist > 1.15f) { Vector3 eye = me + Vector3.up * 1.1f, to = w + Vector3.up * 0.75f; if (Physics.Raycast(eye, to - eye, out var blk, Mathf.Max(0f, (to - eye).magnitude - 0.6f), ~0, QueryTriggerInteraction.Ignore)) continue; }
                 float ang = dist < 0.05f ? 0f : Vector3.Angle(fwd, d); if (ang > 70f) continue;
                 float sc = dist + ang / 70f + 0.1f; if (sc < score) { score = sc; best = i; }
             }
@@ -212,6 +214,7 @@ namespace ASBO.Slice
                 case "toolbox": return "You flip the toolbox open...";
                 case "boxes": return "You rip the tape off the boxes...";
                 case "tarp": return "You drag the tarp back...";
+                case "tomb": return "You put your shoulder to the stone lid. It grinds...";
                 default: return "You poke about in it...";
             }
         }

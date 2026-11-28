@@ -278,7 +278,7 @@ namespace ASBO.Slice
         /// <summary>Drive flat out down the long road with the real camera: how far back it sits and how steady the car is on screen.</summary>
         public static void CamTest(string id) { var r = new GameObject("CamTest").AddComponent<CamTestRun>(); r.id = string.IsNullOrEmpty(id) ? "hatch90" : id; }
         /// <summary>Where the frame time goes: on foot, sat in a car, then driving (Unity's own timers, a few seconds each).</summary>
-        public static void PerfRun(string id) { var r = new GameObject("PerfRun").AddComponent<PerfRunner>(); r.id = string.IsNullOrEmpty(id) ? "hatch90" : id; }
+        public static void PerfRun(string id) { PerfRunner.spawning = true; var r = new GameObject("PerfRun").AddComponent<PerfRunner>(); PerfRunner.spawning = false; r.id = string.IsNullOrEmpty(id) ? "hatch90" : id; }
         public static void TouchDrive() { new GameObject("TouchDriveTest").AddComponent<TouchDriveTest>().Run(); }
         public static void EditSwitch() { if (TouchControls.I != null) TouchControls.I.SwitchEditSet(); }
         public static void EditPreset() { if (TouchControls.I != null) TouchControls.I.NextPreset(); }
@@ -1352,6 +1352,9 @@ namespace ASBO.Slice
     public class PerfRunner : MonoBehaviour
     {
         public string id; int fixedSteps;
+        // only runs when asked for: a copy that got saved into a scene would otherwise fire at every play
+        [System.NonSerialized] public static bool spawning;
+        void Awake() { if (!spawning) { Destroy(gameObject); enabled = false; } }
         void FixedUpdate() { fixedSteps++; }
         static readonly (Unity.Profiling.ProfilerCategory cat, string name)[] Marks =
         {

@@ -241,7 +241,7 @@ namespace ASBO.Slice
                     k.Box(TownMats.panelDark != null ? TownMats.panelDark : blue, new Vector3(cx - 0.65f, 0.15f, 0.8f), new Vector3(cx + 0.65f, 0.95f, z1 - 0.4f)); C(new Vector3(cx - 0.72f, 0f, 0.8f), new Vector3(cx + 0.72f, 1.4f, z1 - 0.4f));
                     k.Box(TownMats.panelDark != null ? TownMats.panelDark : blue, new Vector3(cx - 0.58f, 0.95f, 1.9f), new Vector3(cx + 0.58f, 1.4f, 3.6f));
                     foreach (float wz in new[] { 1.4f, z1 - 1.1f }) foreach (float wx in new[] { cx - 0.72f, cx + 0.57f }) Wheel(new Vector3(wx, 0.3f, wz), 0.3f, 0.15f);
-                    Spot("tarp", "Pull the cover back", new Vector3(x0 + 0.05f + 0.3f, 0f, 2.6f));
+                    Spot("tarp", "Pull the cover back", new Vector3(cx, 0f, 0.45f));
                     break;
                 default:
                     // cleared out but for the leftovers: a box, a dead bike against the wall, a broom
