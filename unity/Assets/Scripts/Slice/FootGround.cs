@@ -19,7 +19,7 @@ namespace ASBO.Slice
         /// below (which held the body down while only the legs moved).</summary>
         public bool airborne;
         /// <summary>Head looks at this world point with this weight (crouched: the capture has the head down at the floor; this keeps it up, looking where you're going).</summary>
-        public float lookW, lowerBy; public Vector3 lookAt; float lookNow, lowerNow;
+        public float lookW, lowerBy, leanFwd; public Vector3 lookAt; float lookNow, lowerNow, leanNow;
         /// <summary>Sat in a car's seat: where the body, feet and hands go (world space; set every frame by whoever sat us down).</summary>
         public bool sat; public Vector3 satBody, satFootL, satFootR, satHandL, satHandR; public Quaternion satRot = Quaternion.identity;
         void Goal(AvatarIKGoal g, Vector3 p, float w, float rw) { anim.SetIKPositionWeight(g, w); anim.SetIKPosition(g, p); anim.SetIKRotationWeight(g, rw); if (rw > 0f) anim.SetIKRotation(g, satRot * Quaternion.Euler(-25f, 0f, 0f)); }
@@ -81,6 +81,12 @@ namespace ASBO.Slice
             var lp = transform.localPosition; lp.y = rootFix; transform.localPosition = lp;
         }
 
+        /// <summary>Tip a spine bone forward by deg (about the body's own left-right axis).</summary>
+        void Lean(HumanBodyBones b, float deg)
+        {
+            var t = anim.GetBoneTransform(b); if (t == null || t.parent == null) return;
+            anim.SetBoneLocalRotation(b, Quaternion.Inverse(t.parent.rotation) * (Quaternion.AngleAxis(deg, anim.transform.right) * t.rotation));
+        }
         void OnAnimatorIK(int layer)
         {
             if (sat && anim != null && anim.isHuman && layer == 0)
@@ -94,6 +100,8 @@ namespace ASBO.Slice
             if (off || anim == null || !anim.enabled || !anim.isHuman || layer != 0) return;
             lookNow = Mathf.MoveTowards(lookNow, lookW, 3f * Time.deltaTime);
             if (lookNow > 0.01f) { anim.SetLookAtWeight(lookNow, 0.25f, 0.9f, 1f, 0.6f); anim.SetLookAtPosition(lookAt); }
+            leanNow = Mathf.MoveTowards(leanNow, leanFwd, 45f * Time.deltaTime);
+            if (Mathf.Abs(leanNow) > 0.1f) { Lean(HumanBodyBones.Spine, leanNow * 0.5f); Lean(HumanBodyBones.Chest, leanNow * 0.5f); }
             if (airborne) { lW = rW = 0f; lOff = rOff = 0f; pelvis = 0f; lPin.on = rPin.on = false; lPin.w = rPin.w = 0f; return; }
             float k = 1f - Mathf.Exp(-16f * Time.deltaTime);
             bool lok = Probe(AvatarIKGoal.LeftFoot, anim.leftFeetBottomHeight, out var lp, out var lr, out var lo);

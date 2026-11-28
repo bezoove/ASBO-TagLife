@@ -171,6 +171,25 @@ namespace ASBO.Slice
         public static void TraverseTest(int only) { TraverseTestRun.Only = only; new GameObject("TraverseTest").AddComponent<TraverseTestRun>(); }
         public static void ThrowTest() { new GameObject("ThrowTest").AddComponent<ThrowTestRun>(); }
         public static void ThrowAnimTest() { new GameObject("ThrowAnimTest").AddComponent<ThrowAnimTestRun>(); }
+        /// <summary>For a sample of baked props, shoot a ray at each from 3 m away: does the first thing hit belong to the prop solids?</summary>
+        public static void SolidCheck()
+        {
+            int tried = 0, ok = 0, miss = 0, holders = 0; var bad = new System.Text.StringBuilder();
+            foreach (var s in PropSet.All)
+            {
+                if (s == null || s.recs == null) continue; if (s.transform.Find("PropSolids") != null) holders++;
+                for (int i = 0; i < s.recs.Length && tried < 400; i += 7)
+                {
+                    if (s.gone[i]) continue; var r = s.recs[i]; var e = PropLib.Get(r.id); if (e == null || e.kind == PropLib.Kind.Pickup || e.kind == PropLib.Kind.Door || e.size.y < 0.5f || Mathf.Max(e.size.x, e.size.z) < 0.3f) continue;
+                    Vector3 c = s.transform.TransformPoint(r.pos + Quaternion.Euler(0, r.yaw, 0) * e.center); Vector3 o = c + new Vector3(3f, 0f, 0f); o.y = c.y;
+                    tried++;
+                    if (Physics.Raycast(o, (c - o).normalized, out var h, 3.5f, ~(1 << 2), QueryTriggerInteraction.Ignore) && h.collider != null && h.collider.transform.parent != null && h.collider.transform.parent.name == "PropSolids") ok++;
+                    else { miss++; if (miss < 8) bad.Append(r.id + "@" + c.ToString("F1") + (Physics.Raycast(o, (c - o).normalized, out var h2, 3.5f) ? "(hit " + h2.collider.name + ") " : "(nothing) ")); }
+                }
+            }
+            Debug.Log($"[ASBO] solidcheck: sets with solids={holders} tried={tried} solid={ok} other={miss} {bad}");
+        }
+        public static void CrouchTest() { new GameObject("CrouchTest").AddComponent<CrouchTestRun>(); }
         public static void MobTest() { new GameObject("MobTest").AddComponent<MobTestRun>(); }
         public static void BrawlHits(float secs) { var r = new GameObject("BrawlTest").AddComponent<BrawlTestRun>(); r.onHit = true; r.secs = secs; r.kickFinish = true; }
         public static void TalkTest() { new GameObject("TalkTest").AddComponent<TalkTestRun>(); }
@@ -1968,6 +1987,35 @@ namespace ASBO.Slice
                 if (!released) { foreach (var t in Throwable.All) if (t != null && t.Free && (t.transform.position - pc.transform.position).sqrMagnitude < 9f && t.rb.linearVelocity.magnitude > 4f) { released = true; relAt = Time.time - t0; br = t; } }
             }
             Debug.Log($"[ASBO] throwanim: released={released} at {relAt:F2}s speed={(br != null ? br.rb.linearVelocity.magnitude : 0f):F1}");
+            Destroy(cg); Destroy(rt); Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Crouch and hold still, then creep, filmed from the side and from the back.</summary>
+    public class CrouchTestRun : MonoBehaviour
+    {
+        System.Collections.IEnumerator Start()
+        {
+            yield return new WaitForSeconds(9f);
+            var pc = FindFirstObjectByType<PlayerCtl>(); string dir = System.IO.Path.GetFullPath(Application.dataPath + "/../Shots/crouch"); System.IO.Directory.CreateDirectory(dir);
+            var cg = new GameObject("CrouchCam"); var cam = cg.AddComponent<Camera>(); cam.fieldOfView = 45f; cam.nearClipPlane = 0.1f;
+            var rt = new RenderTexture(360, 360, 24); cam.targetTexture = rt; cam.enabled = false; var tex = new Texture2D(360, 360, TextureFormat.RGB24, false);
+            int n = 0;
+            void Shot(string tag, bool side)
+            {
+                Vector3 p = pc.transform.position; Vector3 dirv = side ? pc.transform.right : -pc.transform.forward;
+                cam.transform.position = p + dirv * 3.4f + Vector3.up * 1.0f; cam.transform.LookAt(p + Vector3.up * 0.7f); cam.Render();
+                RenderTexture.active = rt; tex.ReadPixels(new Rect(0, 0, 360, 360), 0, 0); tex.Apply(); RenderTexture.active = null;
+                System.IO.File.WriteAllBytes($"{dir}/c{n++:D2}_{tag}.png", tex.EncodeToPNG());
+            }
+            pc.Teleport(new Vector3(-118f, 0.1f, 88f), 90f, 8f); yield return new WaitForSeconds(1.5f);
+            Shot("stand_side", true);
+            PlayerCtl.crouchTap = true; yield return new WaitForSeconds(2.0f);
+            Shot("idle_side", true); Shot("idle_back", false);
+            PlayerCtl.TestInput = new Vector2(0f, 1f); yield return new WaitForSeconds(1.0f);
+            Shot("creep_side", true); Shot("creep_back", false);
+            PlayerCtl.TestInput = null; PlayerCtl.crouchTap = true; yield return new WaitForSeconds(0.5f);
+            Debug.Log("[ASBO] crouch test done");
             Destroy(cg); Destroy(rt); Destroy(gameObject);
         }
     }

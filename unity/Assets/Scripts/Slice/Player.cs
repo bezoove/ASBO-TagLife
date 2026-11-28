@@ -300,7 +300,7 @@ namespace ASBO.Slice
             if (fg != null)
             {
                 // crouched: a touch lower, head up and looking where you're heading (not down at the floor)
-                fg.lookW = crouched ? 0.9f : 0f; fg.lowerBy = crouched ? 0.07f : 0f;
+                fg.lookW = crouched ? 0.9f : 0f; fg.lowerBy = crouched ? 0.07f : 0f; fg.leanFwd = crouched ? (vel.sqrMagnitude > 0.25f ? 0f : -12f) : 0f;
                 Vector3 lf = vel.sqrMagnitude > 0.25f ? vel.normalized : transform.forward;
                 fg.lookAt = transform.position + lf * 4f + Vector3.up * 0.95f;
             }
@@ -709,6 +709,8 @@ namespace ASBO.Slice
             Vector3 focus = tgt.position + Vector3.up * (inCar ? 1.6f : 1.55f);
             if (!inCar && person != null && person.state != Person.State.Walking) focus = person.BodyPos + Vector3.up * 0.5f;
             if (spectate && Person.LastHit != null) focus = Person.LastHit.BodyPos + Vector3.up * 0.6f;
+            // climbing: keep the camera's target on this side of the wall so the view never ends up inside it
+            if (climbing && !inCar && ledgeNormal.sqrMagnitude > 0.01f) { Vector3 wn = ledgeNormal; wn.y = 0f; if (wn.sqrMagnitude > 0.01f) focus += wn.normalized * 0.8f; }
             if (inCar && VehT != null && !doorBusy)
             {
                 // locked to the car across the ground (no trailing behind at speed); only bumps are eased so the view doesn't shake

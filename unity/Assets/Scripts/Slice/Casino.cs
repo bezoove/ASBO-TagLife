@@ -602,7 +602,7 @@ namespace ASBO.Slice
                     int n = seen.TryGetValue(id, out var c) ? c : 0; seen[id] = n + 1;
                     if (System.Array.IndexOf(picks, n) < 0) continue;
                     var e = PropLib.Get(id); if (e == null) continue;
-                    Quaternion q = props.Rot(i); Vector3 at = props.World(i) + q * new Vector3(0f, Mathf.Max(0f, e.seat - 0.46f), -0.06f);
+                    Quaternion q = props.Rot(i); bool leaner = id == "slot_stool" || id == "bar_stool"; Vector3 at = props.World(i) + q * new Vector3(0f, Mathf.Max(0f, e.seat - 0.46f), leaner ? -0.16f : -0.06f);
                     bool staff = id == "office_chair" || id == "sofa";
                     var p = World.MakePerson(at, staff ? Color.black : new Color(0.3f, 0.3f, 0.35f), staff ? Color.black : new Color(0.2f, 0.2f, 0.22f), staff ? "Staff" : "Punter");
                     p.transform.rotation = Quaternion.Euler(0, q.eulerAngles.y, 0); p.gameObject.AddComponent<SitPose>().lean = id == "slot_stool" || id == "bar_stool"; inside.Add(p.gameObject);
